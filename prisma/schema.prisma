@@ -1,0 +1,321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                  String                @id @default(cuid())
+  mobileNumber        String                @unique
+  passwordHash        String
+  mustChangePassword  Boolean               @default(false)
+  role                UserRole
+  isActive            Boolean               @default(true)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  paymentReceipts     PaymentReceipt[]      @relation("PaymentReceiptUploader")
+  createdAgreementTemplates AgreementTemplate[] @relation("AgreementTemplateCreator")
+  parentApplications  Application[]         @relation("ParentUserApplications")
+  studentApplications Application?          @relation("StudentUserApplications")
+  uploadedDocuments   ApplicationDocument[] @relation("ApplicationDocumentUploader")
+  sentNotes           ApplicationNote[]     @relation("ApplicationNoteSender")
+  notifications       Notification[]
+}
+
+model Application {
+  id                   String                @id @default(cuid())
+  studentUserId        String                @unique
+  parentUserId         String
+  status               ApplicationStatus     @default(NEW)
+  totalCostSar         Decimal               @default(0) @db.Decimal(10, 2)
+  paidAmountSar        Decimal               @default(0) @db.Decimal(10, 2)
+  studentInfoLocked    Boolean               @default(false)
+  studentBasicInfoLocked Boolean             @default(false)
+  studentAdditionalInfoLocked Boolean        @default(false)
+  parentInfoLocked     Boolean               @default(false)
+  fatherInfoLocked     Boolean               @default(false)
+  motherInfoLocked     Boolean               @default(false)
+  guardianInfoLocked   Boolean               @default(false)
+  documentsLocked      Boolean               @default(false)
+  studentDocumentsLocked Boolean             @default(false)
+  parentDocumentsLocked Boolean              @default(false)
+  guardianDocumentsLocked Boolean            @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  showPaymentToStudent Boolean               @default(false)
+  studentLastViewedNotesAt DateTime?
+  parentLastViewedNotesAt  DateTime?
+  adminLastViewedNotesAt   DateTime?
+  studentLastViewedStudentThreadAt DateTime?
+  parentLastViewedStudentThreadAt  DateTime?
+  parentLastViewedParentThreadAt   DateTime?
+  adminLastViewedStudentThreadAt   DateTime?
+  adminLastViewedParentThreadAt    DateTime?
+  parentUser           User                  @relation("ParentUserApplications", fields: [parentUserId], references: [id])
+  studentUser          User                  @relation("StudentUserApplications", fields: [studentUserId], references: [id])
+  documents            ApplicationDocument[]
+  fees                 ApplicationFee[]
+  payments             ApplicationPayment[]
+  paymentReceipts      PaymentReceipt[]
+  agreements           ApplicationAgreement[]
+  notes                ApplicationNote[]
+  parentProfiles       ParentProfile[]
+  studentProfile       StudentProfile?
+}
+
+model AgreementTemplate {
+  id                 String                 @id @default(cuid())
+  title              String
+  content            String                 @db.Text
+  acknowledgmentText String                 @db.Text
+  isDefault          Boolean                @default(false)
+  isActive           Boolean                @default(true)
+  createdByUserId    String?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  createdByUser      User?                  @relation("AgreementTemplateCreator", fields: [createdByUserId], references: [id])
+  assignedAgreements ApplicationAgreement[]
+}
+
+model ApplicationAgreement {
+  id                    String             @id @default(cuid())
+  applicationId         String
+  templateId            String?
+  title                 String
+  contentSnapshot       String             @db.Text
+  acknowledgmentSnapshot String             @db.Text
+  assignedAt            DateTime           @default(now())
+  requiresStudentAcceptance Boolean        @default(true)
+  requiresParentAcceptance Boolean         @default(true)
+  studentAccepted       Boolean            @default(false)
+  parentAccepted        Boolean            @default(false)
+  studentAcceptedAt     DateTime?
+  parentAcceptedAt      DateTime?
+  studentFullName       String?
+  parentFullName        String?
+  studentSignature      String?            @db.Text
+  parentSignature       String?            @db.Text
+  cancellationRequestedAt DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  application           Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  template              AgreementTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([applicationId])
+}
+
+model StudentProfile {
+  id               String      @id @default(cuid())
+  applicationId    String      @unique
+  fullNameAr       String?
+  fullNameEn       String?
+  birthDate        DateTime?
+  gender           String?
+  nationality      String?
+  city             String?
+  schoolName       String?
+  passportNumber   String?     @unique
+  nationalIdNumber String?     @unique
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  application      Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model ParentProfile {
+  id                String      @id @default(cuid())
+  applicationId     String
+  type              ParentType
+  fullName          String?
+  mobileNumber      String?
+  passportNumber    String?
+  nationalIdNumber  String?
+  relationToStudent String?
+  isDeceased        Boolean     @default(false)
+  note              String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  application       Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, type])
+}
+
+model DocumentRequirement {
+  id                   String                @id @default(cuid())
+  code                 String                @unique
+  titleAr              String
+  descriptionAr        String?
+  category             DocumentCategory
+  allowedUploaderRoles AllowedUploaderRole[]
+  isActive             Boolean               @default(true)
+  sortOrder            Int                   @default(0)
+  isAlwaysRequired     Boolean               @default(false)
+  requiresUnder16      Boolean               @default(false)
+  requiresGuardianCase Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  applicationDocuments ApplicationDocument[]
+}
+
+model FileAsset {
+  id                   String                @id @default(cuid())
+  storageKey           String
+  originalName         String
+  mimeType             String
+  sizeBytes            Int
+  createdAt            DateTime              @default(now())
+  applicationDocuments ApplicationDocument[]
+  paymentReceipts      PaymentReceipt[]
+}
+
+model ApplicationDocument {
+  id               String              @id @default(cuid())
+  applicationId    String
+  requirementId    String
+  fileAssetId      String?
+  status           DocumentStatus      @default(MISSING)
+  adminNote        String?
+  uploadedByUserId String?
+  reviewedAt       DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  application      Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fileAsset        FileAsset?          @relation(fields: [fileAssetId], references: [id])
+  requirement      DocumentRequirement @relation(fields: [requirementId], references: [id])
+  uploadedByUser   User?               @relation("ApplicationDocumentUploader", fields: [uploadedByUserId], references: [id])
+
+  @@unique([applicationId, requirementId])
+}
+
+model ApplicationNote {
+  id            String      @id @default(cuid())
+  applicationId String
+  senderUserId  String
+  threadType    MessageThreadType @default(STUDENT)
+  noteType      ApplicationNoteType @default(MESSAGE)
+  senderRole    UserRole?
+  senderName    String?
+  body          String
+  createdAt     DateTime    @default(now())
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  senderUser    User        @relation("ApplicationNoteSender", fields: [senderUserId], references: [id])
+}
+
+model PaymentReceipt {
+  id               String         @id @default(cuid())
+  applicationId    String
+  fileAssetId      String
+  status           DocumentStatus @default(UPLOADED)
+  adminNote        String?
+  uploadedByUserId String?
+  reviewedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  application      Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fileAsset        FileAsset      @relation(fields: [fileAssetId], references: [id])
+  uploadedByUser   User?          @relation("PaymentReceiptUploader", fields: [uploadedByUserId], references: [id])
+  payments         ApplicationPayment[]
+}
+
+model ApplicationFee {
+  id            String      @id @default(cuid())
+  applicationId String
+  title         String
+  amount        Decimal     @db.Decimal(10, 2)
+  feeDate       DateTime?
+  note          String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model ApplicationPayment {
+  id              String         @id @default(cuid())
+  applicationId   String
+  amount          Decimal        @db.Decimal(10, 2)
+  paymentDate     DateTime
+  note            String?
+  paymentReceiptId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  application     Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  paymentReceipt  PaymentReceipt? @relation(fields: [paymentReceiptId], references: [id])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  title       String
+  description String?          @db.Text
+  type        NotificationType
+  actorName   String?
+  actorRole   String?
+  isRead      Boolean          @default(false)
+  link        String?
+  createdAt   DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+}
+
+enum UserRole {
+  ADMIN
+  STUDENT
+  PARENT
+}
+
+enum ApplicationStatus {
+  NEW
+  INCOMPLETE
+  UNDER_REVIEW
+  WAITING_PAYMENT
+  COMPLETED
+}
+
+enum ParentType {
+  FATHER
+  MOTHER
+  GUARDIAN
+}
+
+enum DocumentCategory {
+  STUDENT
+  PARENT
+  GUARDIAN
+  PAYMENT
+}
+
+enum DocumentStatus {
+  MISSING
+  UPLOADED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  REUPLOAD_REQUESTED
+}
+
+enum AllowedUploaderRole {
+  ADMIN
+  STUDENT
+  PARENT
+}
+
+enum MessageThreadType {
+  STUDENT
+  PARENT
+}
+
+enum ApplicationNoteType {
+  NOTE
+  MESSAGE
+}
+
+enum NotificationType {
+  MESSAGE
+  DOCUMENT
+  PAYMENT
+  AGREEMENT
+}
