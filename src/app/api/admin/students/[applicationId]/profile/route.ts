@@ -15,6 +15,7 @@ export async function POST(
     const result = await updateAdminStudentProfile({
       applicationId,
       mobileNumber: String(formData.get("mobileNumber") ?? "").trim(),
+      email: String(formData.get("email") ?? "").trim(),
       fullNameAr: String(formData.get("fullNameAr") ?? "").trim(),
       fullNameEn: String(formData.get("fullNameEn") ?? "").trim(),
       birthDate: String(formData.get("birthDate") ?? "").trim(),
@@ -23,6 +24,9 @@ export async function POST(
       nationality: String(formData.get("nationality") ?? "").trim(),
       city: String(formData.get("city") ?? "").trim(),
       schoolName: String(formData.get("schoolName") ?? "").trim(),
+      languageLevel: String(formData.get("languageLevel") ?? "").trim(),
+      hobbies: String(formData.get("hobbies") ?? "").trim(),
+      schoolStage: String(formData.get("schoolStage") ?? "").trim(),
       passportNumber: String(formData.get("passportNumber") ?? "").trim(),
       nationalIdNumber: String(formData.get("nationalIdNumber") ?? "").trim(),
     });

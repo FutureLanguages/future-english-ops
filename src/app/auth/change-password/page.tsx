@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { changePasswordAction } from "./actions";
 import { requireAuthenticatedSession } from "@/features/auth/server/session";
-import { PasswordField } from "@/components/shared/password-field";
+import { ChangePasswordForm } from "@/components/auth/change-password-form";
 
 const errorMessages = {
   missing_fields: "يرجى تعبئة جميع الحقول المطلوبة.",
@@ -46,53 +46,7 @@ export default async function ChangePasswordPage({
           </p>
         </div>
 
-        <form action={changePasswordAction} className="mt-6 space-y-4">
-          <PasswordField
-            id="currentPassword"
-            name="currentPassword"
-            label="كلمة المرور الحالية"
-            placeholder="أدخل كلمة المرور الحالية"
-            required
-          />
-          <PasswordField
-            id="newPassword"
-            name="newPassword"
-            label="كلمة المرور الجديدة"
-            placeholder="أدخل كلمة المرور الجديدة"
-            required
-          />
-          <PasswordField
-            id="confirmPassword"
-            name="confirmPassword"
-            label="تأكيد كلمة المرور الجديدة"
-            placeholder="أعد إدخال كلمة المرور الجديدة"
-            required
-          />
-
-          <div className="rounded-2xl bg-mist px-4 py-4 text-sm leading-7 text-ink/70">
-            <div className="font-bold text-ink">شروط كلمة المرور</div>
-            <ul className="mt-2 space-y-1">
-              <li>8 أحرف على الأقل</li>
-              <li>حرف كبير واحد على الأقل</li>
-              <li>حرف صغير واحد على الأقل</li>
-              <li>رقم واحد على الأقل</li>
-              <li>رمز خاص واحد على الأقل</li>
-            </ul>
-          </div>
-
-          {error ? (
-            <div className="rounded-2xl bg-[#ffe8e8] px-4 py-3 text-sm font-medium text-[#a03232]">
-              {error}
-            </div>
-          ) : null}
-
-          <button
-            type="submit"
-            className="w-full rounded-2xl bg-pine px-5 py-3 text-sm font-semibold text-white"
-          >
-            حفظ كلمة المرور
-          </button>
-        </form>
+        <ChangePasswordForm action={changePasswordAction} error={error} />
       </div>
     </main>
   );

@@ -13,6 +13,7 @@ export function AdminStudentProfileForm({
   applicationId: string;
   values: {
     mobileNumber: string;
+    email: string;
     fullNameAr: string;
     fullNameEn: string;
     birthDate: string;
@@ -20,6 +21,9 @@ export function AdminStudentProfileForm({
     nationality: string;
     city: string;
     schoolName: string;
+    languageLevel: string;
+    hobbies: string;
+    schoolStage: string;
     passportNumber: string;
     nationalIdNumber: string;
   };
@@ -43,6 +47,12 @@ export function AdminStudentProfileForm({
     }
     if (code === "invalid_english_fields") {
       return "تحقق من الاسم الإنجليزي ورقم الجواز بالأحرف الإنجليزية فقط.";
+    }
+    if (code === "invalid_email") {
+      return "يرجى إدخال بريد إلكتروني صحيح.";
+    }
+    if (code === "email_in_use") {
+      return "هذا البريد الإلكتروني مستخدم مسبقًا.";
     }
     if (code === "duplicate_identity_number") {
       return "هذا الرقم مستخدم مسبقًا";
@@ -101,6 +111,16 @@ export function AdminStudentProfileForm({
             name="mobileNumber"
             defaultValue={values.mobileNumber}
             placeholder="أدخل رقم الجوال"
+            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-ink">البريد الإلكتروني (اختياري)</label>
+          <input
+            name="email"
+            type="email"
+            defaultValue={values.email}
+            placeholder="example@email.com"
             className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
           />
         </div>
@@ -190,6 +210,38 @@ export function AdminStudentProfileForm({
             name="schoolName"
             defaultValue={values.schoolName}
             placeholder="أدخل المدرسة"
+            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-ink">مستوى اللغة</label>
+          <select
+            name="languageLevel"
+            defaultValue={values.languageLevel}
+            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+          >
+            <option value="">اختر المستوى</option>
+            <option value="مبتدئ">مبتدئ</option>
+            <option value="متوسط">متوسط</option>
+            <option value="متقدم">متقدم</option>
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-ink">المرحلة الدراسية</label>
+          <input
+            name="schoolStage"
+            defaultValue={values.schoolStage}
+            placeholder="مثال: الصف الثالث المتوسط"
+            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="mb-1 block text-sm font-semibold text-ink">الهوايات</label>
+          <textarea
+            name="hobbies"
+            rows={2}
+            defaultValue={values.hobbies}
+            placeholder="اكتب الهوايات أو الاهتمامات"
             className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
           />
         </div>

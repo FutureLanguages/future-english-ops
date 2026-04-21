@@ -207,7 +207,7 @@ export function AdminExportTrigger({
                     >
                       <option value="">اختر الحالة</option>
                       <option value="NEW">جديد</option>
-                      <option value="INCOMPLETE">ناقص</option>
+                      <option value="INCOMPLETE">توجد نواقص</option>
                       <option value="UNDER_REVIEW">قيد المراجعة</option>
                       <option value="WAITING_PAYMENT">بانتظار الدفع</option>
                       <option value="COMPLETED">مكتمل</option>

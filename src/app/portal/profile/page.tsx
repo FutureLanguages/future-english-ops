@@ -3,7 +3,11 @@ import { DashboardStatusBadge, PortalOverallCompletionBadge } from "@/components
 import { PortalShell } from "@/components/portal/portal-shell";
 import { PortalPageHeader } from "@/components/portal/portal-page-header";
 import { ProfileSectionCard } from "@/components/portal/profile-section-card";
-import { PortalParentProfileForm, PortalStudentProfileForm } from "@/components/portal/portal-profile-forms";
+import {
+  PortalHealthBehaviorForm,
+  PortalParentProfileForm,
+  PortalStudentProfileForm,
+} from "@/components/portal/portal-profile-forms";
 import { getPortalDevSessionState } from "@/features/auth/server/portal-session";
 import { getPortalProfileViewModel } from "@/features/portal/server/get-portal-profile";
 
@@ -149,6 +153,23 @@ export default async function PortalProfilePage({
                 )}
               </section>
             ))}
+
+        {viewModel.healthEditor.visible ? (
+          <section className="rounded-panel bg-white p-5 shadow-soft">
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-ink">الحالة الصحية والسلوكية</h3>
+              <p className="mt-1 text-sm leading-6 text-ink/65">
+                هذه البيانات يعبئها ولي الأمر للمشرفين، وتظهر للإدارة لمتابعة الطالب بأمان.
+              </p>
+            </div>
+            <PortalHealthBehaviorForm
+              applicationId={viewModel.healthEditor.applicationId}
+              canEdit={viewModel.healthEditor.canEdit}
+              values={viewModel.healthEditor.values}
+              parentSupervisorNotes={viewModel.healthEditor.parentSupervisorNotes}
+            />
+          </section>
+        ) : null}
 
         <section className="rounded-panel bg-white p-5 shadow-soft">
           <h3 className="text-lg font-bold text-ink">كلمة المرور</h3>

@@ -28,6 +28,9 @@ export type StudentProfileRecord = {
   nationality: string | null;
   city: string | null;
   schoolName: string | null;
+  languageLevel: string | null;
+  hobbies: string | null;
+  schoolStage: string | null;
   passportNumber: string | null;
   nationalIdNumber: string | null;
 };

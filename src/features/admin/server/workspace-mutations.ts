@@ -13,6 +13,7 @@ import { prisma } from "@/lib/db/prisma";
 const englishNameRegex = /^[A-Za-z\s]+$/;
 const passportNumberRegex = /^[A-Za-z0-9]+$/;
 const identityNumberRegex = /^\d{1,10}$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeOptionalValue(value: string) {
   const trimmed = value.trim();
@@ -58,6 +59,7 @@ export function refreshAdminWorkspaceViews(applicationId: string) {
 export async function updateAdminStudentProfile(params: {
   applicationId: string;
   mobileNumber: string;
+  email: string;
   fullNameAr: string;
   fullNameEn: string;
   birthDate: string;
@@ -66,6 +68,9 @@ export async function updateAdminStudentProfile(params: {
   nationality: string;
   city: string;
   schoolName: string;
+  languageLevel: string;
+  hobbies: string;
+  schoolStage: string;
   passportNumber: string;
   nationalIdNumber: string;
 }) {
@@ -88,6 +93,11 @@ export async function updateAdminStudentProfile(params: {
   });
   const normalizedNationalIdNumber = normalizeOptionalValue(params.nationalIdNumber);
   const normalizedPassportNumber = normalizeOptionalValue(params.passportNumber);
+  const normalizedEmail = normalizeOptionalValue(params.email);
+
+  if (normalizedEmail && !emailRegex.test(normalizedEmail)) {
+    throw new AdminWorkspaceMutationError("invalid_email");
+  }
 
   if (
     !params.gender ||
@@ -117,6 +127,17 @@ export async function updateAdminStudentProfile(params: {
 
   if (conflictingUser && conflictingUser.id !== application.studentUserId) {
     throw new AdminWorkspaceMutationError("mobile_in_use");
+  }
+
+  if (normalizedEmail) {
+    const conflictingEmailUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true },
+    });
+
+    if (conflictingEmailUser && conflictingEmailUser.id !== application.studentUserId) {
+      throw new AdminWorkspaceMutationError("email_in_use");
+    }
   }
 
   if (normalizedPassportNumber) {
@@ -153,6 +174,7 @@ export async function updateAdminStudentProfile(params: {
         where: { id: application.studentUserId },
         data: {
           mobileNumber: params.mobileNumber.trim(),
+          email: normalizedEmail,
         },
       });
 
@@ -166,6 +188,9 @@ export async function updateAdminStudentProfile(params: {
           nationality: normalizedNationality,
           city: params.city || null,
           schoolName: params.schoolName || null,
+          languageLevel: params.languageLevel || null,
+          hobbies: params.hobbies || null,
+          schoolStage: params.schoolStage || null,
           passportNumber: normalizedPassportNumber,
           nationalIdNumber: normalizedNationalIdNumber,
         },
@@ -178,6 +203,9 @@ export async function updateAdminStudentProfile(params: {
           nationality: normalizedNationality,
           city: params.city || null,
           schoolName: params.schoolName || null,
+          languageLevel: params.languageLevel || null,
+          hobbies: params.hobbies || null,
+          schoolStage: params.schoolStage || null,
           passportNumber: normalizedPassportNumber,
           nationalIdNumber: normalizedNationalIdNumber,
         },

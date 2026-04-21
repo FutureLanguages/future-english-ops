@@ -11,6 +11,7 @@ datasource db {
 model User {
   id                  String                @id @default(cuid())
   mobileNumber        String                @unique
+  email               String?               @unique
   passwordHash        String
   mustChangePassword  Boolean               @default(false)
   role                UserRole
@@ -24,6 +25,7 @@ model User {
   uploadedDocuments   ApplicationDocument[] @relation("ApplicationDocumentUploader")
   sentNotes           ApplicationNote[]     @relation("ApplicationNoteSender")
   notifications       Notification[]
+  updatedParentNotes  ApplicationParentNote[] @relation("ApplicationParentNoteUpdater")
 }
 
 model Application {
@@ -63,7 +65,9 @@ model Application {
   paymentReceipts      PaymentReceipt[]
   agreements           ApplicationAgreement[]
   notes                ApplicationNote[]
+  parentSupervisorNote ApplicationParentNote?
   parentProfiles       ParentProfile[]
+  studentHealthProfile StudentHealthProfile?
   studentProfile       StudentProfile?
 }
 
@@ -118,11 +122,47 @@ model StudentProfile {
   nationality      String?
   city             String?
   schoolName       String?
+  languageLevel    String?
+  hobbies          String?
+  schoolStage      String?
   passportNumber   String?     @unique
   nationalIdNumber String?     @unique
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
   application      Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model StudentHealthProfile {
+  id                              String      @id @default(cuid())
+  applicationId                   String      @unique
+  hasMedicalConditions            Boolean     @default(false)
+  medicalConditionsDetails        String?     @db.Text
+  hasSleepDisorders               Boolean     @default(false)
+  sleepDisordersDetails           String?     @db.Text
+  hasAllergies                    Boolean     @default(false)
+  allergiesDetails                String?     @db.Text
+  hasContinuousMedication         Boolean     @default(false)
+  continuousMedicationDetails     String?     @db.Text
+  hasPhobia                       Boolean     @default(false)
+  phobiaDetails                   String?     @db.Text
+  hasBedwetting                   Boolean     @default(false)
+  bedwettingDetails               String?     @db.Text
+  needsSpecialSupervisorFollowUp  Boolean     @default(false)
+  specialSupervisorFollowUpDetails String?    @db.Text
+  createdAt                       DateTime    @default(now())
+  updatedAt                       DateTime    @updatedAt
+  application                     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model ApplicationParentNote {
+  id              String      @id @default(cuid())
+  applicationId   String      @unique
+  body            String      @db.Text
+  updatedByUserId String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  updatedByUser   User?       @relation("ApplicationParentNoteUpdater", fields: [updatedByUserId], references: [id])
 }
 
 model ParentProfile {

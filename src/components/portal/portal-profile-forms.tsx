@@ -24,6 +24,12 @@ function messageForError(code?: string) {
   if (code === "invalid_english_fields") {
     return "يرجى إدخال الاسم الإنجليزي ورقم الجواز بالأحرف والأرقام الإنجليزية فقط.";
   }
+  if (code === "invalid_email") {
+    return "يرجى إدخال بريد إلكتروني صحيح.";
+  }
+  if (code === "email_in_use") {
+    return "هذا البريد الإلكتروني مستخدم مسبقًا.";
+  }
   if (code === "agreement_required") {
     return "يجب الموافقة على الميثاق قبل استكمال البيانات.";
   }
@@ -51,6 +57,7 @@ export function PortalStudentProfileForm({
 }: {
   applicationId: string;
   values: {
+    email: string;
     fullNameAr: string;
     fullNameEn: string;
     birthDate: string;
@@ -59,6 +66,9 @@ export function PortalStudentProfileForm({
     nationalIdNumber: string;
     city: string;
     schoolName: string;
+    languageLevel: string;
+    hobbies: string;
+    schoolStage: string;
     passportNumber: string;
   };
 }) {
@@ -107,6 +117,16 @@ export function PortalStudentProfileForm({
         }}
       >
         <input type="hidden" name="applicationId" value={applicationId} />
+        <div>
+          <FieldLabel>البريد الإلكتروني (اختياري)</FieldLabel>
+          <input
+            name="email"
+            type="email"
+            defaultValue={values.email}
+            placeholder="example@email.com"
+            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+          />
+        </div>
         <div>
           <FieldLabel>الاسم بالعربية</FieldLabel>
           <input
@@ -203,6 +223,38 @@ export function PortalStudentProfileForm({
             className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
           />
         </div>
+        <div>
+          <FieldLabel>مستوى اللغة</FieldLabel>
+          <select
+            name="languageLevel"
+            defaultValue={values.languageLevel}
+            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+          >
+            <option value="">اختر المستوى</option>
+            <option value="مبتدئ">مبتدئ</option>
+            <option value="متوسط">متوسط</option>
+            <option value="متقدم">متقدم</option>
+          </select>
+        </div>
+        <div>
+          <FieldLabel>المرحلة الدراسية</FieldLabel>
+          <input
+            name="schoolStage"
+            defaultValue={values.schoolStage}
+            placeholder="مثال: الصف الثالث المتوسط"
+            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <FieldLabel>الهوايات</FieldLabel>
+          <textarea
+            name="hobbies"
+            rows={2}
+            defaultValue={values.hobbies}
+            placeholder="اكتب الهوايات أو الاهتمامات"
+            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+          />
+        </div>
         <ValidatedTextInput
           name="passportNumber"
           defaultValue={values.passportNumber}
@@ -224,6 +276,105 @@ export function PortalStudentProfileForm({
             {isPending ? "جارٍ الحفظ..." : "حفظ بيانات الطالب"}
           </button>
         </div>
+      </form>
+    </>
+  );
+}
+
+const healthFields = [
+  ["medicalConditions", "حالات مرضية"],
+  ["sleepDisorders", "اضطرابات النوم"],
+  ["allergies", "الحساسية"],
+  ["continuousMedication", "أدوية مستمرة"],
+  ["phobia", "رهاب"],
+  ["bedwetting", "التبول اللاإرادي"],
+  ["needsSpecialSupervisorFollowUp", "هل الحالة تتطلب متابعة خاصة من المشرفين؟"],
+] as const;
+
+export function PortalHealthBehaviorForm({
+  applicationId,
+  canEdit,
+  values,
+  parentSupervisorNotes,
+}: {
+  applicationId: string;
+  canEdit: boolean;
+  values: Record<string, { hasIssue: boolean; details: string }>;
+  parentSupervisorNotes: string;
+}) {
+  const router = useRouter();
+  const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <>
+      <AutoDismissToast message={toast?.message ?? ""} tone={toast?.tone ?? "success"} />
+      <form
+        className="mt-4 space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          startTransition(async () => {
+            const result = await submitForm("/api/portal/profile/health", form);
+            if (!result.ok) {
+              setToast({ tone: "error", message: messageForError(result.error) });
+              return;
+            }
+
+            setToast({ tone: "success", message: "تم حفظ الحالة الصحية والسلوكية بنجاح." });
+            router.refresh();
+          });
+        }}
+      >
+        <input type="hidden" name="applicationId" value={applicationId} />
+        <div className="grid gap-3 md:grid-cols-2">
+          {healthFields.map(([key, label]) => (
+            <div key={key} className="rounded-2xl border border-black/10 bg-sand p-4">
+              <FieldLabel>{label}</FieldLabel>
+              <select
+                name={`${key}HasIssue`}
+                defaultValue={values[key]?.hasIssue ? "yes" : "no"}
+                disabled={!canEdit}
+                className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none disabled:opacity-70"
+              >
+                <option value="no">لا</option>
+                <option value="yes">نعم</option>
+              </select>
+              <textarea
+                name={`${key}Details`}
+                rows={2}
+                defaultValue={values[key]?.details ?? ""}
+                disabled={!canEdit}
+                placeholder="اذكر التفاصيل عند اختيار نعم"
+                className="mt-3 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none disabled:opacity-70"
+              />
+            </div>
+          ))}
+        </div>
+        <div>
+          <FieldLabel>ملاحظات ولي الأمر للمشرفين</FieldLabel>
+          <textarea
+            name="parentSupervisorNotes"
+            rows={4}
+            defaultValue={parentSupervisorNotes}
+            disabled={!canEdit}
+            placeholder="اكتب أي ملاحظات مهمة يحتاج المشرفون معرفتها"
+            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none disabled:opacity-70"
+          />
+        </div>
+        {canEdit ? (
+          <button
+            type="submit"
+            disabled={isPending}
+            className="rounded-2xl bg-pine px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isPending ? "جارٍ الحفظ..." : "حفظ الحالة والملاحظات"}
+          </button>
+        ) : (
+          <div className="rounded-2xl bg-mist px-4 py-3 text-sm text-ink/65">
+            هذا القسم مقفل حالياً أو غير متاح للتعديل من هذا الحساب.
+          </div>
+        )}
       </form>
     </>
   );

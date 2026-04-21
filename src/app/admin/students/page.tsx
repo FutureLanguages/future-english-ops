@@ -25,7 +25,7 @@ export default async function AdminStudentsPage({
   const statuses = [
     ["", "كل الحالات"],
     ["NEW", "جديد"],
-    ["INCOMPLETE", "غير مكتمل"],
+    ["INCOMPLETE", "توجد نواقص"],
     ["UNDER_REVIEW", "قيد المراجعة"],
     ["WAITING_PAYMENT", "بانتظار السداد"],
     ["COMPLETED", "مكتمل"],

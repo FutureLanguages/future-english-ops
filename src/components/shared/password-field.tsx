@@ -12,6 +12,7 @@ type PasswordFieldProps = {
   required?: boolean;
   helperText?: string;
   className?: string;
+  onValueChange?: (value: string) => void;
 };
 
 export function PasswordField({
@@ -23,6 +24,7 @@ export function PasswordField({
   required,
   helperText,
   className,
+  onValueChange,
 }: PasswordFieldProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
@@ -39,6 +41,7 @@ export function PasswordField({
           defaultValue={defaultValue}
           required={required}
           placeholder={placeholder}
+          onChange={(event) => onValueChange?.(event.currentTarget.value)}
           className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 pl-12 text-sm outline-none focus:border-pine"
         />
         <button

@@ -13,7 +13,7 @@ export async function getAdminDashboardViewModel(params: {
     kpis: [
       { label: "إجمالي الطلبات", value: rows.length },
       { label: "جديد", value: rows.filter((row) => row.status === "NEW").length, status: "NEW" },
-      { label: "غير مكتمل", value: rows.filter((row) => row.status === "INCOMPLETE").length, status: "INCOMPLETE" },
+      { label: "توجد نواقص", value: rows.filter((row) => row.status === "INCOMPLETE").length, status: "INCOMPLETE" },
       { label: "قيد المراجعة", value: rows.filter((row) => row.status === "UNDER_REVIEW").length, status: "UNDER_REVIEW" },
       { label: "بانتظار السداد", value: rows.filter((row) => row.status === "WAITING_PAYMENT").length, status: "WAITING_PAYMENT" },
       { label: "مكتمل", value: rows.filter((row) => row.status === "COMPLETED").length, status: "COMPLETED" },

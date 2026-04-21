@@ -42,6 +42,7 @@ export type PortalProfileViewModel = {
     canEdit: boolean;
     applicationId: string;
     values: {
+      email: string;
       fullNameAr: string;
       fullNameEn: string;
       birthDate: string;
@@ -50,8 +51,18 @@ export type PortalProfileViewModel = {
       nationalIdNumber: string;
       city: string;
       schoolName: string;
+      languageLevel: string;
+      hobbies: string;
+      schoolStage: string;
       passportNumber: string;
     };
+  };
+  healthEditor: {
+    visible: boolean;
+    canEdit: boolean;
+    applicationId: string;
+    values: Record<string, { hasIssue: boolean; details: string }>;
+    parentSupervisorNotes: string;
   };
   parentLinkEditor: {
     visible: boolean;
@@ -90,6 +101,88 @@ function formatDate(date: Date | null): string {
 
 function valueOrFallback(value: string | null | undefined): string {
   return value && value.trim().length > 0 ? value : "غير مضاف";
+}
+
+const defaultHealthBehavior = {
+  medicalConditions: { hasIssue: false, details: "" },
+  sleepDisorders: { hasIssue: false, details: "" },
+  allergies: { hasIssue: false, details: "" },
+  continuousMedication: { hasIssue: false, details: "" },
+  phobia: { hasIssue: false, details: "" },
+  bedwetting: { hasIssue: false, details: "" },
+  needsSpecialSupervisorFollowUp: { hasIssue: false, details: "" },
+};
+
+function normalizeHealthBehavior(value: unknown): Record<string, { hasIssue: boolean; details: string }> {
+  if (!value || typeof value !== "object") {
+    return defaultHealthBehavior;
+  }
+
+  return Object.fromEntries(
+    Object.entries(defaultHealthBehavior).map(([key, fallback]) => {
+      const item = (value as Record<string, unknown>)[key];
+
+      if (!item || typeof item !== "object") {
+        return [key, fallback];
+      }
+
+      return [key, fallback];
+    }),
+  );
+}
+
+function mapStudentHealthProfile(
+  profile: {
+    hasMedicalConditions: boolean;
+    medicalConditionsDetails: string | null;
+    hasSleepDisorders: boolean;
+    sleepDisordersDetails: string | null;
+    hasAllergies: boolean;
+    allergiesDetails: string | null;
+    hasContinuousMedication: boolean;
+    continuousMedicationDetails: string | null;
+    hasPhobia: boolean;
+    phobiaDetails: string | null;
+    hasBedwetting: boolean;
+    bedwettingDetails: string | null;
+    needsSpecialSupervisorFollowUp: boolean;
+    specialSupervisorFollowUpDetails: string | null;
+  } | null,
+) {
+  if (!profile) {
+    return defaultHealthBehavior;
+  }
+
+  return {
+    medicalConditions: {
+      hasIssue: profile.hasMedicalConditions,
+      details: profile.medicalConditionsDetails ?? "",
+    },
+    sleepDisorders: {
+      hasIssue: profile.hasSleepDisorders,
+      details: profile.sleepDisordersDetails ?? "",
+    },
+    allergies: {
+      hasIssue: profile.hasAllergies,
+      details: profile.allergiesDetails ?? "",
+    },
+    continuousMedication: {
+      hasIssue: profile.hasContinuousMedication,
+      details: profile.continuousMedicationDetails ?? "",
+    },
+    phobia: {
+      hasIssue: profile.hasPhobia,
+      details: profile.phobiaDetails ?? "",
+    },
+    bedwetting: {
+      hasIssue: profile.hasBedwetting,
+      details: profile.bedwettingDetails ?? "",
+    },
+    needsSpecialSupervisorFollowUp: {
+      hasIssue: profile.needsSpecialSupervisorFollowUp,
+      details: profile.specialSupervisorFollowUpDetails ?? "",
+    },
+  };
 }
 
 function parentByType(parentProfiles: ParentProfileRecord[], type: ParentProfileRecord["type"]) {
@@ -187,6 +280,9 @@ export async function getPortalProfileViewModel(params: {
         { label: "المدينة", value: valueOrFallback(studentProfile?.city), missing: studentMissing.has("city") },
         { label: "رقم الجواز", value: valueOrFallback(studentProfile?.passportNumber), missing: studentMissing.has("passportNumber") },
         { label: "المدرسة", value: valueOrFallback(studentProfile?.schoolName) },
+        { label: "مستوى اللغة", value: valueOrFallback(studentProfile?.languageLevel) },
+        { label: "المرحلة الدراسية", value: valueOrFallback(studentProfile?.schoolStage) },
+        { label: "الهوايات", value: valueOrFallback(studentProfile?.hobbies) },
       ],
       missingFields: data.profile.missingStudentFields.map((field) => field.label),
     },
@@ -273,7 +369,7 @@ export async function getPortalProfileViewModel(params: {
     status: data.applicationRecord.status,
     overallCompletion: {
       percent: data.overallCompletionPercent,
-      label: data.overallCompletionPercent === 100 ? "اكتمال الطلب" : "الطلب غير مكتمل",
+      label: data.overallCompletionPercent === 100 ? "اكتمال الطلب" : "اكتمال جزئي",
       tone: data.overallCompletionPercent === 100 ? "complete" : "incomplete",
     },
     navItems: buildPortalNavItems({
@@ -292,6 +388,8 @@ export async function getPortalProfileViewModel(params: {
       canEdit: studentCanEdit,
       applicationId: data.applicationRecord.id,
       values: {
+        email:
+          data.applications.find((application) => application.id === data.applicationRecord.id)?.studentUser.email ?? "",
         fullNameAr: studentProfile?.fullNameAr ?? "",
         fullNameEn: studentProfile?.fullNameEn ?? "",
         birthDate: studentProfile?.birthDate
@@ -302,8 +400,23 @@ export async function getPortalProfileViewModel(params: {
         nationalIdNumber: studentProfile?.nationalIdNumber ?? "",
         city: studentProfile?.city ?? "",
         schoolName: studentProfile?.schoolName ?? "",
+        languageLevel: studentProfile?.languageLevel ?? "",
+        hobbies: studentProfile?.hobbies ?? "",
+        schoolStage: studentProfile?.schoolStage ?? "",
         passportNumber: studentProfile?.passportNumber ?? "",
       },
+    },
+    healthEditor: {
+      visible: data.user.role === UserRole.PARENT,
+      canEdit: data.user.role === UserRole.PARENT && parentCanEdit,
+      applicationId: data.applicationRecord.id,
+      values: mapStudentHealthProfile(
+        data.applications.find((application) => application.id === data.applicationRecord.id)
+          ?.studentHealthProfile ?? null,
+      ),
+      parentSupervisorNotes:
+        data.applications.find((application) => application.id === data.applicationRecord.id)
+          ?.parentSupervisorNote?.body ?? "",
     },
     parentLinkEditor: {
       visible: false,

@@ -7,6 +7,7 @@ import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
 import { DocumentStatusBadge } from "@/components/portal/document-status-badge";
 import { FileUploadInput } from "@/components/portal/file-upload-input";
 import { isPreviewableMimeType } from "@/lib/storage/file-preview";
+import { MAX_UPLOAD_SIZE_LABEL } from "@/lib/storage/upload-limits";
 
 type PaymentReceiptCardProps = {
   applicationId: string;
@@ -37,7 +38,8 @@ export function PaymentReceiptCard({
 
   function messageForError(code?: string) {
     if (code === "missing_file") return "يرجى اختيار ملف الإيصال قبل الإرسال.";
-    if (code === "file_too_large") return "حجم الملف أكبر من الحد المسموح (5MB).";
+    if (code === "file_too_large") return `حجم الملف أكبر من الحد المسموح (${MAX_UPLOAD_SIZE_LABEL}).`;
+    if (code === "unsupported_file_type") return "نوع الملف غير مدعوم. يرجى رفع PDF أو صورة.";
     if (code === "agreement_required") return "يجب الموافقة على الميثاق قبل استكمال البيانات.";
     return "تعذر تنفيذ عملية السداد المطلوبة حالياً.";
   }

@@ -17,7 +17,7 @@ import {
   notifyMessageSent,
 } from "@/features/notifications/server/notifications";
 import { prisma } from "@/lib/db/prisma";
-import { MAX_UPLOAD_SIZE_BYTES } from "@/lib/storage/upload-limits";
+import { isAllowedUploadMimeType, MAX_UPLOAD_SIZE_BYTES } from "@/lib/storage/upload-limits";
 import { storeUploadedFile } from "@/lib/storage/upload-file";
 import type { ApplicationRecord } from "@/types/application";
 
@@ -94,6 +94,9 @@ async function saveApplicationDocument(params: {
 }) {
   if (params.file.size > MAX_UPLOAD_SIZE_BYTES) {
     redirectWithResult(params.basePath, params.applicationId, "error", "file_too_large");
+  }
+  if (!isAllowedUploadMimeType(params.file.type || "application/octet-stream")) {
+    redirectWithResult(params.basePath, params.applicationId, "error", "unsupported_file_type");
   }
 
   const user = await getPortalSession();
@@ -267,6 +270,9 @@ export async function uploadPaymentReceiptAction(formData: FormData) {
 
   if (file.size > MAX_UPLOAD_SIZE_BYTES) {
     redirectWithResult("/portal/payments", applicationId || "", "error", "file_too_large");
+  }
+  if (!isAllowedUploadMimeType(file.type || "application/octet-stream")) {
+    redirectWithResult("/portal/payments", applicationId || "", "error", "unsupported_file_type");
   }
 
   const user = await getPortalSession();

@@ -353,16 +353,8 @@ export default async function AdminApplicationWorkspacePage({
                     <span className="font-bold text-ink">
                       {viewModel.overview.progressIndicators.profileDocumentsAgreements.statusLabel}
                     </span>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                        viewModel.overview.progressIndicators.profileDocumentsAgreements.tone === "success"
-                          ? "bg-[#e9f7ee] text-[#1b7a43]"
-                          : "bg-[#fff1ea] text-[#9f4a1f]"
-                      }`}
-                    >
-                      {viewModel.overview.progressIndicators.profileDocumentsAgreements.tone === "success"
-                        ? "مكتمل"
-                        : "يحتاج استكمال"}
+                    <span className="text-xs font-medium text-ink/60">
+                      {viewModel.overview.progressIndicators.profileDocumentsAgreements.detailLabel}
                     </span>
                   </div>
                 </div>
@@ -374,16 +366,8 @@ export default async function AdminApplicationWorkspacePage({
                     <span className="font-bold text-ink">
                       {viewModel.overview.progressIndicators.payments.statusLabel}
                     </span>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                        viewModel.overview.progressIndicators.payments.tone === "success"
-                          ? "bg-[#e9f7ee] text-[#1b7a43]"
-                          : "bg-[#fff1ea] text-[#9f4a1f]"
-                      }`}
-                    >
-                      {viewModel.overview.progressIndicators.payments.tone === "success"
-                        ? "مكتمل"
-                        : "يحتاج استكمال"}
+                    <span className="text-xs font-medium text-ink/60">
+                      {viewModel.overview.progressIndicators.payments.detailLabel}
                     </span>
                   </div>
                 </div>

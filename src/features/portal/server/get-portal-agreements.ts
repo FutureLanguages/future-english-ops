@@ -28,7 +28,7 @@ export async function getPortalAgreementsViewModel(params: {
     applicationStatus: data.applicationRecord.status,
     overallCompletion: {
       percent: data.overallCompletionPercent,
-      label: data.overallCompletionPercent === 100 ? "اكتمال الطلب" : "الطلب غير مكتمل",
+      label: data.overallCompletionPercent === 100 ? "اكتمال الطلب" : "اكتمال جزئي",
       tone: data.overallCompletionPercent === 100 ? ("complete" as const) : ("incomplete" as const),
     },
     navItems: buildPortalNavItems({
@@ -83,7 +83,7 @@ export async function getPortalAgreementDetailViewModel(params: {
     applicationStatus: data.applicationRecord.status,
     overallCompletion: {
       percent: data.overallCompletionPercent,
-      label: data.overallCompletionPercent === 100 ? "اكتمال الطلب" : "الطلب غير مكتمل",
+      label: data.overallCompletionPercent === 100 ? "اكتمال الطلب" : "اكتمال جزئي",
       tone: data.overallCompletionPercent === 100 ? ("complete" as const) : ("incomplete" as const),
     },
     navItems: buildPortalNavItems({

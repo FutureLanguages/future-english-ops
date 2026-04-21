@@ -11,7 +11,7 @@ import { getAdminNavItems } from "./nav";
 
 const statusLabels: Record<ApplicationStatus, string> = {
   NEW: "جديد",
-  INCOMPLETE: "غير مكتمل",
+  INCOMPLETE: "توجد نواقص",
   UNDER_REVIEW: "قيد المراجعة",
   WAITING_PAYMENT: "بانتظار السداد",
   COMPLETED: "مكتمل",
@@ -373,6 +373,17 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
     derived.profile.completionPercent === 100 &&
     derived.missingDocumentsCount === 0 &&
     agreementsPendingCount === 0;
+  const profileMissingCount =
+    derived.profile.missingStudentFields.length + derived.profile.missingParentFields.length;
+  const profileDocumentsAgreementsDetail = [
+    profileMissingCount > 0 ? `حقول ناقصة: ${profileMissingCount}` : null,
+    derived.missingDocumentsCount > 0 ? `مستندات ناقصة: ${derived.missingDocumentsCount}` : null,
+    hydratedApplication.agreements.length === 0
+      ? "الميثاق غير مسند"
+      : agreementsPendingCount > 0
+        ? `مواثيق غير معتمدة: ${agreementsPendingCount}`
+        : null,
+  ].filter(Boolean).join("، ");
   const unreadMessagesCount = getUnreadNotesCount({
     role: "ADMIN",
     notes: hydratedApplication.notes,
@@ -415,6 +426,7 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
         profileDocumentsAgreements: {
           label: "البيانات + المستندات + المواثيق",
           statusLabel: `${combinedCompletionPercent}%`,
+          detailLabel: profileDocumentsAgreementsDetail || "لا توجد نواقص",
           tone: profileDocumentsAgreementsComplete ? "success" : "warning",
         },
         payments: {
@@ -423,6 +435,10 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
             derived.paymentSummary.remainingAmountSar > 0
               ? "0%"
               : "100%",
+          detailLabel:
+            derived.paymentSummary.remainingAmountSar > 0
+              ? `متبقي: ${derived.paymentSummary.remainingAmountSar} ر.س`
+              : "لا يوجد متبقي",
           tone: derived.paymentSummary.remainingAmountSar > 0 ? "warning" : "success",
         },
         messages: {

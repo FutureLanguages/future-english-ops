@@ -6,6 +6,7 @@ import { PortalPageHeader } from "@/components/portal/portal-page-header";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { getPortalDevSessionState } from "@/features/auth/server/portal-session";
 import { getPortalPaymentsViewModel } from "@/features/portal/server/get-portal-payments";
+import { MAX_UPLOAD_SIZE_LABEL } from "@/lib/storage/upload-limits";
 
 export default async function PortalPaymentsPage({
   searchParams,
@@ -108,7 +109,9 @@ export default async function PortalPaymentsPage({
                 : resolvedSearchParams?.error === "missing_file"
                   ? "يرجى اختيار ملف الإيصال قبل الإرسال."
                   : resolvedSearchParams?.error === "file_too_large"
-                    ? "حجم الملف أكبر من الحد المسموح (5MB)."
+                    ? `حجم الملف أكبر من الحد المسموح (${MAX_UPLOAD_SIZE_LABEL}).`
+                  : resolvedSearchParams?.error === "unsupported_file_type"
+                    ? "نوع الملف غير مدعوم. يرجى رفع PDF أو صورة."
                   : resolvedSearchParams?.error === "agreement_required"
                     ? "يجب الموافقة على الميثاق قبل استكمال البيانات."
                   : "تعذر تنفيذ عملية السداد المطلوبة حالياً."}

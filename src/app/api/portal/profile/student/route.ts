@@ -7,6 +7,7 @@ export async function POST(request: Request) {
   try {
     const result = await updateStudentProfile({
       applicationId: String(formData.get("applicationId") ?? ""),
+      email: String(formData.get("email") ?? "").trim(),
       fullNameAr: String(formData.get("fullNameAr") ?? "").trim(),
       fullNameEn: String(formData.get("fullNameEn") ?? "").trim(),
       birthDate: String(formData.get("birthDate") ?? "").trim(),
@@ -16,6 +17,9 @@ export async function POST(request: Request) {
       nationalIdNumber: String(formData.get("nationalIdNumber") ?? "").trim(),
       city: String(formData.get("city") ?? "").trim(),
       schoolName: String(formData.get("schoolName") ?? "").trim(),
+      languageLevel: String(formData.get("languageLevel") ?? "").trim(),
+      hobbies: String(formData.get("hobbies") ?? "").trim(),
+      schoolStage: String(formData.get("schoolStage") ?? "").trim(),
       passportNumber: String(formData.get("passportNumber") ?? "").trim(),
     });
 

@@ -149,6 +149,15 @@ export async function getPortalDashboardViewModel(params: {
     documentsIncomplete === 0 &&
     currentAgreements.length > 0 &&
     agreementPendingCount <= 0;
+  const profileDocumentsAgreementsDetail = [
+    profileMissing > 0 ? `حقول ناقصة: ${profileMissing}` : null,
+    documentsIncomplete > 0 ? `مستندات تحتاج إجراء: ${documentsIncomplete}` : null,
+    currentAgreements.length === 0
+      ? "الميثاق غير مسند"
+      : agreementPendingCount > 0
+        ? `مواثيق غير معتمدة: ${agreementPendingCount}`
+        : null,
+  ].filter(Boolean).join("، ");
 
   const cards: PortalDashboardViewModel["cards"] = [
     {
@@ -156,7 +165,7 @@ export async function getPortalDashboardViewModel(params: {
       title: "بيانات الطالب",
       stats: [
         { label: "المكتمل", value: String(profileCompleted) },
-        { label: "يحتاج استكمال", value: String(profileMissing) },
+        { label: "حقول ناقصة", value: String(profileMissing) },
       ],
       description: data.profile.missingStudentFields.length > 0
         ? "يوجد حقول ناقصة في بيانات الطالب."
@@ -164,8 +173,8 @@ export async function getPortalDashboardViewModel(params: {
       statusLabel: data.applicationRecord.studentInfoLocked
         ? "القسم مقفل"
         : profileMissing > 0
-          ? "القسم يحتاج استكمال"
-          : "القسم مكتمل",
+          ? `حقول ناقصة: ${profileMissing}`
+          : "لا توجد نواقص",
       statusTone: data.applicationRecord.studentInfoLocked ? "neutral" : profileMissing > 0 ? "warning" : "success",
       href: withApplicationId("/portal/profile", data.applicationRecord.id),
       ctaLabel: data.profile.missingStudentFields.length > 0 ? "إكمال" : "عرض",
@@ -179,9 +188,12 @@ export async function getPortalDashboardViewModel(params: {
           : "بيانات الأسرة المرتبطة بالطلب ظاهرة هنا.",
       stats: [
         { label: "المكتمل", value: String(Math.max(data.applicationRecord.parentProfiles.length - data.profile.missingParentFields.length, 0)) },
-        { label: "يحتاج استكمال", value: String(data.profile.missingParentFields.length) },
+        { label: "حقول ناقصة", value: String(data.profile.missingParentFields.length) },
       ],
-      statusLabel: data.profile.missingParentFields.length > 0 ? "القسم يحتاج استكمال" : "القسم مكتمل",
+      statusLabel:
+        data.profile.missingParentFields.length > 0
+          ? `حقول ناقصة: ${data.profile.missingParentFields.length}`
+          : "لا توجد نواقص",
       statusTone: data.profile.missingParentFields.length > 0 ? "warning" : "success",
       href: withApplicationId("/portal/profile", data.applicationRecord.id),
       ctaLabel: data.profile.missingParentFields.length > 0 ? "متابعة" : "عرض",
@@ -195,9 +207,12 @@ export async function getPortalDashboardViewModel(params: {
           : "كل المستندات المطلوبة مرفوعة أو قيد المراجعة.",
       stats: [
         { label: "المكتمل", value: String(documentsCompleted) },
-        { label: "يحتاج استكمال", value: String(documentsIncomplete) },
+        { label: "تحتاج إجراء", value: String(documentsIncomplete) },
       ],
-      statusLabel: documentsIncomplete > 0 ? "القسم يحتاج استكمال" : "القسم مكتمل",
+      statusLabel:
+        documentsIncomplete > 0
+          ? `مستندات تحتاج إجراء: ${documentsIncomplete}`
+          : "لا توجد نواقص",
       statusTone: documentsIncomplete > 0 ? "warning" : "success",
       href: withApplicationId("/portal/documents", data.applicationRecord.id),
       ctaLabel: checklistSummary.missing > 0 || checklistSummary.reupload > 0 ? "إكمال" : "عرض",
@@ -213,11 +228,13 @@ export async function getPortalDashboardViewModel(params: {
         : "الرسوم والدفعات الرسمية محدثة حاليًا.",
       stats: [
         { label: "مكتمل", value: String(paymentCompleted) },
-        { label: "يحتاج استكمال", value: String(paymentIncomplete) },
+        { label: "دفعات مطلوبة", value: String(paymentIncomplete) },
         { label: "المتبقي", value: `${data.paymentSummary.remainingAmountSar} ر.س` },
       ],
       statusLabel:
-        data.paymentSummary.remainingAmountSar > 0 ? "القسم يحتاج استكمال" : "القسم مكتمل",
+        data.paymentSummary.remainingAmountSar > 0
+          ? `متبقي: ${data.paymentSummary.remainingAmountSar} ر.س`
+          : "لا يوجد متبقي",
       statusTone: data.paymentSummary.remainingAmountSar > 0 ? "warning" : "success",
       href: withApplicationId("/portal/payments", data.applicationRecord.id),
       ctaLabel: data.paymentSummary.remainingAmountSar > 0 ? "متابعة" : "عرض",
@@ -254,7 +271,7 @@ export async function getPortalDashboardViewModel(params: {
     stats: [
       { label: "المكتمل", value: String(agreementAcceptedCount) },
       {
-        label: currentAgreements.length === 0 ? "غير مسند" : "يحتاج استكمال",
+        label: currentAgreements.length === 0 ? "غير مسند" : "غير معتمد",
         value: String(currentAgreements.length === 0 ? 1 : Math.max(agreementPendingCount, 0)),
       },
     ],
@@ -262,8 +279,8 @@ export async function getPortalDashboardViewModel(params: {
       currentAgreements.length === 0
         ? "لا يوجد ميثاق مسند"
         : agreementPendingCount > 0
-          ? "القسم يحتاج استكمال"
-          : "القسم مكتمل",
+          ? `مواثيق غير معتمدة: ${agreementPendingCount}`
+          : "كل المواثيق معتمدة",
     statusTone:
       currentAgreements.length === 0 || agreementPendingCount > 0 ? "warning" : "success",
     href: agreementHref,
@@ -294,12 +311,17 @@ export async function getPortalDashboardViewModel(params: {
       profileDocumentsAgreements: {
         label: "البيانات + المستندات + المواثيق",
         statusLabel: `${data.overallCompletionPercent}%`,
+        detailLabel: profileDocumentsAgreementsDetail || "لا توجد نواقص",
         tone: profileDocumentsAgreementsComplete ? "success" : "warning",
       },
       payments: data.canSeePayments
         ? {
             label: "المدفوعات",
             statusLabel: `${data.paymentCompletionPercent}%`,
+            detailLabel:
+              data.paymentSummary.remainingAmountSar > 0
+                ? `متبقي: ${data.paymentSummary.remainingAmountSar} ر.س`
+                : "لا يوجد متبقي",
             tone: data.paymentSummary.remainingAmountSar > 0 ? "warning" : "success",
           }
         : undefined,

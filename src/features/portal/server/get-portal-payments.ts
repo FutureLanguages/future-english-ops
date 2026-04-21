@@ -99,7 +99,7 @@ export async function getPortalPaymentsViewModel(params: {
     status: data.applicationRecord.status,
     overallCompletion: {
       percent: data.overallCompletionPercent,
-      label: data.overallCompletionPercent === 100 ? "اكتمال الطلب" : "الطلب غير مكتمل",
+      label: data.overallCompletionPercent === 100 ? "اكتمال الطلب" : "اكتمال جزئي",
       tone: data.overallCompletionPercent === 100 ? "complete" : "incomplete",
     },
     navItems: buildPortalNavItems({

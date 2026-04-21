@@ -1,12 +1,12 @@
 "use client";
 
 import { useId, useState } from "react";
-import { MAX_UPLOAD_SIZE_BYTES } from "@/lib/storage/upload-limits";
+import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_LABEL } from "@/lib/storage/upload-limits";
 
 export function FileUploadInput({
   name,
   label,
-  helperText = "الحد الأقصى لحجم الملف: 5MB",
+  helperText = `الحد الأقصى لحجم الملف: ${MAX_UPLOAD_SIZE_LABEL}`,
   className,
 }: {
   name: string;
@@ -25,6 +25,7 @@ export function FileUploadInput({
         type="file"
         name={name}
         required
+        accept="application/pdf,image/jpeg,image/png,image/webp"
         aria-describedby={`${helperId} ${error ? errorId : ""}`.trim()}
         className={
           className ??
@@ -35,7 +36,7 @@ export function FileUploadInput({
           const file = input.files?.[0];
 
           if (file && file.size > MAX_UPLOAD_SIZE_BYTES) {
-            const message = "حجم الملف أكبر من الحد المسموح (5MB)";
+            const message = `حجم الملف أكبر من الحد المسموح (${MAX_UPLOAD_SIZE_LABEL})`;
             input.setCustomValidity(message);
             setError(message);
             input.reportValidity();

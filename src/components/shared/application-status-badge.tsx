@@ -21,7 +21,7 @@ const statusConfig: Record<
     Icon: PlusCircle,
   },
   INCOMPLETE: {
-    label: "ناقص",
+    label: "توجد نواقص",
     className: "bg-clay/35 text-ink",
     Icon: AlertCircle,
   },

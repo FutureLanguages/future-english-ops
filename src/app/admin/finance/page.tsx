@@ -80,7 +80,7 @@ export default async function AdminFinancePage({
             >
               <option value="">كل حالات الطلب</option>
               <option value="NEW">جديد</option>
-              <option value="INCOMPLETE">ناقص</option>
+              <option value="INCOMPLETE">توجد نواقص</option>
               <option value="UNDER_REVIEW">قيد المراجعة</option>
               <option value="WAITING_PAYMENT">بانتظار السداد</option>
               <option value="COMPLETED">مكتمل</option>

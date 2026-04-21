@@ -8,6 +8,7 @@ import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
 import { DocumentStatusBadge } from "@/components/portal/document-status-badge";
 import { FileUploadInput } from "@/components/portal/file-upload-input";
 import { isPreviewableMimeType } from "@/lib/storage/file-preview";
+import { MAX_UPLOAD_SIZE_LABEL } from "@/lib/storage/upload-limits";
 
 type PortalDocumentItem = {
   requirementId: string;
@@ -33,7 +34,8 @@ export function DocumentItemCard({ item, isDev }: { item: PortalDocumentItem; is
 
   function messageForError(code?: string) {
     if (code === "missing_file") return "يرجى اختيار ملف قبل الإرسال.";
-    if (code === "file_too_large") return "حجم الملف أكبر من الحد المسموح (5MB).";
+    if (code === "file_too_large") return `حجم الملف أكبر من الحد المسموح (${MAX_UPLOAD_SIZE_LABEL}).`;
+    if (code === "unsupported_file_type") return "نوع الملف غير مدعوم. يرجى رفع PDF أو صورة.";
     if (code === "already_approved") return "هذا المستند معتمد بالفعل ولا يحتاج إلى رفع جديد.";
     if (code === "agreement_required") return "يجب الموافقة على الميثاق قبل استكمال البيانات.";
     return "تعذر تنفيذ عملية المستند المطلوبة حالياً.";

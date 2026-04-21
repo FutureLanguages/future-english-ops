@@ -12,13 +12,14 @@ import {
   notifyAdminsOfDocumentUpload,
 } from "@/features/notifications/server/notifications";
 import { prisma } from "@/lib/db/prisma";
-import { MAX_UPLOAD_SIZE_BYTES } from "@/lib/storage/upload-limits";
+import { isAllowedUploadMimeType, MAX_UPLOAD_SIZE_BYTES } from "@/lib/storage/upload-limits";
 import { storeUploadedFile } from "@/lib/storage/upload-file";
 import type { ApplicationRecord } from "@/types/application";
 
 const englishNameRegex = /^[A-Za-z\s]+$/;
 const passportNumberRegex = /^[A-Za-z0-9]+$/;
 const identityNumberRegex = /^\d{1,10}$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeOptionalValue(value: string) {
   const trimmed = value.trim();
@@ -67,6 +68,25 @@ async function assertUniqueStudentIdentity(params: {
     if (existingNationalId) {
       throw new PortalMutationError("duplicate_identity_number");
     }
+  }
+}
+
+async function assertUniqueEmail(params: { userId: string; email: string | null }) {
+  if (!params.email) {
+    return;
+  }
+
+  if (!emailRegex.test(params.email)) {
+    throw new PortalMutationError("invalid_email");
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email: params.email },
+    select: { id: true },
+  });
+
+  if (existingUser && existingUser.id !== params.userId) {
+    throw new PortalMutationError("email_in_use");
   }
 }
 
@@ -183,6 +203,9 @@ export async function uploadPortalDocument(params: {
   if (params.file.size > MAX_UPLOAD_SIZE_BYTES) {
     throw new PortalMutationError("file_too_large");
   }
+  if (!isAllowedUploadMimeType(params.file.type || "application/octet-stream")) {
+    throw new PortalMutationError("unsupported_file_type");
+  }
 
   const user = await getPortalSession();
   const application = await prisma.application.findUnique({
@@ -283,6 +306,9 @@ export async function uploadPaymentReceipt(params: {
   if (params.file.size > MAX_UPLOAD_SIZE_BYTES) {
     throw new PortalMutationError("file_too_large");
   }
+  if (!isAllowedUploadMimeType(params.file.type || "application/octet-stream")) {
+    throw new PortalMutationError("unsupported_file_type");
+  }
 
   const user = await getPortalSession();
   const application = await prisma.application.findUnique({
@@ -349,6 +375,7 @@ export async function uploadPaymentReceipt(params: {
 
 export async function updateStudentProfile(params: {
   applicationId: string;
+  email: string;
   fullNameAr: string;
   fullNameEn: string;
   birthDate: string;
@@ -358,6 +385,9 @@ export async function updateStudentProfile(params: {
   nationalIdNumber: string;
   city: string;
   schoolName: string;
+  languageLevel: string;
+  hobbies: string;
+  schoolStage: string;
   passportNumber: string;
 }) {
   const user = await getPortalSession();
@@ -366,6 +396,11 @@ export async function updateStudentProfile(params: {
     include: {
       studentProfile: true,
       parentProfiles: true,
+      studentUser: {
+        select: {
+          id: true,
+        },
+      },
     },
   });
 
@@ -408,33 +443,48 @@ export async function updateStudentProfile(params: {
     passportNumber: normalizedPassportNumber,
     nationalIdNumber: normalizedNationalIdNumber,
   });
+  const normalizedEmail = normalizeOptionalValue(params.email);
+  await assertUniqueEmail({ userId: application.studentUser.id, email: normalizedEmail });
 
   try {
-    await prisma.studentProfile.upsert({
-      where: { applicationId: params.applicationId },
-      update: {
-        fullNameAr: params.fullNameAr || null,
-        fullNameEn: params.fullNameEn || null,
-        birthDate: params.birthDate ? new Date(params.birthDate) : null,
-        gender: params.gender || null,
-        nationality: normalizedNationality,
-        city: params.city || null,
-        schoolName: params.schoolName || null,
-        passportNumber: normalizedPassportNumber,
-        nationalIdNumber: normalizedNationalIdNumber,
-      },
-      create: {
-        applicationId: params.applicationId,
-        fullNameAr: params.fullNameAr || null,
-        fullNameEn: params.fullNameEn || null,
-        birthDate: params.birthDate ? new Date(params.birthDate) : null,
-        gender: params.gender || null,
-        nationality: normalizedNationality,
-        city: params.city || null,
-        schoolName: params.schoolName || null,
-        passportNumber: normalizedPassportNumber,
-        nationalIdNumber: normalizedNationalIdNumber,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: application.studentUser.id },
+        data: { email: normalizedEmail },
+      });
+
+      await tx.studentProfile.upsert({
+        where: { applicationId: params.applicationId },
+        update: {
+          fullNameAr: params.fullNameAr || null,
+          fullNameEn: params.fullNameEn || null,
+          birthDate: params.birthDate ? new Date(params.birthDate) : null,
+          gender: params.gender || null,
+          nationality: normalizedNationality,
+          city: params.city || null,
+          schoolName: params.schoolName || null,
+          languageLevel: params.languageLevel || null,
+          hobbies: params.hobbies || null,
+          schoolStage: params.schoolStage || null,
+          passportNumber: normalizedPassportNumber,
+          nationalIdNumber: normalizedNationalIdNumber,
+        },
+        create: {
+          applicationId: params.applicationId,
+          fullNameAr: params.fullNameAr || null,
+          fullNameEn: params.fullNameEn || null,
+          birthDate: params.birthDate ? new Date(params.birthDate) : null,
+          gender: params.gender || null,
+          nationality: normalizedNationality,
+          city: params.city || null,
+          schoolName: params.schoolName || null,
+          languageLevel: params.languageLevel || null,
+          hobbies: params.hobbies || null,
+          schoolStage: params.schoolStage || null,
+          passportNumber: normalizedPassportNumber,
+          nationalIdNumber: normalizedNationalIdNumber,
+        },
+      });
     });
   } catch (error) {
     if (
@@ -451,6 +501,89 @@ export async function updateStudentProfile(params: {
 
   refreshPortalViews(params.applicationId);
   return { code: "student_profile_updated" as const };
+}
+
+export async function updateHealthBehaviorProfile(params: {
+  applicationId: string;
+  healthBehavior: Record<string, { hasIssue: boolean; details: string }>;
+  parentSupervisorNotes: string;
+}) {
+  const user = await getPortalSession();
+  const application = await prisma.application.findUnique({
+    where: { id: params.applicationId },
+    include: {
+      studentProfile: true,
+      parentProfiles: true,
+    },
+  });
+
+  if (!application) {
+    throw new PortalMutationError("application_not_found");
+  }
+
+  const applicationRecord = toApplicationRecord(application);
+  await assertAgreementsAccepted(params.applicationId, user);
+
+  if (user.role !== UserRole.PARENT || !canEditParentInfo(user, applicationRecord)) {
+    throw new PortalMutationError("parent_profile_failed");
+  }
+
+  const health = params.healthBehavior;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.studentHealthProfile.upsert({
+      where: { applicationId: params.applicationId },
+      update: {
+        hasMedicalConditions: Boolean(health.medicalConditions?.hasIssue),
+        medicalConditionsDetails: health.medicalConditions?.details || null,
+        hasSleepDisorders: Boolean(health.sleepDisorders?.hasIssue),
+        sleepDisordersDetails: health.sleepDisorders?.details || null,
+        hasAllergies: Boolean(health.allergies?.hasIssue),
+        allergiesDetails: health.allergies?.details || null,
+        hasContinuousMedication: Boolean(health.continuousMedication?.hasIssue),
+        continuousMedicationDetails: health.continuousMedication?.details || null,
+        hasPhobia: Boolean(health.phobia?.hasIssue),
+        phobiaDetails: health.phobia?.details || null,
+        hasBedwetting: Boolean(health.bedwetting?.hasIssue),
+        bedwettingDetails: health.bedwetting?.details || null,
+        needsSpecialSupervisorFollowUp: Boolean(health.needsSpecialSupervisorFollowUp?.hasIssue),
+        specialSupervisorFollowUpDetails: health.needsSpecialSupervisorFollowUp?.details || null,
+      },
+      create: {
+        applicationId: params.applicationId,
+        hasMedicalConditions: Boolean(health.medicalConditions?.hasIssue),
+        medicalConditionsDetails: health.medicalConditions?.details || null,
+        hasSleepDisorders: Boolean(health.sleepDisorders?.hasIssue),
+        sleepDisordersDetails: health.sleepDisorders?.details || null,
+        hasAllergies: Boolean(health.allergies?.hasIssue),
+        allergiesDetails: health.allergies?.details || null,
+        hasContinuousMedication: Boolean(health.continuousMedication?.hasIssue),
+        continuousMedicationDetails: health.continuousMedication?.details || null,
+        hasPhobia: Boolean(health.phobia?.hasIssue),
+        phobiaDetails: health.phobia?.details || null,
+        hasBedwetting: Boolean(health.bedwetting?.hasIssue),
+        bedwettingDetails: health.bedwetting?.details || null,
+        needsSpecialSupervisorFollowUp: Boolean(health.needsSpecialSupervisorFollowUp?.hasIssue),
+        specialSupervisorFollowUpDetails: health.needsSpecialSupervisorFollowUp?.details || null,
+      },
+    });
+
+    await tx.applicationParentNote.upsert({
+      where: { applicationId: params.applicationId },
+      update: {
+        body: params.parentSupervisorNotes || "",
+        updatedByUserId: user.id,
+      },
+      create: {
+        applicationId: params.applicationId,
+        body: params.parentSupervisorNotes || "",
+        updatedByUserId: user.id,
+      },
+    });
+  });
+
+  refreshPortalViews(params.applicationId);
+  return { code: "health_profile_updated" as const };
 }
 
 export async function updateParentProfile(params: {

@@ -113,7 +113,19 @@ export async function loadPortalApplicationData(params: {
     where: applicationWhere,
     include: {
       studentProfile: true,
+      studentHealthProfile: true,
+      parentSupervisorNote: true,
       parentProfiles: true,
+      studentUser: {
+        select: {
+          email: true,
+        },
+      },
+      parentUser: {
+        select: {
+          email: true,
+        },
+      },
       documents: {
         include: {
           fileAsset: true,
@@ -181,7 +193,19 @@ export async function loadPortalApplicationData(params: {
   type PortalApplication = Prisma.ApplicationGetPayload<{
     include: {
       studentProfile: true;
+      studentHealthProfile: true;
+      parentSupervisorNote: true;
       parentProfiles: true;
+      studentUser: {
+        select: {
+          email: true;
+        };
+      };
+      parentUser: {
+        select: {
+          email: true;
+        };
+      };
       documents: {
         include: {
           fileAsset: true;

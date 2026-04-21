@@ -145,11 +145,13 @@ export type AdminApplicationWorkspaceViewModel = {
       profileDocumentsAgreements: {
         label: string;
         statusLabel: string;
+        detailLabel: string;
         tone: "success" | "warning";
       };
       payments: {
         label: string;
         statusLabel: string;
+        detailLabel: string;
         tone: "success" | "warning";
       };
       messages: {

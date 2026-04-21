@@ -83,16 +83,8 @@ export default async function PortalDashboardPage({
                     <span className="font-bold text-ink">
                       {viewModel.progressIndicators.profileDocumentsAgreements.statusLabel}
                     </span>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                        viewModel.progressIndicators.profileDocumentsAgreements.tone === "success"
-                          ? "bg-[#e9f7ee] text-[#1b7a43]"
-                          : "bg-[#fff1ea] text-[#9f4a1f]"
-                      }`}
-                    >
-                      {viewModel.progressIndicators.profileDocumentsAgreements.tone === "success"
-                        ? "مكتمل"
-                        : "يحتاج استكمال"}
+                    <span className="text-xs font-medium text-ink/60">
+                      {viewModel.progressIndicators.profileDocumentsAgreements.detailLabel}
                     </span>
                   </div>
                 </div>
@@ -105,14 +97,8 @@ export default async function PortalDashboardPage({
                       <span className="font-bold text-ink">
                         {viewModel.progressIndicators.payments.statusLabel}
                       </span>
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                          viewModel.progressIndicators.payments.tone === "success"
-                            ? "bg-[#e9f7ee] text-[#1b7a43]"
-                            : "bg-[#fff1ea] text-[#9f4a1f]"
-                        }`}
-                      >
-                        {viewModel.progressIndicators.payments.tone === "success" ? "مكتمل" : "يحتاج استكمال"}
+                      <span className="text-xs font-medium text-ink/60">
+                        {viewModel.progressIndicators.payments.detailLabel}
                       </span>
                     </div>
                   </div>

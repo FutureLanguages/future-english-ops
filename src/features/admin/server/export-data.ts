@@ -1,5 +1,3 @@
-import { promises as fs } from "fs";
-import path from "path";
 import { ApplicationStatus } from "@prisma/client";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
@@ -60,7 +58,7 @@ export type ExportFieldKey = {
 
 const applicationStatusLabels: Record<ApplicationStatus, string> = {
   NEW: "جديد",
-  INCOMPLETE: "ناقص",
+  INCOMPLETE: "توجد نواقص",
   UNDER_REVIEW: "قيد المراجعة",
   WAITING_PAYMENT: "بانتظار الدفع",
   COMPLETED: "مكتمل",
@@ -321,6 +319,34 @@ function wrapText(text: string, maxChars = 70) {
   return lines;
 }
 
+function getApplicationBaseUrl() {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/g, "");
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  return null;
+}
+
+async function loadBundledFontBytes(filename: string) {
+  const baseUrl = getApplicationBaseUrl();
+
+  if (!baseUrl) {
+    return null;
+  }
+
+  const response = await fetch(`${baseUrl}/fonts/${filename}`);
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return new Uint8Array(await response.arrayBuffer());
+}
+
 export async function generatePdfExport(params: {
   filters: ExportFilters;
   dataTypes: string[];
@@ -332,20 +358,11 @@ export async function generatePdfExport(params: {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
 
-  const fontCandidates = [
-    path.join(process.cwd(), "node_modules", "@fontsource", "tajawal", "files", "tajawal-arabic-400-normal.woff"),
-    path.join(process.cwd(), "public", "fonts", "tajawal-arabic-400-normal.woff2"),
-  ];
   let font = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontBytes = await loadBundledFontBytes("tajawal-arabic-400-normal.woff2");
 
-  for (const fontPath of fontCandidates) {
-    try {
-      const fontBytes = await fs.readFile(fontPath);
-      font = await pdf.embedFont(fontBytes);
-      break;
-    } catch {
-      continue;
-    }
+  if (fontBytes) {
+    font = await pdf.embedFont(fontBytes);
   }
 
   const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);

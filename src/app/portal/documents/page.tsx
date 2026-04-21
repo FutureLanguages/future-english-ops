@@ -6,6 +6,7 @@ import { PortalShell } from "@/components/portal/portal-shell";
 import { LockStateIndicator } from "@/components/shared/lock-state-indicator";
 import { getPortalDevSessionState } from "@/features/auth/server/portal-session";
 import { getPortalDocumentsViewModel } from "@/features/portal/server/get-portal-documents";
+import { MAX_UPLOAD_SIZE_LABEL } from "@/lib/storage/upload-limits";
 
 export default async function PortalDocumentsPage({
   searchParams,
@@ -74,7 +75,9 @@ export default async function PortalDocumentsPage({
                 : resolvedSearchParams?.error === "missing_file"
                   ? "يرجى اختيار ملف قبل الإرسال."
                   : resolvedSearchParams?.error === "file_too_large"
-                    ? "حجم الملف أكبر من الحد المسموح (5MB)."
+                    ? `حجم الملف أكبر من الحد المسموح (${MAX_UPLOAD_SIZE_LABEL}).`
+                  : resolvedSearchParams?.error === "unsupported_file_type"
+                    ? "نوع الملف غير مدعوم. يرجى رفع PDF أو صورة."
                   : resolvedSearchParams?.error === "already_approved"
                     ? "هذا المستند معتمد بالفعل ولا يحتاج إلى رفع جديد."
                     : resolvedSearchParams?.error === "agreement_required"
