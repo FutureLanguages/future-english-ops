@@ -33,34 +33,32 @@ function uniqueRecipients(userIds: Array<string | null | undefined>, actorUserId
 }
 
 export async function getUserNotificationSummary(userId: string) {
-  const [unreadCount, notifications] = await Promise.all([
-    prisma.notification.count({
-      where: {
-        userId,
-        isRead: false,
-      },
-    }),
-    prisma.notification.findMany({
-      where: {
-        userId,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 10,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        type: true,
-        actorName: true,
-        actorRole: true,
-        isRead: true,
-        link: true,
-        createdAt: true,
-      },
-    }),
-  ]);
+  const unreadCount = await prisma.notification.count({
+    where: {
+      userId,
+      isRead: false,
+    },
+  });
+  const notifications = await prisma.notification.findMany({
+    where: {
+      userId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 10,
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      type: true,
+      actorName: true,
+      actorRole: true,
+      isRead: true,
+      link: true,
+      createdAt: true,
+    },
+  });
 
   return {
     unreadCount,

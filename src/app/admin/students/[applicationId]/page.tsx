@@ -228,6 +228,7 @@ export default async function AdminApplicationWorkspacePage({
   if (!viewModel) {
     return (
       <AdminShell
+        adminId={session.id}
         mobileNumber={session.mobileNumber}
         navItems={getAdminNavItems("students")}
         title="ملف الطالب"
@@ -316,6 +317,7 @@ export default async function AdminApplicationWorkspacePage({
 
   return (
     <AdminShell
+      adminId={session.id}
       mobileNumber={viewModel.adminMobileNumber}
       navItems={viewModel.navItems}
       title="ملف الطالب"

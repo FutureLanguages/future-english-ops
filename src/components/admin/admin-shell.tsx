@@ -9,22 +9,22 @@ import type { AdminNavItem } from "@/types/admin";
 
 export async function AdminShell({
   mobileNumber,
+  adminId,
   navItems,
   title,
   subtitle,
   children,
 }: {
   mobileNumber: string;
+  adminId?: string;
   navItems: AdminNavItem[];
   title: string;
   subtitle?: string;
   children: React.ReactNode;
 }) {
-  const admin = await getAdminSession();
-  const [unreadMessagesCount, notificationSummary] = await Promise.all([
-    getAdminUnreadMessageCount(),
-    getUserNotificationSummary(admin.id),
-  ]);
+  const admin = adminId ? { id: adminId } : await getAdminSession();
+  const unreadMessagesCount = await getAdminUnreadMessageCount();
+  const notificationSummary = await getUserNotificationSummary(admin.id);
 
   return (
     <div className="min-h-screen bg-transparent">

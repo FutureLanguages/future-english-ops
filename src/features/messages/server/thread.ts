@@ -9,7 +9,7 @@ type NoteRecord = {
   noteType?: ApplicationNoteType | null;
   senderRole?: UserRole | null;
   senderName?: string | null;
-  senderUser: {
+  senderUser?: {
     role: UserRole;
     mobileNumber: string;
   };
@@ -25,12 +25,14 @@ export function getUnreadNotesCount(params: {
       return false;
     }
 
+    const senderRole = note.senderRole ?? note.senderUser?.role;
+
     if (params.role === UserRole.ADMIN) {
-      return note.senderUser.role !== UserRole.ADMIN &&
+      return senderRole !== UserRole.ADMIN &&
         (!params.lastViewedAt || note.createdAt > params.lastViewedAt);
     }
 
-    return note.senderUser.role === UserRole.ADMIN &&
+    return senderRole === UserRole.ADMIN &&
       (!params.lastViewedAt || note.createdAt > params.lastViewedAt);
   }).length;
 }
@@ -64,7 +66,7 @@ export function canAccessThread(params: {
 }
 
 export function getSenderDisplayName(note: NoteRecord) {
-  const role = note.senderRole ?? note.senderUser.role;
+  const role = note.senderRole ?? note.senderUser?.role ?? UserRole.ADMIN;
   const roleLabel =
     role === UserRole.ADMIN ? "الإدارة" : role === UserRole.STUDENT ? "الطالب" : "ولي الأمر";
 
@@ -82,9 +84,9 @@ export function formatThreadMessages(notes: NoteRecord[], threadType?: MessageTh
       body: note.body,
       createdAt: note.createdAt,
       threadType: note.threadType ?? MessageThreadType.STUDENT,
-      senderRole: note.senderRole ?? note.senderUser.role,
+      senderRole: note.senderRole ?? note.senderUser?.role ?? UserRole.ADMIN,
       senderLabel: getSenderDisplayName(note),
-      senderMobileNumber: note.senderUser.mobileNumber,
-      isAdminMessage: (note.senderRole ?? note.senderUser.role) === UserRole.ADMIN,
+      senderMobileNumber: note.senderUser?.mobileNumber ?? "",
+      isAdminMessage: (note.senderRole ?? note.senderUser?.role) === UserRole.ADMIN,
     }));
 }

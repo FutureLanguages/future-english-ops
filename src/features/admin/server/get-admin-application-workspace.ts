@@ -1,8 +1,5 @@
 import { ApplicationNoteType, ApplicationStatus, MessageThreadType, UserRole, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import {
-  ensureDefaultAgreementTemplates,
-} from "@/features/agreements/server/agreements";
 import { formatThreadMessages, getUnreadNotesCount, getUnreadThreadNotesCount } from "@/features/messages/server/thread";
 import type { DocumentRequirementRecord } from "@/types/application";
 import type { AdminApplicationWorkspaceViewModel, AdminWorkspaceDocumentGroup } from "@/types/admin";
@@ -162,8 +159,6 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
   adminMobileNumber: string;
   applicationId: string;
 }): Promise<AdminApplicationWorkspaceViewModel | null> {
-  await ensureDefaultAgreementTemplates();
-
   await prisma.application.update({
     where: {
       id: params.applicationId,
@@ -175,104 +170,85 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
     },
   }).catch(() => null);
 
-  const [application, requirementRows, agreementTemplates] = await Promise.all([
-    prisma.application.findUnique({
-      where: {
-        id: params.applicationId,
-      },
-      include: {
-        studentProfile: true,
-        parentProfiles: true,
-        documents: {
-          include: {
-            fileAsset: true,
-            uploadedByUser: {
-              select: {
-                role: true,
-                mobileNumber: true,
-              },
-            },
-          },
-        },
-        paymentReceipts: {
-          include: {
-            fileAsset: true,
-            uploadedByUser: {
-              select: {
-                role: true,
-                mobileNumber: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-        agreements: {
-          orderBy: {
-            assignedAt: "desc",
-          },
-        },
-        fees: {
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-        payments: {
-          include: {
-            paymentReceipt: {
-              include: {
-                fileAsset: true,
-              },
-            },
-          },
-          orderBy: {
-            paymentDate: "desc",
-          },
-        },
-        parentUser: {
-          select: {
-            mobileNumber: true,
-          },
-        },
-        studentUser: {
-          select: {
-            mobileNumber: true,
-          },
-        },
-        notes: {
-          orderBy: {
-            createdAt: "desc",
-          },
-          include: {
-            senderUser: {
-              select: {
-                role: true,
-                mobileNumber: true,
-              },
+  const application = await prisma.application.findUnique({
+    where: {
+      id: params.applicationId,
+    },
+    include: {
+      studentProfile: true,
+      parentProfiles: true,
+      documents: {
+        include: {
+          fileAsset: true,
+          uploadedByUser: {
+            select: {
+              role: true,
+              mobileNumber: true,
             },
           },
         },
       },
-    }),
-    prisma.documentRequirement.findMany({
-      where: {
-        isActive: true,
+      paymentReceipts: {
+        include: {
+          fileAsset: true,
+          uploadedByUser: {
+            select: {
+              role: true,
+              mobileNumber: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
       },
-      orderBy: {
-        sortOrder: "asc",
+      agreements: {
+        orderBy: {
+          assignedAt: "desc",
+        },
       },
-    }),
-    prisma.agreementTemplate.findMany({
-      where: {
-        isActive: true,
+      fees: {
+        orderBy: {
+          createdAt: "desc",
+        },
       },
-      orderBy: [
-        { isDefault: "desc" },
-        { createdAt: "desc" },
-      ],
-    }),
-  ]);
+      payments: {
+        include: {
+          paymentReceipt: {
+            include: {
+              fileAsset: true,
+            },
+          },
+        },
+        orderBy: {
+          paymentDate: "desc",
+        },
+      },
+      parentUser: {
+        select: {
+          mobileNumber: true,
+        },
+      },
+      studentUser: {
+        select: {
+          mobileNumber: true,
+        },
+      },
+      notes: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          senderUser: {
+            select: {
+              role: true,
+              mobileNumber: true,
+            },
+          },
+        },
+      },
+    },
+  });
 
   type AdminWorkspaceApplication = Prisma.ApplicationGetPayload<{
     include: {
@@ -337,6 +313,24 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
   if (!application) {
     return null;
   }
+
+  const requirementRows = await prisma.documentRequirement.findMany({
+    where: {
+      isActive: true,
+    },
+    orderBy: {
+      sortOrder: "asc",
+    },
+  });
+  const agreementTemplates = await prisma.agreementTemplate.findMany({
+    where: {
+      isActive: true,
+    },
+    orderBy: [
+      { isDefault: "desc" },
+      { createdAt: "desc" },
+    ],
+  });
 
   const hydratedApplication = application as AdminWorkspaceApplication;
 

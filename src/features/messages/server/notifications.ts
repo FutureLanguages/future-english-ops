@@ -62,15 +62,23 @@ export async function getPortalUnreadMessageCount() {
 export async function getAdminUnreadMessageCount() {
   await getAdminSession();
   const applications = await prisma.application.findMany({
-    include: {
+    select: {
+      adminLastViewedNotesAt: true,
+      adminLastViewedStudentThreadAt: true,
+      adminLastViewedParentThreadAt: true,
       notes: {
-        include: {
-          senderUser: {
-            select: {
-              role: true,
-              mobileNumber: true,
-            },
-          },
+        where: {
+          noteType: "MESSAGE",
+        },
+        select: {
+          id: true,
+          body: true,
+          createdAt: true,
+          senderUserId: true,
+          threadType: true,
+          noteType: true,
+          senderRole: true,
+          senderName: true,
         },
       },
     },
