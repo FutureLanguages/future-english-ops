@@ -108,6 +108,13 @@ export async function reviewApplicationDocumentAction(formData: FormData) {
   const adminNote = String(formData.get("adminNote") ?? "").trim();
   const targetTab = String(formData.get("targetTab") ?? "documents");
 
+  console.info("[admin-document-review] start", {
+    applicationId,
+    requirementId,
+    status: statusValue,
+    hasAdminNote: adminNote.length > 0,
+  });
+
   if (
     !applicationId ||
     !requirementId ||
@@ -124,30 +131,55 @@ export async function reviewApplicationDocumentAction(formData: FormData) {
     redirect(`/admin/students/${applicationId}?error=missing_review_note#${targetTab}`);
   }
 
-  await prisma.applicationDocument.update({
-    where: {
-      applicationId_requirementId: {
-        applicationId,
-        requirementId,
+  try {
+    const updatedDocument = await prisma.applicationDocument.update({
+      where: {
+        applicationId_requirementId: {
+          applicationId,
+          requirementId,
+        },
       },
-    },
-    data: {
-      status: statusValue as DocumentStatus,
-      adminNote: adminNote.length > 0 ? adminNote : null,
-      reviewedAt: new Date(),
-    },
-  });
+      data: {
+        status: statusValue as DocumentStatus,
+        adminNote: adminNote.length > 0 ? adminNote : null,
+        reviewedAt: new Date(),
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+    console.info("[admin-document-review] updated", updatedDocument);
 
-  await notifyPortalUsers({
-    applicationId,
-    actorUserId: undefined,
-    actorName: "الإدارة",
-    actorRole: UserRole.ADMIN,
-    title: documentReviewLabels[statusValue as keyof typeof documentReviewLabels] ?? "تم تحديث حالة المستند",
-    description: adminNote || null,
-    type: NotificationType.DOCUMENT,
-    link: "/portal/documents",
-  });
+  } catch (error) {
+    console.error("[admin-document-review] failed", {
+      applicationId,
+      requirementId,
+      status: statusValue,
+      error,
+    });
+    redirect(`/admin/students/${applicationId}?error=invalid_document_review#${targetTab}`);
+  }
+
+  try {
+    await notifyPortalUsers({
+      applicationId,
+      actorUserId: undefined,
+      actorName: "الإدارة",
+      actorRole: UserRole.ADMIN,
+      title: documentReviewLabels[statusValue as keyof typeof documentReviewLabels] ?? "تم تحديث حالة المستند",
+      description: adminNote || null,
+      type: NotificationType.DOCUMENT,
+      link: "/portal/documents",
+    });
+  } catch (error) {
+    console.error("[admin-document-review] notification failed", {
+      applicationId,
+      requirementId,
+      status: statusValue,
+      error,
+    });
+  }
 
   refreshApplicationViews(applicationId);
   redirect(`/admin/students/${applicationId}?success=document_review_updated#${targetTab}`);
@@ -161,6 +193,13 @@ export async function bulkReviewApplicationDocumentsAction(formData: FormData) {
   const adminNote = String(formData.get("adminNote") ?? "").trim();
   const documentIds = formData.getAll("documentIds").map(String).filter(Boolean);
 
+  console.info("[admin-document-bulk-review] start", {
+    applicationId,
+    status: statusValue,
+    documentIdsCount: documentIds.length,
+    hasAdminNote: adminNote.length > 0,
+  });
+
   if (!applicationId || documentIds.length === 0 || !reviewStatuses.has(statusValue as DocumentStatus)) {
     redirect(`/admin/students/${applicationId || ""}?error=invalid_document_review#documents`);
   }
@@ -173,29 +212,54 @@ export async function bulkReviewApplicationDocumentsAction(formData: FormData) {
     redirect(`/admin/students/${applicationId}?error=missing_review_note#documents`);
   }
 
-  await prisma.applicationDocument.updateMany({
-    where: {
-      applicationId,
-      id: {
-        in: documentIds,
+  try {
+    const result = await prisma.applicationDocument.updateMany({
+      where: {
+        applicationId,
+        id: {
+          in: documentIds,
+        },
       },
-    },
-    data: {
-      status: statusValue as DocumentStatus,
-      adminNote: adminNote || null,
-      reviewedAt: new Date(),
-    },
-  });
+      data: {
+        status: statusValue as DocumentStatus,
+        adminNote: adminNote || null,
+        reviewedAt: new Date(),
+      },
+    });
+    console.info("[admin-document-bulk-review] updated", {
+      applicationId,
+      status: statusValue,
+      count: result.count,
+    });
 
-  await notifyPortalUsers({
-    applicationId,
-    actorName: "الإدارة",
-    actorRole: UserRole.ADMIN,
-    title: `تم تحديث حالة ${documentIds.length} مستند`,
-    description: adminNote || (documentReviewLabels[statusValue as keyof typeof documentReviewLabels] ?? null),
-    type: NotificationType.DOCUMENT,
-    link: "/portal/documents",
-  });
+  } catch (error) {
+    console.error("[admin-document-bulk-review] failed", {
+      applicationId,
+      status: statusValue,
+      documentIdsCount: documentIds.length,
+      error,
+    });
+    redirect(`/admin/students/${applicationId}?error=invalid_document_review#documents`);
+  }
+
+  try {
+    await notifyPortalUsers({
+      applicationId,
+      actorName: "الإدارة",
+      actorRole: UserRole.ADMIN,
+      title: `تم تحديث حالة ${documentIds.length} مستند`,
+      description: adminNote || (documentReviewLabels[statusValue as keyof typeof documentReviewLabels] ?? null),
+      type: NotificationType.DOCUMENT,
+      link: "/portal/documents",
+    });
+  } catch (error) {
+    console.error("[admin-document-bulk-review] notification failed", {
+      applicationId,
+      status: statusValue,
+      documentIdsCount: documentIds.length,
+      error,
+    });
+  }
 
   refreshApplicationViews(applicationId);
   redirect(`/admin/students/${applicationId}?success=document_review_updated#documents`);

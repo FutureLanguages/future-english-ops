@@ -2,11 +2,42 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
 import type { AdminWorkspaceDocumentGroup } from "@/types/admin";
 import { AdminDocumentStatusBadge } from "@/components/admin/admin-document-status-badge";
 import { isPreviewableMimeType } from "@/lib/storage/file-preview";
 
 type ReviewAction = (formData: FormData) => Promise<void>;
+
+function ReviewSubmitButton({
+  value,
+  children,
+  tone = "secondary",
+  disabled,
+}: {
+  value: string;
+  children: string;
+  tone?: "primary" | "secondary";
+  disabled?: boolean;
+}) {
+  const { pending } = useFormStatus();
+  const className =
+    tone === "primary"
+      ? "rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+      : "rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink disabled:cursor-wait disabled:opacity-60";
+
+  return (
+    <button
+      type="submit"
+      name="status"
+      value={value}
+      disabled={disabled || pending}
+      className={className}
+    >
+      {pending ? "جاري التنفيذ..." : children}
+    </button>
+  );
+}
 
 export function AdminDocumentReviewPanel({
   applicationId,
@@ -58,33 +89,19 @@ export function AdminDocumentReviewPanel({
             className="rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm outline-none"
           />
           <div className="grid gap-2">
-            <button
-              type="submit"
-              name="status"
+            <ReviewSubmitButton
               value="APPROVED"
               disabled={selectedDocumentIds.length === 0}
-              className="rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              tone="primary"
             >
               اعتماد الكل
-            </button>
-            <button
-              type="submit"
-              name="status"
-              value="REJECTED"
-              disabled={selectedDocumentIds.length === 0}
-              className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            </ReviewSubmitButton>
+            <ReviewSubmitButton value="REJECTED" disabled={selectedDocumentIds.length === 0}>
               رفض الكل
-            </button>
-            <button
-              type="submit"
-              name="status"
-              value="REUPLOAD_REQUESTED"
-              disabled={selectedDocumentIds.length === 0}
-              className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            </ReviewSubmitButton>
+            <ReviewSubmitButton value="REUPLOAD_REQUESTED" disabled={selectedDocumentIds.length === 0}>
               طلب إعادة رفع
-            </button>
+            </ReviewSubmitButton>
           </div>
           <div className="space-y-2 text-sm text-ink/60">
             <button
@@ -173,30 +190,15 @@ export function AdminDocumentReviewPanel({
                       </div>
                     ) : (
                       <>
-                        <button
-                          type="submit"
-                          name="status"
-                          value="APPROVED"
-                          className="rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-white"
-                        >
+                        <ReviewSubmitButton value="APPROVED" tone="primary">
                           اعتماد المستند
-                        </button>
-                        <button
-                          type="submit"
-                          name="status"
-                          value="REJECTED"
-                          className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink"
-                        >
+                        </ReviewSubmitButton>
+                        <ReviewSubmitButton value="REJECTED">
                           رفض المستند
-                        </button>
-                        <button
-                          type="submit"
-                          name="status"
-                          value="REUPLOAD_REQUESTED"
-                          className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink"
-                        >
+                        </ReviewSubmitButton>
+                        <ReviewSubmitButton value="REUPLOAD_REQUESTED">
                           طلب إعادة رفع
-                        </button>
+                        </ReviewSubmitButton>
                       </>
                     )}
                   </form>

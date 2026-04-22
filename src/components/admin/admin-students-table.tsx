@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { DashboardStatusBadge } from "@/components/portal/dashboard-status";
 import { AdminExportTrigger } from "@/components/admin/admin-export-trigger";
 import { UserIdentity } from "@/components/shared/user-identity";
+import { LoadingLink } from "@/components/shared/loading-link";
 import type { AdminApplicationRow } from "@/types/admin";
 
 export function AdminStudentsTable({
@@ -113,9 +113,9 @@ export function AdminStudentsTable({
               <span className="font-medium text-ink/55">
                 آخر تحديث: {new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium" }).format(row.updatedAt)}
               </span>
-              <Link href={`/admin/students/${row.id}`} className="font-semibold text-pine">
+              <LoadingLink href={`/admin/students/${row.id}`} className="font-semibold text-pine">
                 فتح الملف
-              </Link>
+              </LoadingLink>
             </div>
           </div>
         ))}

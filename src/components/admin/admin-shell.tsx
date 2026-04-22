@@ -27,8 +27,8 @@ export async function AdminShell({
   const notificationSummary = await getUserNotificationSummary(admin.id);
 
   return (
-    <div className="min-h-screen bg-transparent">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-8 pt-4 md:px-6 md:pt-6">
+    <div className="min-h-screen overflow-x-hidden bg-transparent">
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-8 pt-4 md:px-6 md:pt-6">
         <header className="mb-5 rounded-panel bg-white/85 px-4 py-4 shadow-soft backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
@@ -37,7 +37,7 @@ export async function AdminShell({
               <h1 className="text-2xl font-bold text-ink">{title}</h1>
               {subtitle ? <p className="mt-1 text-sm text-ink/65">{subtitle}</p> : null}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex max-w-full flex-wrap items-center gap-2">
               <NotificationBell
                 unreadCount={notificationSummary.unreadCount}
                 notifications={notificationSummary.notifications}
@@ -68,14 +68,14 @@ export async function AdminShell({
                   تسجيل الخروج
                 </button>
               </form>
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#11212d] px-3 py-1 text-xs font-semibold text-white">
-                <span>حساب الإدارة</span>
-                <span>{mobileNumber}</span>
+              <div className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full bg-[#11212d] px-3 py-1 text-xs font-semibold text-white">
+                <span className="shrink-0">حساب الإدارة</span>
+                <span className="min-w-0 break-all">{mobileNumber}</span>
               </div>
             </div>
           </div>
 
-          <nav className="mt-4 flex flex-wrap gap-2">
+          <nav className="mt-4 flex max-w-full flex-wrap gap-2">
             {navItems.map((item) => {
               const classes = clsx(
                 "rounded-full px-4 py-2 text-sm font-semibold transition",
