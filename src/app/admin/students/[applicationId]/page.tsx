@@ -5,8 +5,8 @@ import { AdminEntityHeader } from "@/components/admin/admin-entity-header";
 import { AdminFormSubmitButton } from "@/components/admin/admin-form-submit-button";
 import { AdminAgreementAssignmentPanel } from "@/components/admin/admin-agreement-assignment-panel";
 import { AdminPaymentControls } from "@/components/admin/admin-payment-controls";
+import { AdminReceiptReviewPanel } from "@/components/admin/admin-receipt-review-panel";
 import { AdminStatusControl } from "@/components/admin/admin-status-control";
-import { AdminDocumentStatusBadge } from "@/components/admin/admin-document-status-badge";
 import { AdminLockToggleButton } from "@/components/admin/admin-lock-toggle-button";
 import { PasswordField } from "@/components/shared/password-field";
 import { MessageThreadsPanel } from "@/components/shared/message-threads-panel";
@@ -14,17 +14,13 @@ import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
 import { DashboardStatusBadge } from "@/components/portal/dashboard-status";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminWorkspaceTabs } from "@/components/admin/admin-workspace-tabs";
-import { isPreviewableMimeType } from "@/lib/storage/file-preview";
 import { getAdminNavItems } from "@/features/admin/server/nav";
 import {
-  bulkReviewApplicationDocumentsAction,
   archiveAgreementTemplateAction,
   removeAssignedAgreementAction,
   requestAgreementCancellationAction,
   updateAgreementTemplateAction,
   resetAccountPasswordAction,
-  reviewPaymentReceiptAction,
-  reviewApplicationDocumentAction,
   sendAdminMessageAction,
   updateAdminAccessSettingAction,
 } from "./actions";
@@ -621,8 +617,6 @@ export default async function AdminApplicationWorkspacePage({
             <AdminDocumentReviewPanel
               applicationId={applicationId}
               groups={viewModel.documents.groups}
-              bulkAction={bulkReviewApplicationDocumentsAction}
-              reviewAction={reviewApplicationDocumentAction}
             />
           </div>
         </section>
@@ -675,90 +669,7 @@ export default async function AdminApplicationWorkspacePage({
 
           <div className="mt-4 rounded-2xl bg-sand px-4 py-4">
             <div className="text-sm font-semibold text-ink">إيصالات السداد المرفوعة</div>
-            <div className="mt-3 grid gap-3 lg:grid-cols-2">
-              {viewModel.payments.receipts.length > 0 ? (
-                viewModel.payments.receipts.map((receipt) => (
-                  <div key={receipt.id} className="rounded-2xl bg-white px-4 py-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-bold text-ink">
-                          {new Intl.DateTimeFormat("ar-SA", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          }).format(receipt.createdAt)}
-                        </div>
-                        <div className="mt-1 text-xs text-ink/55">
-                          {receipt.uploadedByLabel ?? "رافع غير معروف"}
-                        </div>
-                      </div>
-                      <AdminDocumentStatusBadge status={receipt.status} />
-                    </div>
-                    {receipt.adminNote ? (
-                      <div className="mt-3 rounded-2xl bg-sand px-3 py-3 text-sm text-ink/80">
-                        {receipt.adminNote}
-                      </div>
-                    ) : null}
-                    <div className="mt-3 flex items-center gap-3">
-                      {isPreviewableMimeType(receipt.fileMimeType) ? (
-                        <Link
-                          href={`/api/files/${receipt.fileAssetId}/view`}
-                          target="_blank"
-                          className="text-sm font-semibold text-pine"
-                        >
-                          عرض
-                        </Link>
-                      ) : null}
-                      <Link
-                        href={`/api/files/${receipt.fileAssetId}/download`}
-                        className="text-sm font-semibold text-pine"
-                      >
-                        تحميل
-                      </Link>
-                    </div>
-                    <form action={reviewPaymentReceiptAction} className="mt-3 flex flex-col gap-2">
-                      <input type="hidden" name="applicationId" value={applicationId} />
-                      <input type="hidden" name="receiptId" value={receipt.id} />
-                      <textarea
-                        name="adminNote"
-                        rows={3}
-                        defaultValue={receipt.adminNote ?? ""}
-                        placeholder="ملاحظة مرتبطة بالإيصال"
-                        className="rounded-2xl border border-black/10 bg-sand px-3 py-3 text-sm outline-none"
-                      />
-                      <button
-                        type="submit"
-                        name="status"
-                        value="APPROVED"
-                        className="rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-white"
-                      >
-                        اعتماد الإيصال
-                      </button>
-                      <button
-                        type="submit"
-                        name="status"
-                        value="REJECTED"
-                        className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink"
-                      >
-                        رفض الإيصال
-                      </button>
-                      <button
-                        type="submit"
-                        name="status"
-                        value="REUPLOAD_REQUESTED"
-                        className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink"
-                      >
-                        طلب إعادة رفع
-                      </button>
-                    </form>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl bg-white px-4 py-4 text-sm text-ink/55">
-                  لا توجد إيصالات مرفوعة حتى الآن.
-                </div>
-              )}
-            </div>
+            <AdminReceiptReviewPanel applicationId={applicationId} receipts={viewModel.payments.receipts} />
           </div>
         </section>
 

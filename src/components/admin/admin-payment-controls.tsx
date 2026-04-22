@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
+import { FileActionLinks } from "@/components/shared/file-action-links";
 
 type ReceiptOption = {
   id: string;
@@ -26,10 +25,13 @@ type PaymentItem = {
   id: string;
   amountSar: number;
   note: string | null;
-  paymentDate: Date;
+  paymentDate: Date | string;
   linkedReceiptFileAssetId: string | null;
+  linkedReceiptFileMimeType: string | null;
   linkedReceiptId: string | null;
 };
+
+type PendingAction = string;
 
 function formatMoney(amount: number) {
   return `${amount} ر.س`;
@@ -46,11 +48,32 @@ export function AdminPaymentControls({
   payments: PaymentItem[];
   receipts: ReceiptOption[];
 }) {
-  const router = useRouter();
+  const [feeItems, setFeeItems] = useState(fees);
+  const [paymentItems, setPaymentItems] = useState(payments);
   const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);
+  const inFlightActions = useRef(new Set<string>());
   const [editingFeeId, setEditingFeeId] = useState<string | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+
+  function isPending(actionKey: string) {
+    return pendingActions.includes(actionKey);
+  }
+
+  function startAction(actionKey: string) {
+    if (inFlightActions.current.has(actionKey)) {
+      return false;
+    }
+
+    inFlightActions.current.add(actionKey);
+    setPendingActions((current) => [...current, actionKey]);
+    return true;
+  }
+
+  function finishAction(actionKey: string) {
+    inFlightActions.current.delete(actionKey);
+    setPendingActions((current) => current.filter((item) => item !== actionKey));
+  }
 
   function showError(error?: string) {
     setToast({
@@ -64,62 +87,102 @@ export function AdminPaymentControls({
     });
   }
 
-  function submitCreate(url: string, form: HTMLFormElement, successMessage: string) {
-    startTransition(async () => {
+  async function submitCreate(
+    actionKey: string,
+    url: string,
+    form: HTMLFormElement,
+    successMessage: string,
+    onSuccess: (payload: { fee?: FeeItem; payment?: PaymentItem }) => void,
+  ) {
+    if (!startAction(actionKey)) {
+      return;
+    }
+
+    try {
       const response = await fetch(url, {
         method: "POST",
         body: new FormData(form),
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        fee?: FeeItem;
+        payment?: PaymentItem;
+      } | null;
       if (!response.ok) {
         showError(payload?.error);
         return;
       }
 
+      onSuccess(payload ?? {});
       form.reset();
       setToast({ tone: "success", message: successMessage });
-      router.refresh();
-    });
+    } finally {
+      finishAction(actionKey);
+    }
   }
 
-  function submitUpdate(
+  async function submitUpdate(
+    actionKey: string,
     url: string,
     form: HTMLFormElement,
     successMessage: string,
-    onFinish: () => void,
+    onSuccess: (payload: { fee?: FeeItem; payment?: PaymentItem }) => void,
   ) {
-    startTransition(async () => {
+    if (!startAction(actionKey)) {
+      return;
+    }
+
+    try {
       const response = await fetch(url, {
         method: "PATCH",
         body: new FormData(form),
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        fee?: FeeItem;
+        payment?: PaymentItem;
+      } | null;
       if (!response.ok) {
         showError(payload?.error);
         return;
       }
 
-      onFinish();
+      onSuccess(payload ?? {});
       setToast({ tone: "success", message: successMessage });
-      router.refresh();
-    });
+    } finally {
+      finishAction(actionKey);
+    }
   }
 
-  function submitDelete(url: string, successMessage: string, onFinish?: () => void) {
-    startTransition(async () => {
+  async function submitDelete(
+    actionKey: string,
+    url: string,
+    successMessage: string,
+    onSuccess: (payload: { feeId?: string; paymentId?: string }) => void,
+  ) {
+    if (!startAction(actionKey)) {
+      return;
+    }
+
+    try {
       const response = await fetch(url, {
         method: "DELETE",
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        feeId?: string;
+        paymentId?: string;
+      } | null;
       if (!response.ok) {
         showError(payload?.error);
         return;
       }
 
-      onFinish?.();
+      onSuccess(payload ?? {});
       setToast({ tone: "success", message: successMessage });
-      router.refresh();
-    });
+    } finally {
+      finishAction(actionKey);
+    }
   }
 
   return (
@@ -132,7 +195,17 @@ export function AdminPaymentControls({
           className="mt-3 grid gap-3"
           onSubmit={(event) => {
             event.preventDefault();
-            submitCreate(`/api/admin/applications/${applicationId}/fees`, event.currentTarget, "تمت إضافة الرسوم بنجاح.");
+            submitCreate(
+              "fee:create",
+              `/api/admin/applications/${applicationId}/fees`,
+              event.currentTarget,
+              "تمت إضافة الرسوم بنجاح.",
+              (payload) => {
+                if (payload.fee) {
+                  setFeeItems((current) => [payload.fee!, ...current]);
+                }
+              },
+            );
           }}
         >
           <label className="block">
@@ -178,10 +251,10 @@ export function AdminPaymentControls({
           </label>
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending("fee:create")}
             className="rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {isPending ? "جارٍ الحفظ..." : "إضافة رسوم"}
+            {isPending("fee:create") ? "جارٍ الحفظ..." : "إضافة رسوم"}
           </button>
         </form>
 
@@ -190,9 +263,15 @@ export function AdminPaymentControls({
           onSubmit={(event) => {
             event.preventDefault();
             submitCreate(
+              "discount:create",
               `/api/admin/applications/${applicationId}/discounts`,
               event.currentTarget,
               "تم تحديث الخصم بنجاح.",
+              (payload) => {
+                if (payload.fee) {
+                  setFeeItems((current) => [payload.fee!, ...current]);
+                }
+              },
             );
           }}
         >
@@ -240,15 +319,15 @@ export function AdminPaymentControls({
           </label>
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending("discount:create")}
             className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink disabled:opacity-60"
           >
-            {isPending ? "جارٍ الحفظ..." : "إضافة خصم"}
+            {isPending("discount:create") ? "جارٍ الحفظ..." : "إضافة خصم"}
           </button>
         </form>
 
         <div className="mt-4 space-y-2">
-          {fees.map((fee) => {
+          {feeItems.map((fee) => {
             const isDiscount = fee.amountSar < 0;
             const amountValue = Math.abs(fee.amountSar);
             const isEditing = editingFeeId === fee.id;
@@ -275,10 +354,18 @@ export function AdminPaymentControls({
                     onSubmit={(event) => {
                       event.preventDefault();
                       submitUpdate(
+                        `fee:update:${fee.id}`,
                         `/api/admin/applications/${applicationId}/fees/${fee.id}`,
                         event.currentTarget,
                         "تم تحديث البند المالي بنجاح.",
-                        () => setEditingFeeId(null),
+                        (payload) => {
+                          if (payload.fee) {
+                            setFeeItems((current) =>
+                              current.map((item) => (item.id === payload.fee!.id ? payload.fee! : item)),
+                            );
+                          }
+                          setEditingFeeId(null);
+                        },
                       );
                     }}
                   >
@@ -312,10 +399,10 @@ export function AdminPaymentControls({
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="submit"
-                        disabled={isPending}
+                        disabled={isPending(`fee:update:${fee.id}`)}
                         className="rounded-2xl bg-pine px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
                       >
-                        {isPending ? "جارٍ الحفظ..." : "حفظ"}
+                        {isPending(`fee:update:${fee.id}`) ? "جارٍ الحفظ..." : "حفظ"}
                       </button>
                       <button
                         type="button"
@@ -339,14 +426,19 @@ export function AdminPaymentControls({
                       type="button"
                       onClick={() =>
                         submitDelete(
+                          `fee:delete:${fee.id}`,
                           `/api/admin/applications/${applicationId}/fees/${fee.id}`,
                           "تم حذف البند المالي بنجاح.",
-                          () => setEditingFeeId(null),
+                          (payload) => {
+                            setFeeItems((current) => current.filter((item) => item.id !== (payload.feeId ?? fee.id)));
+                            setEditingFeeId(null);
+                          },
                         )
                       }
+                      disabled={isPending(`fee:delete:${fee.id}`)}
                       className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-[#a03232]"
                     >
-                      حذف
+                      {isPending(`fee:delete:${fee.id}`) ? "جارٍ الحذف..." : "حذف"}
                     </button>
                   </div>
                 )}
@@ -363,9 +455,15 @@ export function AdminPaymentControls({
           onSubmit={(event) => {
             event.preventDefault();
             submitCreate(
+              "payment:create",
               `/api/admin/applications/${applicationId}/payments`,
               event.currentTarget,
               "تمت إضافة الدفعة بنجاح.",
+              (payload) => {
+                if (payload.payment) {
+                  setPaymentItems((current) => [payload.payment!, ...current]);
+                }
+              },
             );
           }}
         >
@@ -418,14 +516,14 @@ export function AdminPaymentControls({
           </label>
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending("payment:create")}
             className="rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {isPending ? "جارٍ الحفظ..." : "إضافة دفعة"}
+            {isPending("payment:create") ? "جارٍ الحفظ..." : "إضافة دفعة"}
           </button>
         </form>
         <div className="mt-4 space-y-2">
-          {payments.map((payment) => {
+          {paymentItems.map((payment) => {
             const isEditing = editingPaymentId === payment.id;
 
             return (
@@ -443,13 +541,13 @@ export function AdminPaymentControls({
                 {payment.note ? <div className="mt-1 text-ink/55">{payment.note}</div> : null}
                 {payment.linkedReceiptFileAssetId ? (
                   <div className="mt-2">
-                    <Link
-                      href={`/api/files/${payment.linkedReceiptFileAssetId}/view`}
-                      target="_blank"
-                      className="text-xs font-semibold text-pine"
-                    >
-                      عرض الإيصال المرتبط
-                    </Link>
+                    <FileActionLinks
+                      fileAssetId={payment.linkedReceiptFileAssetId}
+                      mimeType={payment.linkedReceiptFileMimeType}
+                      previewLabel="عرض الإيصال المرتبط"
+                      downloadLabel="تحميل الإيصال المرتبط"
+                      className="ml-3 text-xs font-semibold text-pine disabled:cursor-wait disabled:opacity-60"
+                    />
                   </div>
                 ) : null}
 
@@ -459,10 +557,20 @@ export function AdminPaymentControls({
                     onSubmit={(event) => {
                       event.preventDefault();
                       submitUpdate(
+                        `payment:update:${payment.id}`,
                         `/api/admin/applications/${applicationId}/payments/${payment.id}`,
                         event.currentTarget,
                         "تم تحديث الدفعة الرسمية بنجاح.",
-                        () => setEditingPaymentId(null),
+                        (payload) => {
+                          if (payload.payment) {
+                            setPaymentItems((current) =>
+                              current.map((item) =>
+                                item.id === payload.payment!.id ? payload.payment! : item,
+                              ),
+                            );
+                          }
+                          setEditingPaymentId(null);
+                        },
                       );
                     }}
                   >
@@ -517,10 +625,10 @@ export function AdminPaymentControls({
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="submit"
-                        disabled={isPending}
+                        disabled={isPending(`payment:update:${payment.id}`)}
                         className="rounded-2xl bg-pine px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
                       >
-                        {isPending ? "جارٍ الحفظ..." : "حفظ"}
+                        {isPending(`payment:update:${payment.id}`) ? "جارٍ الحفظ..." : "حفظ"}
                       </button>
                       <button
                         type="button"
@@ -544,14 +652,21 @@ export function AdminPaymentControls({
                       type="button"
                       onClick={() =>
                         submitDelete(
+                          `payment:delete:${payment.id}`,
                           `/api/admin/applications/${applicationId}/payments/${payment.id}`,
                           "تم حذف الدفعة الرسمية بنجاح.",
-                          () => setEditingPaymentId(null),
+                          (payload) => {
+                            setPaymentItems((current) =>
+                              current.filter((item) => item.id !== (payload.paymentId ?? payment.id)),
+                            );
+                            setEditingPaymentId(null);
+                          },
                         )
                       }
+                      disabled={isPending(`payment:delete:${payment.id}`)}
                       className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-[#a03232]"
                     >
-                      حذف
+                      {isPending(`payment:delete:${payment.id}`) ? "جارٍ الحذف..." : "حذف"}
                     </button>
                   </div>
                 )}

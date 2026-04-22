@@ -494,6 +494,7 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
         paymentDate: payment.paymentDate,
         linkedReceiptId: payment.paymentReceiptId,
         linkedReceiptFileAssetId: payment.paymentReceipt?.fileAssetId ?? null,
+        linkedReceiptFileMimeType: payment.paymentReceipt?.fileAsset?.mimeType ?? null,
       })),
     },
     messaging: {

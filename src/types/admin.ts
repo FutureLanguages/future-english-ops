@@ -217,6 +217,7 @@ export type AdminApplicationWorkspaceViewModel = {
       paymentDate: Date;
       linkedReceiptId: string | null;
       linkedReceiptFileAssetId: string | null;
+      linkedReceiptFileMimeType: string | null;
     }>;
   };
   messaging: {

@@ -1,12 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
+import { FileActionLinks } from "@/components/shared/file-action-links";
 import { DocumentStatusBadge } from "@/components/portal/document-status-badge";
 import { FileUploadInput } from "@/components/portal/file-upload-input";
-import { isPreviewableMimeType } from "@/lib/storage/file-preview";
 import { MAX_UPLOAD_SIZE_LABEL } from "@/lib/storage/upload-limits";
 
 type PaymentReceiptCardProps = {
@@ -133,23 +132,13 @@ export function PaymentReceiptCard({
               ) : null}
 
               <div className="mt-3 flex items-center gap-3">
-                {isPreviewableMimeType(receipt.fileMimeType) ? (
-                  <Link
-                    href={`/api/files/${receipt.fileAssetId}/view`}
-                    target="_blank"
-                    title="عرض الإيصال داخل المتصفح"
-                    className="inline-flex rounded-full bg-white px-3 py-2 text-xs font-semibold text-pine"
-                  >
-                    عرض
-                  </Link>
-                ) : null}
-                <Link
-                  href={`/api/files/${receipt.fileAssetId}/download`}
-                  title="تحميل الإيصال"
-                  className="inline-flex rounded-full bg-white px-3 py-2 text-xs font-semibold text-pine"
-                >
-                  تحميل
-                </Link>
+                <FileActionLinks
+                  fileAssetId={receipt.fileAssetId}
+                  mimeType={receipt.fileMimeType}
+                  className="inline-flex rounded-full bg-white px-3 py-2 text-xs font-semibold text-pine disabled:cursor-wait disabled:opacity-60"
+                  previewLabel="عرض"
+                  downloadLabel="تحميل"
+                />
               </div>
             </article>
           ))

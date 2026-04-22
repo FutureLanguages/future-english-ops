@@ -1,26 +1,40 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import type { AdminWorkspaceDocumentGroup } from "@/types/admin";
 import { AdminDocumentStatusBadge } from "@/components/admin/admin-document-status-badge";
-import { isPreviewableMimeType } from "@/lib/storage/file-preview";
+import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
+import { FileActionLinks } from "@/components/shared/file-action-links";
 
-type ReviewAction = (formData: FormData) => Promise<void>;
+type ReviewStatus = "APPROVED" | "REJECTED" | "REUPLOAD_REQUESTED";
+type PendingAction = string;
+
+const reviewSuccessMessages: Record<ReviewStatus, string> = {
+  APPROVED: "تم اعتماد المستند",
+  REJECTED: "تم رفض المستند",
+  REUPLOAD_REQUESTED: "تم طلب إعادة الرفع",
+};
 
 function ReviewSubmitButton({
   value,
   children,
   tone = "secondary",
   disabled,
+  pendingActions,
+  actionKey,
 }: {
-  value: string;
+  value: ReviewStatus;
   children: string;
   tone?: "primary" | "secondary";
   disabled?: boolean;
+  pendingActions: PendingAction[];
+  actionKey: string;
 }) {
-  const { pending } = useFormStatus();
+  const isCurrentAction = pendingActions.includes(actionKey);
+  const actionGroup = actionKey.split(":").slice(0, -1).join(":");
+  const isActionGroupPending = pendingActions.some(
+    (pendingAction) => pendingAction.split(":").slice(0, -1).join(":") === actionGroup,
+  );
   const className =
     tone === "primary"
       ? "rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
@@ -31,33 +45,45 @@ function ReviewSubmitButton({
       type="submit"
       name="status"
       value={value}
-      disabled={disabled || pending}
+      disabled={disabled || isActionGroupPending}
       className={className}
     >
-      {pending ? "جاري التنفيذ..." : children}
+      {isCurrentAction ? "جاري التنفيذ..." : children}
     </button>
   );
+}
+
+function messageForReviewError(code?: string) {
+  if (code === "missing_review_note") {
+    return "يرجى كتابة ملاحظة عند الرفض أو طلب إعادة الرفع.";
+  }
+
+  if (code === "invalid_document_review") {
+    return "تعذر تحديث حالة المستند المطلوب.";
+  }
+
+  return code || "تعذر تنفيذ الإجراء حالياً.";
 }
 
 export function AdminDocumentReviewPanel({
   applicationId,
   groups,
-  bulkAction,
-  reviewAction,
 }: {
   applicationId: string;
   groups: AdminWorkspaceDocumentGroup[];
-  bulkAction: ReviewAction;
-  reviewAction: ReviewAction;
 }) {
+  const [currentGroups, setCurrentGroups] = useState(groups);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+  const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);
+  const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
+  const inFlightActions = useRef(new Set<string>());
 
   const selectableIds = useMemo(
     () =>
-      groups.flatMap((group) =>
+      currentGroups.flatMap((group) =>
         group.items.filter((item) => item.canReview).map((item) => item.id),
       ),
-    [groups],
+    [currentGroups],
   );
 
   const allSelected = selectableIds.length > 0 && selectedDocumentIds.length === selectableIds.length;
@@ -74,9 +100,117 @@ export function AdminDocumentReviewPanel({
     setSelectedDocumentIds(allSelected ? [] : selectableIds);
   }
 
+  function updateDocumentsInState(
+    documents: Array<{ id?: string; requirementId?: string; status: string; adminNote: string | null }>,
+  ) {
+    const updates = new Map(
+      documents.flatMap((document) => {
+        const entries: Array<[string, typeof document]> = [];
+        if (document.id) entries.push([document.id, document]);
+        if (document.requirementId) entries.push([document.requirementId, document]);
+        return entries;
+      }),
+    );
+
+    setCurrentGroups((current) =>
+      current.map((group) => ({
+        ...group,
+        items: group.items.map((item) => {
+          const update = updates.get(item.id) ?? updates.get(item.requirementId);
+          if (!update) {
+            return item;
+          }
+
+          return {
+            ...item,
+            status: update.status as typeof item.status,
+            adminNote: update.adminNote,
+          };
+        }),
+      })),
+    );
+  }
+
+  async function submitReview(form: HTMLFormElement, status: ReviewStatus, actionKey: string) {
+    const actionGroup = actionKey.split(":").slice(0, -1).join(":");
+    const hasActionGroupInFlight = Array.from(inFlightActions.current).some(
+      (pendingAction) => pendingAction.split(":").slice(0, -1).join(":") === actionGroup,
+    );
+
+    if (hasActionGroupInFlight) {
+      return;
+    }
+
+    inFlightActions.current.add(actionKey);
+    setPendingActions((current) => [...current, actionKey]);
+    setToast(null);
+
+    const formData = new FormData(form);
+    const documentIds = formData.getAll("documentIds").map(String).filter(Boolean);
+    const requirementId = String(formData.get("requirementId") ?? "");
+    const adminNote = String(formData.get("adminNote") ?? "");
+
+    try {
+      const response = await fetch(`/api/admin/applications/${applicationId}/documents/review`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requirementId: requirementId || undefined,
+          documentIds,
+          status,
+          adminNote,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        message?: string;
+        documents?: Array<{ id?: string; requirementId?: string; status: string; adminNote: string | null }>;
+      } | null;
+
+      if (!response.ok) {
+        setToast({ tone: "error", message: messageForReviewError(payload?.error) });
+        return;
+      }
+
+      updateDocumentsInState(payload?.documents ?? []);
+      setToast({
+        tone: "success",
+        message: payload?.message ?? reviewSuccessMessages[status],
+      });
+
+      if (documentIds.length > 0) {
+        setSelectedDocumentIds([]);
+      }
+    } catch {
+      setToast({ tone: "error", message: "تعذر تنفيذ الإجراء حالياً." });
+    } finally {
+      inFlightActions.current.delete(actionKey);
+      setPendingActions((current) => current.filter((item) => item !== actionKey));
+    }
+  }
+
+  function handleReviewSubmit(event: FormEvent<HTMLFormElement>, actionPrefix: string) {
+    event.preventDefault();
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const status = submitter?.value as ReviewStatus | undefined;
+
+    if (!status) {
+      return;
+    }
+
+    submitReview(event.currentTarget, status, `${actionPrefix}:${status}`);
+  }
+
   return (
     <div className="mt-5 space-y-5">
-      <form action={bulkAction} className="rounded-2xl bg-sand p-4">
+      <AutoDismissToast message={toast?.message ?? ""} tone={toast?.tone ?? "success"} />
+      <form
+        onSubmit={(event) => handleReviewSubmit(event, "bulk")}
+        className="rounded-2xl bg-sand p-4"
+      >
         <input type="hidden" name="applicationId" value={applicationId} />
         {selectedDocumentIds.map((documentId) => (
           <input key={documentId} type="hidden" name="documentIds" value={documentId} />
@@ -93,13 +227,25 @@ export function AdminDocumentReviewPanel({
               value="APPROVED"
               disabled={selectedDocumentIds.length === 0}
               tone="primary"
+              pendingActions={pendingActions}
+              actionKey="bulk:APPROVED"
             >
               اعتماد الكل
             </ReviewSubmitButton>
-            <ReviewSubmitButton value="REJECTED" disabled={selectedDocumentIds.length === 0}>
+            <ReviewSubmitButton
+              value="REJECTED"
+              disabled={selectedDocumentIds.length === 0}
+              pendingActions={pendingActions}
+              actionKey="bulk:REJECTED"
+            >
               رفض الكل
             </ReviewSubmitButton>
-            <ReviewSubmitButton value="REUPLOAD_REQUESTED" disabled={selectedDocumentIds.length === 0}>
+            <ReviewSubmitButton
+              value="REUPLOAD_REQUESTED"
+              disabled={selectedDocumentIds.length === 0}
+              pendingActions={pendingActions}
+              actionKey="bulk:REUPLOAD_REQUESTED"
+            >
               طلب إعادة رفع
             </ReviewSubmitButton>
           </div>
@@ -121,7 +267,7 @@ export function AdminDocumentReviewPanel({
         </div>
       </form>
 
-      {groups.map((group) => (
+      {currentGroups.map((group) => (
         <div key={group.id} className="space-y-3">
           <h3 className="text-base font-bold text-ink">{group.title}</h3>
           <div className="space-y-3">
@@ -150,21 +296,7 @@ export function AdminDocumentReviewPanel({
                     </div>
                     {item.fileAssetId ? (
                       <div className="flex items-center gap-3">
-                        {isPreviewableMimeType(item.fileMimeType) ? (
-                          <Link
-                            href={`/api/files/${item.fileAssetId}/view`}
-                            target="_blank"
-                            className="inline-flex text-sm font-semibold text-pine"
-                          >
-                            عرض
-                          </Link>
-                        ) : null}
-                        <Link
-                          href={`/api/files/${item.fileAssetId}/download`}
-                          className="inline-flex text-sm font-semibold text-pine"
-                        >
-                          تحميل
-                        </Link>
+                        <FileActionLinks fileAssetId={item.fileAssetId} mimeType={item.fileMimeType} />
                       </div>
                     ) : null}
                     {item.adminNote ? (
@@ -173,7 +305,10 @@ export function AdminDocumentReviewPanel({
                       </div>
                     ) : null}
                   </div>
-                  <form action={reviewAction} className="flex flex-col gap-2 md:min-w-[220px]">
+                  <form
+                    onSubmit={(event) => handleReviewSubmit(event, `document:${item.id}`)}
+                    className="flex flex-col gap-2 md:min-w-[220px]"
+                  >
                     <input type="hidden" name="applicationId" value={applicationId} />
                     <input type="hidden" name="requirementId" value={item.requirementId} />
                     <input type="hidden" name="targetTab" value="documents" />
@@ -190,13 +325,29 @@ export function AdminDocumentReviewPanel({
                       </div>
                     ) : (
                       <>
-                        <ReviewSubmitButton value="APPROVED" tone="primary">
+                        <ReviewSubmitButton
+                          value="APPROVED"
+                          tone="primary"
+                          disabled={item.status === "APPROVED"}
+                          pendingActions={pendingActions}
+                          actionKey={`document:${item.id}:APPROVED`}
+                        >
                           اعتماد المستند
                         </ReviewSubmitButton>
-                        <ReviewSubmitButton value="REJECTED">
+                        <ReviewSubmitButton
+                          value="REJECTED"
+                          disabled={item.status === "REJECTED"}
+                          pendingActions={pendingActions}
+                          actionKey={`document:${item.id}:REJECTED`}
+                        >
                           رفض المستند
                         </ReviewSubmitButton>
-                        <ReviewSubmitButton value="REUPLOAD_REQUESTED">
+                        <ReviewSubmitButton
+                          value="REUPLOAD_REQUESTED"
+                          disabled={item.status === "REUPLOAD_REQUESTED"}
+                          pendingActions={pendingActions}
+                          actionKey={`document:${item.id}:REUPLOAD_REQUESTED`}
+                        >
                           طلب إعادة رفع
                         </ReviewSubmitButton>
                       </>

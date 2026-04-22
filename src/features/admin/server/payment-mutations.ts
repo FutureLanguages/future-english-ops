@@ -14,6 +14,48 @@ export class AdminPaymentMutationError extends Error {
   }
 }
 
+function toNumber(value: number | { toNumber: () => number }) {
+  return typeof value === "number" ? value : value.toNumber();
+}
+
+function mapFeeItem(fee: {
+  id: string;
+  title: string;
+  amount: number | { toNumber: () => number };
+  note: string | null;
+}) {
+  return {
+    id: fee.id,
+    title: fee.title,
+    amountSar: toNumber(fee.amount),
+    note: fee.note,
+  };
+}
+
+function mapPaymentItem(payment: {
+  id: string;
+  amount: number | { toNumber: () => number };
+  note: string | null;
+  paymentDate: Date;
+  paymentReceiptId: string | null;
+  paymentReceipt: {
+    fileAssetId: string | null;
+    fileAsset: {
+      mimeType: string;
+    } | null;
+  } | null;
+}) {
+  return {
+    id: payment.id,
+    amountSar: toNumber(payment.amount),
+    note: payment.note,
+    paymentDate: payment.paymentDate,
+    linkedReceiptId: payment.paymentReceiptId,
+    linkedReceiptFileAssetId: payment.paymentReceipt?.fileAssetId ?? null,
+    linkedReceiptFileMimeType: payment.paymentReceipt?.fileAsset?.mimeType ?? null,
+  };
+}
+
 export function refreshApplicationViews(applicationId: string) {
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/students");
@@ -43,8 +85,8 @@ export async function addApplicationFee(params: {
     throw new AdminPaymentMutationError("invalid_fee");
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.applicationFee.create({
+  const fee = await prisma.$transaction(async (tx) => {
+    const createdFee = await tx.applicationFee.create({
       data: {
         applicationId: params.applicationId,
         title,
@@ -55,6 +97,8 @@ export async function addApplicationFee(params: {
     });
 
     await syncApplicationFinancialTotals(tx, params.applicationId);
+
+    return createdFee;
   });
 
   await notifyPortalUsers({
@@ -68,7 +112,7 @@ export async function addApplicationFee(params: {
   });
 
   refreshApplicationViews(params.applicationId);
-  return { code: "fee_added" as const };
+  return { code: "fee_added" as const, fee: mapFeeItem(fee) };
 }
 
 export async function addApplicationDiscount(params: {
@@ -84,7 +128,7 @@ export async function addApplicationDiscount(params: {
     throw new AdminPaymentMutationError("invalid_fee");
   }
 
-  await prisma.$transaction(async (tx) => {
+  const fee = await prisma.$transaction(async (tx) => {
     const existingFees = await tx.applicationFee.findMany({
       where: { applicationId: params.applicationId },
       select: { amount: true, title: true },
@@ -118,7 +162,7 @@ export async function addApplicationDiscount(params: {
       throw new AdminPaymentMutationError("invalid_fee");
     }
 
-    await tx.applicationFee.create({
+    const createdFee = await tx.applicationFee.create({
       data: {
         applicationId: params.applicationId,
         title:
@@ -135,6 +179,8 @@ export async function addApplicationDiscount(params: {
     });
 
     await syncApplicationFinancialTotals(tx, params.applicationId);
+
+    return createdFee;
   });
 
   await notifyPortalUsers({
@@ -148,7 +194,7 @@ export async function addApplicationDiscount(params: {
   });
 
   refreshApplicationViews(params.applicationId);
-  return { code: "fee_added" as const };
+  return { code: "fee_added" as const, fee: mapFeeItem(fee) };
 }
 
 export async function addApplicationPayment(params: {
@@ -169,8 +215,8 @@ export async function addApplicationPayment(params: {
     throw new AdminPaymentMutationError("invalid_payment");
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.applicationPayment.create({
+  const payment = await prisma.$transaction(async (tx) => {
+    const createdPayment = await tx.applicationPayment.create({
       data: {
         applicationId: params.applicationId,
         amount: params.amount,
@@ -178,9 +224,23 @@ export async function addApplicationPayment(params: {
         note: params.note || null,
         paymentReceiptId: params.linkedReceiptId || null,
       },
+      include: {
+        paymentReceipt: {
+          select: {
+            fileAssetId: true,
+            fileAsset: {
+              select: {
+                mimeType: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     await syncApplicationFinancialTotals(tx, params.applicationId);
+
+    return createdPayment;
   });
 
   await notifyPortalUsers({
@@ -194,7 +254,7 @@ export async function addApplicationPayment(params: {
   });
 
   refreshApplicationViews(params.applicationId);
-  return { code: "payment_added" as const };
+  return { code: "payment_added" as const, payment: mapPaymentItem(payment) };
 }
 
 export async function updateApplicationFee(params: {
@@ -210,7 +270,7 @@ export async function updateApplicationFee(params: {
     throw new AdminPaymentMutationError("invalid_fee");
   }
 
-  await prisma.$transaction(async (tx) => {
+  const fee = await prisma.$transaction(async (tx) => {
     const existing = await tx.applicationFee.findUnique({
       where: { id: params.feeId },
       select: { id: true, applicationId: true, amount: true },
@@ -223,7 +283,7 @@ export async function updateApplicationFee(params: {
     const existingAmount = typeof existing.amount === "number" ? existing.amount : existing.amount.toNumber();
     const normalizedAmount = existingAmount < 0 ? -Math.abs(params.amount) : params.amount;
 
-    await tx.applicationFee.update({
+    const updatedFee = await tx.applicationFee.update({
       where: { id: params.feeId },
       data: {
         title: params.title,
@@ -233,10 +293,12 @@ export async function updateApplicationFee(params: {
     });
 
     await syncApplicationFinancialTotals(tx, params.applicationId);
+
+    return updatedFee;
   });
 
   refreshApplicationViews(params.applicationId);
-  return { code: "fee_updated" as const };
+  return { code: "fee_updated" as const, fee: mapFeeItem(fee) };
 }
 
 export async function deleteApplicationFee(params: {
@@ -267,7 +329,7 @@ export async function deleteApplicationFee(params: {
   });
 
   refreshApplicationViews(params.applicationId);
-  return { code: "fee_deleted" as const };
+  return { code: "fee_deleted" as const, feeId: params.feeId };
 }
 
 export async function updateApplicationPayment(params: {
@@ -290,7 +352,7 @@ export async function updateApplicationPayment(params: {
     throw new AdminPaymentMutationError("invalid_payment");
   }
 
-  await prisma.$transaction(async (tx) => {
+  const payment = await prisma.$transaction(async (tx) => {
     const existing = await tx.applicationPayment.findUnique({
       where: { id: params.paymentId },
       select: { id: true, applicationId: true },
@@ -300,7 +362,7 @@ export async function updateApplicationPayment(params: {
       throw new AdminPaymentMutationError("invalid_payment");
     }
 
-    await tx.applicationPayment.update({
+    const updatedPayment = await tx.applicationPayment.update({
       where: { id: params.paymentId },
       data: {
         amount: params.amount,
@@ -308,13 +370,27 @@ export async function updateApplicationPayment(params: {
         note: params.note || null,
         paymentReceiptId: params.linkedReceiptId || null,
       },
+      include: {
+        paymentReceipt: {
+          select: {
+            fileAssetId: true,
+            fileAsset: {
+              select: {
+                mimeType: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     await syncApplicationFinancialTotals(tx, params.applicationId);
+
+    return updatedPayment;
   });
 
   refreshApplicationViews(params.applicationId);
-  return { code: "payment_updated" as const };
+  return { code: "payment_updated" as const, payment: mapPaymentItem(payment) };
 }
 
 export async function deleteApplicationPayment(params: {
@@ -345,5 +421,5 @@ export async function deleteApplicationPayment(params: {
   });
 
   refreshApplicationViews(params.applicationId);
-  return { code: "payment_deleted" as const };
+  return { code: "payment_deleted" as const, paymentId: params.paymentId };
 }

@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { DocumentCategory } from "@prisma/client";
 import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
+import { FileActionLinks } from "@/components/shared/file-action-links";
 import { DocumentStatusBadge } from "@/components/portal/document-status-badge";
 import { FileUploadInput } from "@/components/portal/file-upload-input";
-import { isPreviewableMimeType } from "@/lib/storage/file-preview";
 import { MAX_UPLOAD_SIZE_LABEL } from "@/lib/storage/upload-limits";
 
 type PortalDocumentItem = {
@@ -27,7 +26,6 @@ type PortalDocumentItem = {
 
 export function DocumentItemCard({ item, isDev }: { item: PortalDocumentItem; isDev?: boolean }) {
   const canShowUploadForm = item.canUpload && item.actionLabel && item.status !== "APPROVED";
-  const canPreview = isPreviewableMimeType(item.fileMimeType);
   const router = useRouter();
   const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -78,23 +76,11 @@ export function DocumentItemCard({ item, isDev }: { item: PortalDocumentItem; is
           </div>
           {item.fileAssetId ? (
             <div className="flex items-center gap-3">
-              {canPreview ? (
-                <Link
-                  href={`/api/files/${item.fileAssetId}/view`}
-                  target="_blank"
-                  title="عرض الملف داخل المتصفح"
-                  className="inline-flex rounded-full bg-mist px-3 py-2 text-xs font-semibold text-pine"
-                >
-                  عرض
-                </Link>
-              ) : null}
-              <Link
-                href={`/api/files/${item.fileAssetId}/download`}
-                title="تحميل الملف"
-                className="inline-flex rounded-full bg-mist px-3 py-2 text-xs font-semibold text-pine"
-              >
-                تحميل
-              </Link>
+              <FileActionLinks
+                fileAssetId={item.fileAssetId}
+                mimeType={item.fileMimeType}
+                className="inline-flex rounded-full bg-mist px-3 py-2 text-xs font-semibold text-pine disabled:cursor-wait disabled:opacity-60"
+              />
             </div>
           ) : (
             <div className="rounded-2xl bg-mist px-3 py-3 text-xs text-ink/55">
