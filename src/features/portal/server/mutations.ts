@@ -513,6 +513,7 @@ export async function updateHealthBehaviorProfile(params: {
     where: { id: params.applicationId },
     include: {
       studentProfile: true,
+      studentHealthProfile: true,
       parentProfiles: true,
     },
   });
@@ -524,11 +525,20 @@ export async function updateHealthBehaviorProfile(params: {
   const applicationRecord = toApplicationRecord(application);
   await assertAgreementsAccepted(params.applicationId, user);
 
-  if (user.role !== UserRole.PARENT || !canEditParentInfo(user, applicationRecord)) {
+  const parentCanEditHealth = user.role === UserRole.PARENT && canEditParentInfo(user, applicationRecord);
+  const studentCanEditHealth =
+    user.role === UserRole.STUDENT &&
+    application.studentUserId === user.id &&
+    Boolean(application.studentHealthProfile?.allowStudentEdit);
+
+  if (!parentCanEditHealth && !studentCanEditHealth) {
     throw new PortalMutationError("parent_profile_failed");
   }
 
   const health = params.healthBehavior;
+  const medications = health.medications ?? health.continuousMedication;
+  const phobias = health.phobias ?? health.phobia;
+  const specialAttention = health.requiresSpecialAttention ?? health.needsSpecialSupervisorFollowUp;
 
   await prisma.$transaction(async (tx) => {
     await tx.studentHealthProfile.upsert({
@@ -540,14 +550,14 @@ export async function updateHealthBehaviorProfile(params: {
         sleepDisordersDetails: health.sleepDisorders?.details || null,
         hasAllergies: Boolean(health.allergies?.hasIssue),
         allergiesDetails: health.allergies?.details || null,
-        hasContinuousMedication: Boolean(health.continuousMedication?.hasIssue),
-        continuousMedicationDetails: health.continuousMedication?.details || null,
-        hasPhobia: Boolean(health.phobia?.hasIssue),
-        phobiaDetails: health.phobia?.details || null,
+        hasContinuousMedication: Boolean(medications?.hasIssue),
+        continuousMedicationDetails: medications?.details || null,
+        hasPhobia: Boolean(phobias?.hasIssue),
+        phobiaDetails: phobias?.details || null,
         hasBedwetting: Boolean(health.bedwetting?.hasIssue),
         bedwettingDetails: health.bedwetting?.details || null,
-        needsSpecialSupervisorFollowUp: Boolean(health.needsSpecialSupervisorFollowUp?.hasIssue),
-        specialSupervisorFollowUpDetails: health.needsSpecialSupervisorFollowUp?.details || null,
+        needsSpecialSupervisorFollowUp: Boolean(specialAttention?.hasIssue),
+        specialSupervisorFollowUpDetails: specialAttention?.details || null,
       },
       create: {
         applicationId: params.applicationId,
@@ -557,29 +567,31 @@ export async function updateHealthBehaviorProfile(params: {
         sleepDisordersDetails: health.sleepDisorders?.details || null,
         hasAllergies: Boolean(health.allergies?.hasIssue),
         allergiesDetails: health.allergies?.details || null,
-        hasContinuousMedication: Boolean(health.continuousMedication?.hasIssue),
-        continuousMedicationDetails: health.continuousMedication?.details || null,
-        hasPhobia: Boolean(health.phobia?.hasIssue),
-        phobiaDetails: health.phobia?.details || null,
+        hasContinuousMedication: Boolean(medications?.hasIssue),
+        continuousMedicationDetails: medications?.details || null,
+        hasPhobia: Boolean(phobias?.hasIssue),
+        phobiaDetails: phobias?.details || null,
         hasBedwetting: Boolean(health.bedwetting?.hasIssue),
         bedwettingDetails: health.bedwetting?.details || null,
-        needsSpecialSupervisorFollowUp: Boolean(health.needsSpecialSupervisorFollowUp?.hasIssue),
-        specialSupervisorFollowUpDetails: health.needsSpecialSupervisorFollowUp?.details || null,
+        needsSpecialSupervisorFollowUp: Boolean(specialAttention?.hasIssue),
+        specialSupervisorFollowUpDetails: specialAttention?.details || null,
       },
     });
 
-    await tx.applicationParentNote.upsert({
-      where: { applicationId: params.applicationId },
-      update: {
-        body: params.parentSupervisorNotes || "",
-        updatedByUserId: user.id,
-      },
-      create: {
-        applicationId: params.applicationId,
-        body: params.parentSupervisorNotes || "",
-        updatedByUserId: user.id,
-      },
-    });
+    if (parentCanEditHealth) {
+      await tx.applicationParentNote.upsert({
+        where: { applicationId: params.applicationId },
+        update: {
+          body: params.parentSupervisorNotes || "",
+          updatedByUserId: user.id,
+        },
+        create: {
+          applicationId: params.applicationId,
+          body: params.parentSupervisorNotes || "",
+          updatedByUserId: user.id,
+        },
+      });
+    }
   });
 
   refreshPortalViews(params.applicationId);

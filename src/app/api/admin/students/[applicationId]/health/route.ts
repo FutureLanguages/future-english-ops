@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { PortalMutationError, updateHealthBehaviorProfile } from "@/features/portal/server/mutations";
+import {
+  AdminWorkspaceMutationError,
+  updateAdminHealthBehaviorProfile,
+} from "@/features/admin/server/workspace-mutations";
 
 const healthKeys = [
   "medicalConditions",
@@ -11,7 +14,11 @@ const healthKeys = [
   "requiresSpecialAttention",
 ] as const;
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ applicationId: string }> },
+) {
+  const { applicationId } = await params;
   const formData = await request.formData();
 
   const healthBehavior = Object.fromEntries(
@@ -25,15 +32,17 @@ export async function POST(request: Request) {
   );
 
   try {
-    const result = await updateHealthBehaviorProfile({
-      applicationId: String(formData.get("applicationId") ?? ""),
+    const result = await updateAdminHealthBehaviorProfile({
+      applicationId,
       healthBehavior,
       parentSupervisorNotes: String(formData.get("parentSupervisorNotes") ?? "").trim(),
+      allowStudentView: formData.get("allowStudentView") === "on",
+      allowStudentEdit: formData.get("allowStudentEdit") === "on",
     });
 
     return NextResponse.json(result);
   } catch (error) {
-    if (error instanceof PortalMutationError) {
+    if (error instanceof AdminWorkspaceMutationError) {
       return NextResponse.json({ error: error.code }, { status: 400 });
     }
 

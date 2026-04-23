@@ -20,6 +20,7 @@ export async function GET(request: Request) {
   const q = searchParams.get("q") ?? "";
   const status = searchParams.get("status") ?? "";
   const paymentView = searchParams.get("paymentView") ?? "all";
+  const healthFilter = searchParams.get("healthFilter") ?? "";
   const columns = searchParams.getAll("columns");
 
   const [viewModel, data] = await Promise.all([
@@ -28,11 +29,13 @@ export async function GET(request: Request) {
       q,
       status,
       paymentView,
+      healthFilter,
     }),
     loadAdminReportRecords({
       q,
       status,
       paymentView: paymentView === "remaining_only" || paymentView === "paid_only" ? paymentView : "all",
+      healthFilter,
     }),
   ]);
 
@@ -49,6 +52,9 @@ export async function GET(request: Request) {
 
       if (column.documentCode) {
         value = documentStatusLabels[record.documentStatuses[column.documentCode] ?? "MISSING"] ?? "مفقود";
+      } else if (column.key.startsWith("health:")) {
+        const healthKey = column.key.replace("health:", "");
+        value = record.healthFlags[healthKey] ? "نعم" : "لا";
       } else {
         switch (column.key) {
           case "studentName":

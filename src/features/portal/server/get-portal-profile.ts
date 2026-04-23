@@ -63,6 +63,7 @@ export type PortalProfileViewModel = {
     applicationId: string;
     values: Record<string, { hasIssue: boolean; details: string }>;
     parentSupervisorNotes: string;
+    canEditParentSupervisorNotes: boolean;
   };
   parentLinkEditor: {
     visible: boolean;
@@ -105,12 +106,12 @@ function valueOrFallback(value: string | null | undefined): string {
 
 const defaultHealthBehavior = {
   medicalConditions: { hasIssue: false, details: "" },
-  sleepDisorders: { hasIssue: false, details: "" },
   allergies: { hasIssue: false, details: "" },
-  continuousMedication: { hasIssue: false, details: "" },
-  phobia: { hasIssue: false, details: "" },
+  medications: { hasIssue: false, details: "" },
+  sleepDisorders: { hasIssue: false, details: "" },
   bedwetting: { hasIssue: false, details: "" },
-  needsSpecialSupervisorFollowUp: { hasIssue: false, details: "" },
+  phobias: { hasIssue: false, details: "" },
+  requiresSpecialAttention: { hasIssue: false, details: "" },
 };
 
 function normalizeHealthBehavior(value: unknown): Record<string, { hasIssue: boolean; details: string }> {
@@ -134,6 +135,8 @@ function normalizeHealthBehavior(value: unknown): Record<string, { hasIssue: boo
 function mapStudentHealthProfile(
   profile: {
     hasMedicalConditions: boolean;
+    allowStudentView: boolean;
+    allowStudentEdit: boolean;
     medicalConditionsDetails: string | null;
     hasSleepDisorders: boolean;
     sleepDisordersDetails: string | null;
@@ -158,31 +161,35 @@ function mapStudentHealthProfile(
       hasIssue: profile.hasMedicalConditions,
       details: profile.medicalConditionsDetails ?? "",
     },
-    sleepDisorders: {
-      hasIssue: profile.hasSleepDisorders,
-      details: profile.sleepDisordersDetails ?? "",
-    },
     allergies: {
       hasIssue: profile.hasAllergies,
       details: profile.allergiesDetails ?? "",
     },
-    continuousMedication: {
+    medications: {
       hasIssue: profile.hasContinuousMedication,
       details: profile.continuousMedicationDetails ?? "",
     },
-    phobia: {
-      hasIssue: profile.hasPhobia,
-      details: profile.phobiaDetails ?? "",
+    sleepDisorders: {
+      hasIssue: profile.hasSleepDisorders,
+      details: profile.sleepDisordersDetails ?? "",
     },
     bedwetting: {
       hasIssue: profile.hasBedwetting,
       details: profile.bedwettingDetails ?? "",
     },
-    needsSpecialSupervisorFollowUp: {
+    phobias: {
+      hasIssue: profile.hasPhobia,
+      details: profile.phobiaDetails ?? "",
+    },
+    requiresSpecialAttention: {
       hasIssue: profile.needsSpecialSupervisorFollowUp,
       details: profile.specialSupervisorFollowUpDetails ?? "",
     },
   };
+}
+
+function canStudentViewHealth(profile: { allowStudentView: boolean; allowStudentEdit: boolean } | null) {
+  return Boolean(profile?.allowStudentView || profile?.allowStudentEdit);
 }
 
 function parentByType(parentProfiles: ParentProfileRecord[], type: ParentProfileRecord["type"]) {
@@ -241,6 +248,8 @@ export async function getPortalProfileViewModel(params: {
       data.applicationRecord.studentUserId === data.user.id &&
       !data.applicationRecord.parentInfoLocked);
   const studentProfile = data.applicationRecord.studentProfile;
+  const selectedApplication = data.applications.find((application) => application.id === data.applicationRecord.id);
+  const studentHealthProfile = selectedApplication?.studentHealthProfile ?? null;
   const father = parentByType(data.applicationRecord.parentProfiles, "FATHER");
   const mother = parentByType(data.applicationRecord.parentProfiles, "MOTHER");
   const guardian = parentByType(data.applicationRecord.parentProfiles, "GUARDIAN");
@@ -388,8 +397,7 @@ export async function getPortalProfileViewModel(params: {
       canEdit: studentCanEdit,
       applicationId: data.applicationRecord.id,
       values: {
-        email:
-          data.applications.find((application) => application.id === data.applicationRecord.id)?.studentUser.email ?? "",
+        email: selectedApplication?.studentUser.email ?? "",
         fullNameAr: studentProfile?.fullNameAr ?? "",
         fullNameEn: studentProfile?.fullNameEn ?? "",
         birthDate: studentProfile?.birthDate
@@ -407,16 +415,17 @@ export async function getPortalProfileViewModel(params: {
       },
     },
     healthEditor: {
-      visible: data.user.role === UserRole.PARENT,
-      canEdit: data.user.role === UserRole.PARENT && parentCanEdit,
+      visible:
+        data.user.role === UserRole.PARENT ||
+        (data.user.role === UserRole.STUDENT && canStudentViewHealth(studentHealthProfile)),
+      canEdit:
+        (data.user.role === UserRole.PARENT && parentCanEdit) ||
+        (data.user.role === UserRole.STUDENT && Boolean(studentHealthProfile?.allowStudentEdit)),
       applicationId: data.applicationRecord.id,
-      values: mapStudentHealthProfile(
-        data.applications.find((application) => application.id === data.applicationRecord.id)
-          ?.studentHealthProfile ?? null,
-      ),
+      values: mapStudentHealthProfile(studentHealthProfile),
       parentSupervisorNotes:
-        data.applications.find((application) => application.id === data.applicationRecord.id)
-          ?.parentSupervisorNote?.body ?? "",
+        data.user.role === UserRole.PARENT ? selectedApplication?.parentSupervisorNote?.body ?? "" : "",
+      canEditParentSupervisorNotes: data.user.role === UserRole.PARENT && parentCanEdit,
     },
     parentLinkEditor: {
       visible: false,

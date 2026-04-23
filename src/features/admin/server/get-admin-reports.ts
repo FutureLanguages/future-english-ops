@@ -7,6 +7,7 @@ export async function getAdminReportsViewModel(params: {
   q?: string;
   status?: string;
   paymentView?: string;
+  healthFilter?: string;
 }): Promise<AdminReportsViewModel> {
   const paymentView =
     params.paymentView === "remaining_only" || params.paymentView === "paid_only"
@@ -14,11 +15,13 @@ export async function getAdminReportsViewModel(params: {
       : "all";
   const q = params.q?.trim() ?? "";
   const status = params.status ?? "";
+  const healthFilter = params.healthFilter ?? "";
 
   const { records, documentRequirements } = await loadAdminReportRecords({
     q,
     status,
     paymentView,
+    healthFilter,
   });
 
   const columns: AdminReportsViewModel["columns"] = [
@@ -37,6 +40,13 @@ export async function getAdminReportsViewModel(params: {
       group: "documents" as const,
       documentCode: requirement.code,
     })),
+    { key: "health:medicalConditions", label: "حالات مرضية", group: "health" },
+    { key: "health:allergies", label: "الحساسية", group: "health" },
+    { key: "health:medications", label: "أدوية مستمرة", group: "health" },
+    { key: "health:sleepDisorders", label: "اضطرابات النوم", group: "health" },
+    { key: "health:bedwetting", label: "التبول اللاإرادي", group: "health" },
+    { key: "health:phobias", label: "رهاب", group: "health" },
+    { key: "health:requiresSpecialAttention", label: "متابعة خاصة", group: "health" },
     { key: "documentsCompletedCount", label: "عدد المستندات المكتملة", group: "other" },
     { key: "unreadMessagesCount", label: "عدد الرسائل غير المقروءة", group: "other" },
     { key: "receiptsCount", label: "عدد الإيصالات", group: "other" },
@@ -50,6 +60,7 @@ export async function getAdminReportsViewModel(params: {
       q,
       status,
       paymentView,
+      healthFilter,
     },
     columns,
     defaultColumnKeys: [

@@ -49,6 +49,19 @@ export const exportDataTypeOptions = {
       payment_remaining: "المتبقي",
     },
   },
+  health: {
+    label: "الحالة الصحية والسلوكية",
+    fields: {
+      health_medical_conditions: "حالات مرضية",
+      health_allergies: "الحساسية",
+      health_medications: "أدوية مستمرة",
+      health_sleep_disorders: "اضطرابات النوم",
+      health_bedwetting: "التبول اللاإرادي",
+      health_phobias: "رهاب",
+      health_special_attention: "متابعة خاصة",
+      parent_supervisor_notes: "ملاحظات ولي الأمر للمشرفين",
+    },
+  },
 } as const;
 
 export type ExportDataTypeKey = keyof typeof exportDataTypeOptions;
@@ -97,6 +110,14 @@ const orderedFieldKeys: ExportFieldKey[] = [
   "payment_total",
   "payment_paid",
   "payment_remaining",
+  "health_medical_conditions",
+  "health_allergies",
+  "health_medications",
+  "health_sleep_disorders",
+  "health_bedwetting",
+  "health_phobias",
+  "health_special_attention",
+  "parent_supervisor_notes",
 ];
 
 type ExportFilters = {
@@ -137,6 +158,8 @@ async function loadApplicationsForExport(filters: ExportFilters) {
     prisma.application.findMany({
       include: {
         studentProfile: true,
+        studentHealthProfile: true,
+        parentSupervisorNote: true,
         studentUser: {
           select: {
             mobileNumber: true,
@@ -262,6 +285,14 @@ function buildExportRows(
       payment_total: `${derived.paymentSummary.totalCostSar}`,
       payment_paid: `${derived.paymentSummary.paidAmountSar}`,
       payment_remaining: `${derived.paymentSummary.remainingAmountSar}`,
+      health_medical_conditions: application.studentHealthProfile?.hasMedicalConditions ? "نعم" : "لا",
+      health_allergies: application.studentHealthProfile?.hasAllergies ? "نعم" : "لا",
+      health_medications: application.studentHealthProfile?.hasContinuousMedication ? "نعم" : "لا",
+      health_sleep_disorders: application.studentHealthProfile?.hasSleepDisorders ? "نعم" : "لا",
+      health_bedwetting: application.studentHealthProfile?.hasBedwetting ? "نعم" : "لا",
+      health_phobias: application.studentHealthProfile?.hasPhobia ? "نعم" : "لا",
+      health_special_attention: application.studentHealthProfile?.needsSpecialSupervisorFollowUp ? "نعم" : "لا",
+      parent_supervisor_notes: application.parentSupervisorNote?.body ?? "",
     };
 
     const row: Record<string, string> = {};

@@ -277,7 +277,7 @@ export type AdminApplicationWorkspaceViewModel = {
   };
 };
 
-export type AdminReportColumnGroup = "basic" | "financial" | "documents" | "other";
+export type AdminReportColumnGroup = "basic" | "financial" | "documents" | "health" | "other";
 
 export type AdminReportColumn = {
   key: string;
@@ -301,6 +301,7 @@ export type AdminReportRecordView = {
   unreadMessagesCount: number;
   receiptsCount: number;
   updatedAt: string;
+  healthFlags: Record<string, boolean>;
   documentStatuses: Record<string, "MISSING" | "UPLOADED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "REUPLOAD_REQUESTED">;
 };
 
@@ -311,6 +312,7 @@ export type AdminReportsViewModel = {
     q: string;
     status: string;
     paymentView: "all" | "remaining_only" | "paid_only";
+    healthFilter: string;
   };
   columns: AdminReportColumn[];
   defaultColumnKeys: string[];

@@ -19,6 +19,7 @@ export type AdminReportRecord = {
   unreadMessagesCount: number;
   receiptsCount: number;
   updatedAt: Date;
+  healthFlags: Record<string, boolean>;
   documentStatuses: Record<string, DocumentStatus>;
 };
 
@@ -26,6 +27,7 @@ export type AdminReportFilters = {
   q?: string;
   status?: string;
   paymentView?: "all" | "remaining_only" | "paid_only";
+  healthFilter?: string;
 };
 
 function toNumber(value: { toNumber(): number } | number) {
@@ -54,6 +56,7 @@ export async function loadAdminReportRecords(filters: AdminReportFilters = {}) {
     prisma.application.findMany({
       include: {
         studentProfile: true,
+        studentHealthProfile: true,
         studentUser: {
           select: {
             mobileNumber: true,
@@ -142,6 +145,15 @@ export async function loadAdminReportRecords(filters: AdminReportFilters = {}) {
       receiptsCount: application.paymentReceipts.length,
       updatedAt: application.updatedAt,
       documentStatuses,
+      healthFlags: {
+        medicalConditions: Boolean(application.studentHealthProfile?.hasMedicalConditions),
+        allergies: Boolean(application.studentHealthProfile?.hasAllergies),
+        medications: Boolean(application.studentHealthProfile?.hasContinuousMedication),
+        sleepDisorders: Boolean(application.studentHealthProfile?.hasSleepDisorders),
+        bedwetting: Boolean(application.studentHealthProfile?.hasBedwetting),
+        phobias: Boolean(application.studentHealthProfile?.hasPhobia),
+        requiresSpecialAttention: Boolean(application.studentHealthProfile?.needsSpecialSupervisorFollowUp),
+      },
     };
   });
 
@@ -158,6 +170,10 @@ export async function loadAdminReportRecords(filters: AdminReportFilters = {}) {
 
   if (filters.paymentView === "paid_only") {
     filteredRecords = filteredRecords.filter((record) => record.remainingSar <= 0);
+  }
+
+  if (filters.healthFilter) {
+    filteredRecords = filteredRecords.filter((record) => Boolean(record.healthFlags[filters.healthFilter!]));
   }
 
   if (q) {

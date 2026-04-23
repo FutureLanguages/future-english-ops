@@ -10,6 +10,7 @@ const groupLabels = {
   basic: "بيانات أساسية",
   financial: "البيانات المالية",
   documents: "المستندات",
+  health: "الحالة الصحية والسلوكية",
   other: "مؤشرات إضافية",
 } as const;
 
@@ -26,6 +27,7 @@ export function AdminSmartTable({
     q?: string;
     status?: string;
     paymentView?: string;
+    healthFilter?: string;
   };
 }) {
   const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[]>(defaultColumnKeys);
@@ -53,6 +55,11 @@ export function AdminSmartTable({
           compact
         />
       );
+    }
+
+    if (column.key.startsWith("health:")) {
+      const healthKey = column.key.replace("health:", "");
+      return row.healthFlags[healthKey] ? "نعم" : "لا";
     }
 
     switch (column.key) {
@@ -106,6 +113,11 @@ export function AdminSmartTable({
       return row.remainingSar <= 0 ? "bg-mist/90" : "bg-clay/30";
     }
 
+    if (column.key.startsWith("health:")) {
+      const healthKey = column.key.replace("health:", "");
+      return row.healthFlags[healthKey] ? "bg-clay/30" : "bg-sand/70";
+    }
+
     return "";
   }
 
@@ -141,6 +153,10 @@ export function AdminSmartTable({
       return row.remainingSar > 0 ? "يوجد مبلغ متبقٍ" : "لا يوجد مبلغ متبقٍ";
     }
 
+    if (column.key.startsWith("health:")) {
+      return "مؤشر صحي/سلوكي داخلي للإدارة فقط";
+    }
+
     return column.label;
   }
 
@@ -156,6 +172,7 @@ export function AdminSmartTable({
       if (filters.q) params.set("q", filters.q);
       if (filters.status) params.set("status", filters.status);
       if (filters.paymentView) params.set("paymentView", filters.paymentView);
+      if (filters.healthFilter) params.set("healthFilter", filters.healthFilter);
       for (const columnKey of selectedColumnKeys) {
         params.append("columns", columnKey);
       }

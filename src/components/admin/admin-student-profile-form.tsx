@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ValidatedTextInput } from "@/components/portal/validated-text-input";
 import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
+
+const schoolStageOptions = [
+  "المرحلة الابتدائية",
+  "المرحلة المتوسطة",
+  "المرحلة الثانوية",
+  "مرحلة جامعية",
+  "أخرى",
+];
 
 export function AdminStudentProfileForm({
   applicationId,
@@ -28,7 +35,6 @@ export function AdminStudentProfileForm({
     nationalIdNumber: string;
   };
 }) {
-  const router = useRouter();
   const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [nationalityMode, setNationalityMode] = useState(values.nationality === "سعودي" ? "saudi" : "other");
@@ -83,7 +89,6 @@ export function AdminStudentProfileForm({
             }
 
             setToast({ tone: "success", message: "تم تحديث بيانات الطالب بنجاح." });
-            router.refresh();
           });
         }}
       >
@@ -228,12 +233,18 @@ export function AdminStudentProfileForm({
         </div>
         <div>
           <label className="mb-1 block text-sm font-semibold text-ink">المرحلة الدراسية</label>
-          <input
+          <select
             name="schoolStage"
             defaultValue={values.schoolStage}
-            placeholder="مثال: الصف الثالث المتوسط"
             className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
-          />
+          >
+            <option value="">اختر المرحلة الدراسية</option>
+            {schoolStageOptions.map((stage) => (
+              <option key={stage} value={stage}>
+                {stage}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="md:col-span-2">
           <label className="mb-1 block text-sm font-semibold text-ink">الهوايات</label>

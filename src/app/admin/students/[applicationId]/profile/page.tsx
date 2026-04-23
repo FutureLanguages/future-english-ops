@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminEntityHeader } from "@/components/admin/admin-entity-header";
+import { AdminHealthBehaviorForm } from "@/components/admin/admin-health-behavior-form";
 import { AdminParentProfileForm } from "@/components/admin/admin-parent-profile-form";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminStudentProfileForm } from "@/components/admin/admin-student-profile-form";
@@ -55,32 +56,32 @@ export default async function AdminStudentProfilePage({
     : null;
   const healthBehavior = {
     medicalConditions: {
-      hasIssue: application.studentHealthProfile?.hasMedicalConditions,
-      details: application.studentHealthProfile?.medicalConditionsDetails,
-    },
-    sleepDisorders: {
-      hasIssue: application.studentHealthProfile?.hasSleepDisorders,
-      details: application.studentHealthProfile?.sleepDisordersDetails,
+      hasIssue: application.studentHealthProfile?.hasMedicalConditions ?? false,
+      details: application.studentHealthProfile?.medicalConditionsDetails ?? "",
     },
     allergies: {
-      hasIssue: application.studentHealthProfile?.hasAllergies,
-      details: application.studentHealthProfile?.allergiesDetails,
+      hasIssue: application.studentHealthProfile?.hasAllergies ?? false,
+      details: application.studentHealthProfile?.allergiesDetails ?? "",
     },
-    continuousMedication: {
-      hasIssue: application.studentHealthProfile?.hasContinuousMedication,
-      details: application.studentHealthProfile?.continuousMedicationDetails,
+    medications: {
+      hasIssue: application.studentHealthProfile?.hasContinuousMedication ?? false,
+      details: application.studentHealthProfile?.continuousMedicationDetails ?? "",
     },
-    phobia: {
-      hasIssue: application.studentHealthProfile?.hasPhobia,
-      details: application.studentHealthProfile?.phobiaDetails,
+    sleepDisorders: {
+      hasIssue: application.studentHealthProfile?.hasSleepDisorders ?? false,
+      details: application.studentHealthProfile?.sleepDisordersDetails ?? "",
     },
     bedwetting: {
-      hasIssue: application.studentHealthProfile?.hasBedwetting,
-      details: application.studentHealthProfile?.bedwettingDetails,
+      hasIssue: application.studentHealthProfile?.hasBedwetting ?? false,
+      details: application.studentHealthProfile?.bedwettingDetails ?? "",
     },
-    needsSpecialSupervisorFollowUp: {
-      hasIssue: application.studentHealthProfile?.needsSpecialSupervisorFollowUp,
-      details: application.studentHealthProfile?.specialSupervisorFollowUpDetails,
+    phobias: {
+      hasIssue: application.studentHealthProfile?.hasPhobia ?? false,
+      details: application.studentHealthProfile?.phobiaDetails ?? "",
+    },
+    requiresSpecialAttention: {
+      hasIssue: application.studentHealthProfile?.needsSpecialSupervisorFollowUp ?? false,
+      details: application.studentHealthProfile?.specialSupervisorFollowUpDetails ?? "",
     },
   };
 
@@ -152,35 +153,16 @@ export default async function AdminStudentProfilePage({
           <div className="mb-4">
             <h2 className="text-lg font-bold text-ink">الحالة الصحية والسلوكية</h2>
             <p className="mt-1 text-sm text-ink/60">
-              تظهر هذه البيانات للإدارة للمتابعة فقط، ويعبئها ولي الأمر من بوابة الطالب/ولي الأمر.
+              يمكن للإدارة تعديل هذه البيانات والتحكم في صلاحية اطلاع الطالب أو تعديله.
             </p>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {([
-              ["medicalConditions", "حالات مرضية"],
-              ["sleepDisorders", "اضطرابات أو مشاكل النوم"],
-              ["allergies", "الحساسية"],
-              ["continuousMedication", "أدوية مستمرة"],
-              ["phobia", "رهاب"],
-              ["bedwetting", "التبول اللاإرادي"],
-              ["needsSpecialSupervisorFollowUp", "هل الحالة تتطلب متابعة خاصة من المشرفين؟"],
-            ] as const).map(([key, label]) => {
-              const item = healthBehavior[key] ?? {};
-              return (
-                <div key={key} className="rounded-2xl bg-sand p-4 text-sm">
-                  <div className="font-bold text-ink">{label}</div>
-                  <div className="mt-1 text-ink/65">{item.hasIssue ? "نعم" : "لا"}</div>
-                  {item.details ? (
-                    <div className="mt-2 rounded-xl bg-white px-3 py-2 text-ink/70">{item.details}</div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 rounded-2xl bg-mist px-4 py-3 text-sm text-ink/70">
-            <div className="font-bold text-ink">ملاحظات ولي الأمر للمشرفين</div>
-            <div className="mt-1">{application.parentSupervisorNote?.body || "لا توجد ملاحظات."}</div>
-          </div>
+          <AdminHealthBehaviorForm
+            applicationId={applicationId}
+            values={healthBehavior}
+            parentSupervisorNotes={application.parentSupervisorNote?.body ?? ""}
+            allowStudentView={application.studentHealthProfile?.allowStudentView ?? false}
+            allowStudentEdit={application.studentHealthProfile?.allowStudentEdit ?? false}
+          />
         </section>
 
         <section className="rounded-panel bg-white p-5 shadow-soft">

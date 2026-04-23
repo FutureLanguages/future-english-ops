@@ -135,6 +135,8 @@ model StudentProfile {
 model StudentHealthProfile {
   id                              String      @id @default(cuid())
   applicationId                   String      @unique
+  allowStudentView                Boolean     @default(false)
+  allowStudentEdit                Boolean     @default(false)
   hasMedicalConditions            Boolean     @default(false)
   medicalConditionsDetails        String?     @db.Text
   hasSleepDisorders               Boolean     @default(false)

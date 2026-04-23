@@ -337,6 +337,95 @@ export async function updateAdminParentProfile(params: {
   return { code: "parent_profile_updated" as const };
 }
 
+export async function updateAdminHealthBehaviorProfile(params: {
+  applicationId: string;
+  healthBehavior: Record<string, { hasIssue: boolean; details: string }>;
+  parentSupervisorNotes: string;
+  allowStudentView: boolean;
+  allowStudentEdit: boolean;
+}) {
+  const admin = await getAdminSession();
+
+  if (!params.applicationId) {
+    throw new AdminWorkspaceMutationError("health_profile_failed");
+  }
+
+  const application = await prisma.application.findUnique({
+    where: { id: params.applicationId },
+    select: { id: true },
+  });
+
+  if (!application) {
+    throw new AdminWorkspaceMutationError("application_not_found");
+  }
+
+  const health = params.healthBehavior;
+  const medications = health.medications ?? health.continuousMedication;
+  const phobias = health.phobias ?? health.phobia;
+  const specialAttention = health.requiresSpecialAttention ?? health.needsSpecialSupervisorFollowUp;
+  const allowStudentEdit = Boolean(params.allowStudentEdit);
+  const allowStudentView = Boolean(params.allowStudentView || allowStudentEdit);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.studentHealthProfile.upsert({
+      where: { applicationId: params.applicationId },
+      update: {
+        allowStudentView,
+        allowStudentEdit,
+        hasMedicalConditions: Boolean(health.medicalConditions?.hasIssue),
+        medicalConditionsDetails: health.medicalConditions?.details || null,
+        hasSleepDisorders: Boolean(health.sleepDisorders?.hasIssue),
+        sleepDisordersDetails: health.sleepDisorders?.details || null,
+        hasAllergies: Boolean(health.allergies?.hasIssue),
+        allergiesDetails: health.allergies?.details || null,
+        hasContinuousMedication: Boolean(medications?.hasIssue),
+        continuousMedicationDetails: medications?.details || null,
+        hasPhobia: Boolean(phobias?.hasIssue),
+        phobiaDetails: phobias?.details || null,
+        hasBedwetting: Boolean(health.bedwetting?.hasIssue),
+        bedwettingDetails: health.bedwetting?.details || null,
+        needsSpecialSupervisorFollowUp: Boolean(specialAttention?.hasIssue),
+        specialSupervisorFollowUpDetails: specialAttention?.details || null,
+      },
+      create: {
+        applicationId: params.applicationId,
+        allowStudentView,
+        allowStudentEdit,
+        hasMedicalConditions: Boolean(health.medicalConditions?.hasIssue),
+        medicalConditionsDetails: health.medicalConditions?.details || null,
+        hasSleepDisorders: Boolean(health.sleepDisorders?.hasIssue),
+        sleepDisordersDetails: health.sleepDisorders?.details || null,
+        hasAllergies: Boolean(health.allergies?.hasIssue),
+        allergiesDetails: health.allergies?.details || null,
+        hasContinuousMedication: Boolean(medications?.hasIssue),
+        continuousMedicationDetails: medications?.details || null,
+        hasPhobia: Boolean(phobias?.hasIssue),
+        phobiaDetails: phobias?.details || null,
+        hasBedwetting: Boolean(health.bedwetting?.hasIssue),
+        bedwettingDetails: health.bedwetting?.details || null,
+        needsSpecialSupervisorFollowUp: Boolean(specialAttention?.hasIssue),
+        specialSupervisorFollowUpDetails: specialAttention?.details || null,
+      },
+    });
+
+    await tx.applicationParentNote.upsert({
+      where: { applicationId: params.applicationId },
+      update: {
+        body: params.parentSupervisorNotes || "",
+        updatedByUserId: admin.id,
+      },
+      create: {
+        applicationId: params.applicationId,
+        body: params.parentSupervisorNotes || "",
+        updatedByUserId: admin.id,
+      },
+    });
+  });
+
+  refreshAdminWorkspaceViews(params.applicationId);
+  return { code: "health_profile_updated" as const };
+}
+
 export async function updateApplicationStatus(params: {
   applicationId: string;
   status: string;

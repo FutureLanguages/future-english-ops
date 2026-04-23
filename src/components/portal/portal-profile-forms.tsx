@@ -17,6 +17,14 @@ function DataAccuracyDisclaimer() {
   );
 }
 
+const schoolStageOptions = [
+  "المرحلة الابتدائية",
+  "المرحلة المتوسطة",
+  "المرحلة الثانوية",
+  "مرحلة جامعية",
+  "أخرى",
+];
+
 function messageForError(code?: string) {
   if (code === "mobile_used_by_other_account") {
     return "رقم الجوال مستخدم لحساب آخر، يرجى استخدام رقم مختلف.";
@@ -112,7 +120,6 @@ export function PortalStudentProfileForm({
             }
 
             setToast({ tone: "success", message: "تم تحديث بيانات الطالب بنجاح." });
-            router.refresh();
           });
         }}
       >
@@ -238,12 +245,18 @@ export function PortalStudentProfileForm({
         </div>
         <div>
           <FieldLabel>المرحلة الدراسية</FieldLabel>
-          <input
+          <select
             name="schoolStage"
             defaultValue={values.schoolStage}
-            placeholder="مثال: الصف الثالث المتوسط"
             className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
-          />
+          >
+            <option value="">اختر المرحلة الدراسية</option>
+            {schoolStageOptions.map((stage) => (
+              <option key={stage} value={stage}>
+                {stage}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="md:col-span-2">
           <FieldLabel>الهوايات</FieldLabel>
@@ -283,28 +296,35 @@ export function PortalStudentProfileForm({
 
 const healthFields = [
   ["medicalConditions", "حالات مرضية"],
-  ["sleepDisorders", "اضطرابات النوم"],
+  ["sleepDisorders", "اضطرابات أو مشاكل النوم"],
   ["allergies", "الحساسية"],
-  ["continuousMedication", "أدوية مستمرة"],
-  ["phobia", "رهاب"],
+  ["medications", "أدوية مستمرة"],
+  ["phobias", "رهاب"],
   ["bedwetting", "التبول اللاإرادي"],
-  ["needsSpecialSupervisorFollowUp", "هل الحالة تتطلب متابعة خاصة من المشرفين؟"],
+  ["requiresSpecialAttention", "هل الحالة تتطلب متابعة خاصة من المشرفين؟"],
 ] as const;
 
 export function PortalHealthBehaviorForm({
   applicationId,
   canEdit,
+  canEditParentSupervisorNotes,
   values,
   parentSupervisorNotes,
 }: {
   applicationId: string;
   canEdit: boolean;
+  canEditParentSupervisorNotes: boolean;
   values: Record<string, { hasIssue: boolean; details: string }>;
   parentSupervisorNotes: string;
 }) {
   const router = useRouter();
   const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [healthState, setHealthState] = useState(
+    Object.fromEntries(
+      healthFields.map(([key]) => [key, Boolean(values[key]?.hasIssue)]),
+    ) as Record<(typeof healthFields)[number][0], boolean>,
+  );
 
   return (
     <>
@@ -322,7 +342,6 @@ export function PortalHealthBehaviorForm({
             }
 
             setToast({ tone: "success", message: "تم حفظ الحالة الصحية والسلوكية بنجاح." });
-            router.refresh();
           });
         }}
       >
@@ -333,21 +352,29 @@ export function PortalHealthBehaviorForm({
               <FieldLabel>{label}</FieldLabel>
               <select
                 name={`${key}HasIssue`}
-                defaultValue={values[key]?.hasIssue ? "yes" : "no"}
+                value={healthState[key] ? "yes" : "no"}
+                onChange={(event) =>
+                  setHealthState((current) => ({
+                    ...current,
+                    [key]: event.target.value === "yes",
+                  }))
+                }
                 disabled={!canEdit}
                 className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none disabled:opacity-70"
               >
                 <option value="no">لا</option>
                 <option value="yes">نعم</option>
               </select>
-              <textarea
-                name={`${key}Details`}
-                rows={2}
-                defaultValue={values[key]?.details ?? ""}
-                disabled={!canEdit}
-                placeholder="اذكر التفاصيل عند اختيار نعم"
-                className="mt-3 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none disabled:opacity-70"
-              />
+              {healthState[key] ? (
+                <textarea
+                  name={`${key}Details`}
+                  rows={2}
+                  defaultValue={values[key]?.details ?? ""}
+                  disabled={!canEdit}
+                  placeholder="اذكر التفاصيل عند اختيار نعم"
+                  className="mt-3 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none disabled:opacity-70"
+                />
+              ) : null}
             </div>
           ))}
         </div>
@@ -357,12 +384,18 @@ export function PortalHealthBehaviorForm({
             name="parentSupervisorNotes"
             rows={4}
             defaultValue={parentSupervisorNotes}
-            disabled={!canEdit}
+            disabled={!canEditParentSupervisorNotes}
             placeholder="اكتب أي ملاحظات مهمة يحتاج المشرفون معرفتها"
             className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none disabled:opacity-70"
           />
+          {!canEditParentSupervisorNotes ? (
+            <>
+              <input type="hidden" name="parentSupervisorNotes" value={parentSupervisorNotes} />
+              <p className="mt-2 text-xs text-ink/55">هذه الملاحظات يكتبها ولي الأمر وتظهر هنا للعرض فقط.</p>
+            </>
+          ) : null}
         </div>
-        {canEdit ? (
+        {canEdit || canEditParentSupervisorNotes ? (
           <button
             type="submit"
             disabled={isPending}

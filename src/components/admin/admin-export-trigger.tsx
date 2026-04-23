@@ -49,6 +49,19 @@ const dataTypeOptions = {
       payment_remaining: "المتبقي",
     },
   },
+  health: {
+    label: "الحالة الصحية والسلوكية",
+    fields: {
+      health_medical_conditions: "حالات مرضية",
+      health_allergies: "الحساسية",
+      health_medications: "أدوية مستمرة",
+      health_sleep_disorders: "اضطرابات النوم",
+      health_bedwetting: "التبول اللاإرادي",
+      health_phobias: "رهاب",
+      health_special_attention: "متابعة خاصة",
+      parent_supervisor_notes: "ملاحظات ولي الأمر للمشرفين",
+    },
+  },
 } as const;
 
 export function AdminExportTrigger({

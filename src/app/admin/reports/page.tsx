@@ -10,6 +10,7 @@ export default async function AdminReportsPage({
     q?: string;
     status?: string;
     paymentView?: string;
+    healthFilter?: string;
   }>;
 }) {
   const session = await getAdminSession();
@@ -19,6 +20,7 @@ export default async function AdminReportsPage({
     q: resolvedSearchParams?.q,
     status: resolvedSearchParams?.status,
     paymentView: resolvedSearchParams?.paymentView,
+    healthFilter: resolvedSearchParams?.healthFilter,
   });
 
   return (
@@ -30,7 +32,7 @@ export default async function AdminReportsPage({
     >
       <div className="space-y-5">
         <section className="rounded-panel bg-white p-5 shadow-soft">
-          <form className="grid gap-3 md:grid-cols-[1.5fr,1fr,1fr,auto]">
+          <form className="grid gap-3 md:grid-cols-[1.5fr,1fr,1fr,1fr,auto]">
             <input
               type="search"
               name="q"
@@ -58,6 +60,20 @@ export default async function AdminReportsPage({
               <option value="all">كل الحالات المالية</option>
               <option value="remaining_only">فقط من لديهم متبقي</option>
               <option value="paid_only">فقط المكتمل سدادهم</option>
+            </select>
+            <select
+              name="healthFilter"
+              defaultValue={viewModel.filters.healthFilter}
+              className="rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            >
+              <option value="">كل الحالات الصحية</option>
+              <option value="medicalConditions">لديه حالات مرضية</option>
+              <option value="allergies">لديه حساسية</option>
+              <option value="medications">لديه أدوية مستمرة</option>
+              <option value="sleepDisorders">لديه اضطرابات نوم</option>
+              <option value="bedwetting">تبول لا إرادي</option>
+              <option value="phobias">لديه رهاب</option>
+              <option value="requiresSpecialAttention">يتطلب متابعة خاصة</option>
             </select>
             <button
               type="submit"
