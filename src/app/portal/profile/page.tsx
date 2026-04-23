@@ -166,6 +166,7 @@ export default async function PortalProfilePage({
               applicationId={viewModel.healthEditor.applicationId}
               canEdit={viewModel.healthEditor.canEdit}
               canEditParentSupervisorNotes={viewModel.healthEditor.canEditParentSupervisorNotes}
+              showParentSupervisorNotes={viewModel.healthEditor.showParentSupervisorNotes}
               values={viewModel.healthEditor.values}
               parentSupervisorNotes={viewModel.healthEditor.parentSupervisorNotes}
             />

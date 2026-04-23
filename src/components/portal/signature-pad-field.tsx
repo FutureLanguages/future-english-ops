@@ -1,11 +1,41 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function SignaturePadField({ name = "signature" }: { name?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [signature, setSignature] = useState("");
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    function resizeCanvas() {
+      if (!canvas) {
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+      canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        context.lineWidth = 2.4;
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        context.strokeStyle = "#11212d";
+      }
+    }
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, []);
 
   function getPoint(event: React.PointerEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current;
@@ -30,11 +60,9 @@ export function SignaturePadField({ name = "signature" }: { name?: string }) {
     const point = getPoint(event);
     context.beginPath();
     context.moveTo(point.x, point.y);
-    context.lineWidth = 2.4;
-    context.lineCap = "round";
-    context.strokeStyle = "#11212d";
     setIsDrawing(true);
     event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
   }
 
   function draw(event: React.PointerEvent<HTMLCanvasElement>) {
@@ -50,6 +78,7 @@ export function SignaturePadField({ name = "signature" }: { name?: string }) {
     const point = getPoint(event);
     context.lineTo(point.x, point.y);
     context.stroke();
+    event.preventDefault();
   }
 
   function stopDrawing() {
@@ -67,7 +96,8 @@ export function SignaturePadField({ name = "signature" }: { name?: string }) {
       return;
     }
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    const rect = canvas.getBoundingClientRect();
+    context.clearRect(0, 0, rect.width, rect.height);
     setSignature("");
   }
 

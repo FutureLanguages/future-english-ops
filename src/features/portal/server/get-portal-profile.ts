@@ -63,6 +63,7 @@ export type PortalProfileViewModel = {
     applicationId: string;
     values: Record<string, { hasIssue: boolean; details: string }>;
     parentSupervisorNotes: string;
+    showParentSupervisorNotes: boolean;
     canEditParentSupervisorNotes: boolean;
   };
   parentLinkEditor: {
@@ -425,6 +426,7 @@ export async function getPortalProfileViewModel(params: {
       values: mapStudentHealthProfile(studentHealthProfile),
       parentSupervisorNotes:
         data.user.role === UserRole.PARENT ? selectedApplication?.parentSupervisorNote?.body ?? "" : "",
+      showParentSupervisorNotes: data.user.role === UserRole.PARENT,
       canEditParentSupervisorNotes: data.user.role === UserRole.PARENT && parentCanEdit,
     },
     parentLinkEditor: {

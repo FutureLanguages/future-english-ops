@@ -4,14 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { ValidatedTextInput } from "@/components/portal/validated-text-input";
 import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
-
-const schoolStageOptions = [
-  "المرحلة الابتدائية",
-  "المرحلة المتوسطة",
-  "المرحلة الثانوية",
-  "مرحلة جامعية",
-  "أخرى",
-];
+import { SchoolStageSelect } from "@/components/shared/school-stage-select";
 
 export function AdminStudentProfileForm({
   applicationId,
@@ -233,18 +226,7 @@ export function AdminStudentProfileForm({
         </div>
         <div>
           <label className="mb-1 block text-sm font-semibold text-ink">المرحلة الدراسية</label>
-          <select
-            name="schoolStage"
-            defaultValue={values.schoolStage}
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
-          >
-            <option value="">اختر المرحلة الدراسية</option>
-            {schoolStageOptions.map((stage) => (
-              <option key={stage} value={stage}>
-                {stage}
-              </option>
-            ))}
-          </select>
+          <SchoolStageSelect value={values.schoolStage} />
         </div>
         <div className="md:col-span-2">
           <label className="mb-1 block text-sm font-semibold text-ink">الهوايات</label>

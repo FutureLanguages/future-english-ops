@@ -4,6 +4,7 @@ import { AdminHealthBehaviorForm } from "@/components/admin/admin-health-behavio
 import { AdminParentProfileForm } from "@/components/admin/admin-parent-profile-form";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminStudentProfileForm } from "@/components/admin/admin-student-profile-form";
+import { ScrollToTopOnMount } from "@/components/shared/scroll-to-top-on-mount";
 import { getAdminSession } from "@/features/auth/server/admin-session";
 import { getAdminNavItems } from "@/features/admin/server/nav";
 import { prisma } from "@/lib/db/prisma";
@@ -100,6 +101,7 @@ export default async function AdminStudentProfilePage({
       title="بيانات الطالب"
       subtitle="عرض وتحرير مباشر لبيانات الطالب الأساسية والإضافية من لوحة الإدارة."
     >
+      <ScrollToTopOnMount />
       <div className="space-y-5">
         <AdminEntityHeader
           name={application.studentProfile?.fullNameAr ?? "طالب بدون اسم"}

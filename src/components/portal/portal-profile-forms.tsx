@@ -3,6 +3,7 @@
 import { useTransition, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
+import { SchoolStageSelect } from "@/components/shared/school-stage-select";
 import { ValidatedTextInput } from "@/components/portal/validated-text-input";
 
 function FieldLabel({ children }: { children: ReactNode }) {
@@ -16,14 +17,6 @@ function DataAccuracyDisclaimer() {
     </div>
   );
 }
-
-const schoolStageOptions = [
-  "المرحلة الابتدائية",
-  "المرحلة المتوسطة",
-  "المرحلة الثانوية",
-  "مرحلة جامعية",
-  "أخرى",
-];
 
 function messageForError(code?: string) {
   if (code === "mobile_used_by_other_account") {
@@ -245,18 +238,7 @@ export function PortalStudentProfileForm({
         </div>
         <div>
           <FieldLabel>المرحلة الدراسية</FieldLabel>
-          <select
-            name="schoolStage"
-            defaultValue={values.schoolStage}
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
-          >
-            <option value="">اختر المرحلة الدراسية</option>
-            {schoolStageOptions.map((stage) => (
-              <option key={stage} value={stage}>
-                {stage}
-              </option>
-            ))}
-          </select>
+          <SchoolStageSelect value={values.schoolStage} />
         </div>
         <div className="md:col-span-2">
           <FieldLabel>الهوايات</FieldLabel>
@@ -308,12 +290,14 @@ export function PortalHealthBehaviorForm({
   applicationId,
   canEdit,
   canEditParentSupervisorNotes,
+  showParentSupervisorNotes,
   values,
   parentSupervisorNotes,
 }: {
   applicationId: string;
   canEdit: boolean;
   canEditParentSupervisorNotes: boolean;
+  showParentSupervisorNotes: boolean;
   values: Record<string, { hasIssue: boolean; details: string }>;
   parentSupervisorNotes: string;
 }) {
@@ -378,23 +362,25 @@ export function PortalHealthBehaviorForm({
             </div>
           ))}
         </div>
-        <div>
-          <FieldLabel>ملاحظات ولي الأمر للمشرفين</FieldLabel>
-          <textarea
-            name="parentSupervisorNotes"
-            rows={4}
-            defaultValue={parentSupervisorNotes}
-            disabled={!canEditParentSupervisorNotes}
-            placeholder="اكتب أي ملاحظات مهمة يحتاج المشرفون معرفتها"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none disabled:opacity-70"
-          />
-          {!canEditParentSupervisorNotes ? (
-            <>
-              <input type="hidden" name="parentSupervisorNotes" value={parentSupervisorNotes} />
-              <p className="mt-2 text-xs text-ink/55">هذه الملاحظات يكتبها ولي الأمر وتظهر هنا للعرض فقط.</p>
-            </>
-          ) : null}
-        </div>
+        {showParentSupervisorNotes ? (
+          <div>
+            <FieldLabel>ملاحظات ولي الأمر للمشرفين</FieldLabel>
+            <textarea
+              name="parentSupervisorNotes"
+              rows={4}
+              defaultValue={parentSupervisorNotes}
+              disabled={!canEditParentSupervisorNotes}
+              placeholder="اكتب أي ملاحظات مهمة يحتاج المشرفون معرفتها"
+              className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none disabled:opacity-70"
+            />
+            {!canEditParentSupervisorNotes ? (
+              <>
+                <input type="hidden" name="parentSupervisorNotes" value={parentSupervisorNotes} />
+                <p className="mt-2 text-xs text-ink/55">هذه الملاحظات يكتبها ولي الأمر وتظهر هنا للعرض فقط.</p>
+              </>
+            ) : null}
+          </div>
+        ) : null}
         {canEdit || canEditParentSupervisorNotes ? (
           <button
             type="submit"
