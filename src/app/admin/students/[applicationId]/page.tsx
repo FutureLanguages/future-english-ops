@@ -14,6 +14,7 @@ import { DashboardStatusBadge } from "@/components/portal/dashboard-status";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminWorkspaceTabs } from "@/components/admin/admin-workspace-tabs";
 import { UserIdentity } from "@/components/shared/user-identity";
+import { LoadingLink } from "@/components/shared/loading-link";
 import { getAdminNavItems } from "@/features/admin/server/nav";
 import {
   archiveAgreementTemplateAction,
@@ -346,6 +347,7 @@ export default async function AdminApplicationWorkspacePage({
   ).length;
   const documentMissingCount = documentItems.filter((item) => item.status === "MISSING").length;
   const documentApprovedCount = documentItems.filter((item) => item.status === "APPROVED").length;
+  const tabQuery = `?tab=${activeTab}`;
 
   return (
     <AdminShell
@@ -360,9 +362,9 @@ export default async function AdminApplicationWorkspacePage({
           <AutoDismissToast message={feedback.text} tone={feedback.tone} />
         ) : null}
 
-        <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_16rem]">
-            <div className="space-y-4">
+        <section className="sticky top-[4.25rem] z-20 rounded-2xl border border-black/10 bg-white/95 p-4 shadow-soft backdrop-blur">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17rem]">
+            <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-3">
                 <DashboardStatusBadge status={viewModel.summary.status} />
                 <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink">
@@ -372,12 +374,39 @@ export default async function AdminApplicationWorkspacePage({
                   {agreementStateLabel}
                 </span>
               </div>
-              <UserIdentity
-                name={viewModel.summary.studentName}
-                typeLabel="الطالب"
-                mobileNumber={viewModel.summary.studentMobileNumber}
-              />
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <UserIdentity
+                  name={viewModel.summary.studentName}
+                  typeLabel="الطالب"
+                  mobileNumber={viewModel.summary.studentMobileNumber}
+                />
+                <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-sand p-2 text-xs font-bold text-ink/70">
+                  <span className="px-2">{viewModel.studentSwitch.positionLabel}</span>
+                  {viewModel.studentSwitch.previous ? (
+                    <LoadingLink
+                      href={`/admin/students/${viewModel.studentSwitch.previous.applicationId}${tabQuery}`}
+                      className="rounded-xl bg-white px-3 py-2 text-pine transition hover:bg-mist"
+                      loadingLabel="جاري الفتح..."
+                    >
+                      السابق
+                    </LoadingLink>
+                  ) : (
+                    <span className="rounded-xl bg-white/50 px-3 py-2 text-ink/35">السابق</span>
+                  )}
+                  {viewModel.studentSwitch.next ? (
+                    <LoadingLink
+                      href={`/admin/students/${viewModel.studentSwitch.next.applicationId}${tabQuery}`}
+                      className="rounded-xl bg-white px-3 py-2 text-pine transition hover:bg-mist"
+                      loadingLabel="جاري الفتح..."
+                    >
+                      التالي
+                    </LoadingLink>
+                  ) : (
+                    <span className="rounded-xl bg-white/50 px-3 py-2 text-ink/35">التالي</span>
+                  )}
+                </div>
+              </div>
+              <div className="grid gap-2 md:grid-cols-4">
                 <div className="rounded-xl bg-sand px-4 py-3">
                   <div className="text-xs font-bold text-ink/50">الاكتمال</div>
                   <div className="mt-1 text-xl font-extrabold text-ink">{viewModel.summary.completionPercent}%</div>

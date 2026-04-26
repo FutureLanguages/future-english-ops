@@ -331,8 +331,28 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
       { createdAt: "desc" },
     ],
   });
+  const switcherApplications = await prisma.application.findMany({
+    select: {
+      id: true,
+      updatedAt: true,
+      studentProfile: {
+        select: {
+          fullNameAr: true,
+        },
+      },
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
 
   const hydratedApplication = application as AdminWorkspaceApplication;
+  const currentSwitcherIndex = switcherApplications.findIndex((item) => item.id === hydratedApplication.id);
+  const previousSwitcherItem = currentSwitcherIndex > 0 ? switcherApplications[currentSwitcherIndex - 1] : null;
+  const nextSwitcherItem =
+    currentSwitcherIndex >= 0 && currentSwitcherIndex < switcherApplications.length - 1
+      ? switcherApplications[currentSwitcherIndex + 1]
+      : null;
 
   const requirements = requirementRows as unknown as DocumentRequirementRecord[];
   const derived = buildAdminApplicationDerivedData({
@@ -589,6 +609,24 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
         value: status as ApplicationStatus,
         label: statusLabels[status as ApplicationStatus],
       })),
+    },
+    studentSwitch: {
+      previous: previousSwitcherItem
+        ? {
+            applicationId: previousSwitcherItem.id,
+            studentName: previousSwitcherItem.studentProfile?.fullNameAr ?? "طالب بدون اسم",
+          }
+        : null,
+      next: nextSwitcherItem
+        ? {
+            applicationId: nextSwitcherItem.id,
+            studentName: nextSwitcherItem.studentProfile?.fullNameAr ?? "طالب بدون اسم",
+          }
+        : null,
+      positionLabel:
+        currentSwitcherIndex >= 0
+          ? `${currentSwitcherIndex + 1} من ${switcherApplications.length}`
+          : `${switcherApplications.length} طلب`,
     },
   };
 }

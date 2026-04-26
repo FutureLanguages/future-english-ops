@@ -23,6 +23,14 @@ export async function getAdminStudentsViewModel(params: {
   const view = viewOptions.includes(params.view as (typeof viewOptions)[number])
     ? (params.view as (typeof viewOptions)[number])
     : "needs_action";
+  const presetCounts = {
+    all: rows.length,
+    needs_action: rows.filter((row) => row.needsAction).length,
+    missing_documents: rows.filter((row) => row.missingDocumentsCount + row.reuploadCount > 0).length,
+    outstanding_payment: rows.filter((row) => row.remainingAmountSar > 0).length,
+    unread_messages: rows.filter((row) => row.unreadMessagesCount > 0).length,
+    completed: rows.filter((row) => row.status === "COMPLETED" || row.completionPercent === 100).length,
+  };
 
   let filteredRows = rows.slice();
 
@@ -76,6 +84,7 @@ export async function getAdminStudentsViewModel(params: {
     adminMobileNumber: params.adminMobileNumber,
     navItems: getAdminNavItems("students"),
     rows: filteredRows,
+    presetCounts,
     filters: {
       q,
       status,

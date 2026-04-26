@@ -2,7 +2,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminStudentsTable } from "@/components/admin/admin-students-table";
 import { getAdminSession } from "@/features/auth/server/admin-session";
 import { getAdminStudentsViewModel } from "@/features/admin/server/get-admin-students";
-import Link from "next/link";
+import { LoadingLink } from "@/components/shared/loading-link";
 
 const statuses = [
   ["", "كل الحالات"],
@@ -14,12 +14,12 @@ const statuses = [
 ];
 
 const presetViews = [
-  { key: "all", label: "الكل" },
-  { key: "needs_action", label: "يحتاج إجراء" },
-  { key: "missing_documents", label: "ناقص مستندات" },
-  { key: "outstanding_payment", label: "متبقٍ مالي" },
-  { key: "unread_messages", label: "رسائل غير مقروءة" },
-  { key: "completed", label: "مكتمل" },
+  { key: "all", label: "الكل", description: "كل الطلبات" },
+  { key: "needs_action", label: "يحتاج إجراء", description: "عمل إداري مفتوح" },
+  { key: "missing_documents", label: "ناقص مستندات", description: "ملفات ناقصة أو إعادة رفع" },
+  { key: "outstanding_payment", label: "متبقٍ مالي", description: "رصيد يحتاج متابعة" },
+  { key: "unread_messages", label: "رسائل غير مقروءة", description: "محادثات تحتاج قراءة" },
+  { key: "completed", label: "مكتمل", description: "طلبات مكتملة" },
 ] as const;
 
 export default async function AdminStudentsPage({
@@ -68,12 +68,12 @@ export default async function AdminStudentsPage({
           <div className="text-sm leading-6 text-ink/60">
             العرض الافتراضي يركز على الطلبات التي تحتاج متابعة فعلية.
           </div>
-          <Link
+          <LoadingLink
             href="/admin/students/new"
             className="inline-flex items-center justify-center rounded-xl bg-pine px-4 py-2.5 text-sm font-bold text-white transition hover:bg-pine/90"
           >
             إضافة طالب جديد
-          </Link>
+          </LoadingLink>
         </div>
 
         <section className="rounded-2xl border border-black/10 bg-white p-4 shadow-soft">
@@ -108,18 +108,25 @@ export default async function AdminStudentsPage({
           <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
             {presetViews.map((view) => {
               const active = viewModel.filters.view === view.key;
+              const count = viewModel.presetCounts[view.key];
               return (
-                <Link
+                <LoadingLink
                   key={view.key}
                   href={presetHref(view.key)}
-                  className={`whitespace-nowrap rounded-full px-3 py-2 text-xs font-bold transition ${
+                  className={`min-w-[9rem] whitespace-nowrap rounded-2xl px-3 py-2 text-right text-xs transition ${
                     active
-                      ? "bg-pine text-white"
+                      ? "bg-pine text-white shadow-soft"
                       : "border border-black/10 bg-sand text-ink/70 hover:bg-white hover:text-ink"
                   }`}
                 >
-                  {view.label}
-                </Link>
+                  <span className="flex items-center justify-between gap-3 font-extrabold">
+                    <span>{view.label}</span>
+                    <span className={active ? "text-white/80" : "text-ink/45"}>{count}</span>
+                  </span>
+                  <span className={`mt-1 block text-[11px] font-semibold ${active ? "text-white/70" : "text-ink/45"}`}>
+                    {view.description}
+                  </span>
+                </LoadingLink>
               );
             })}
           </div>

@@ -95,6 +95,7 @@ export type AdminStudentsViewModel = {
   adminMobileNumber: string;
   navItems: AdminNavItem[];
   rows: AdminApplicationRow[];
+  presetCounts: Record<"all" | "needs_action" | "missing_documents" | "outstanding_payment" | "unread_messages" | "completed", number>;
   filters: {
     q: string;
     status: string;
@@ -291,6 +292,17 @@ export type AdminApplicationWorkspaceViewModel = {
       value: ApplicationStatus;
       label: string;
     }>;
+  };
+  studentSwitch: {
+    previous: {
+      applicationId: string;
+      studentName: string;
+    } | null;
+    next: {
+      applicationId: string;
+      studentName: string;
+    } | null;
+    positionLabel: string;
   };
 };
 
