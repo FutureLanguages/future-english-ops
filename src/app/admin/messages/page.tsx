@@ -32,7 +32,7 @@ export default async function AdminMessagesPage() {
                     غير مقروء: {row.unreadCount}
                   </span>
                   <Link
-                    href={`/admin/students/${row.applicationId}#messages`}
+                    href={`/admin/students/${row.applicationId}?tab=messages`}
                     className="rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white"
                   >
                     فتح المحادثة

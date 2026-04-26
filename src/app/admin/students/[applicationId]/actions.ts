@@ -64,7 +64,7 @@ export async function updateAdminAccessSettingAction(formData: FormData) {
   const value = toBoolean(formData.get("value"));
 
   if (!applicationId || !allowedAccessFields.has(field)) {
-    redirect(`/admin/students/${applicationId || ""}?error=invalid_access_setting#overview`);
+    redirect(`/admin/students/${applicationId || ""}?tab=settings&error=invalid_access_setting`);
   }
 
   await prisma.application.update({
@@ -75,7 +75,7 @@ export async function updateAdminAccessSettingAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=access_updated#overview`);
+  redirect(`/admin/students/${applicationId}?tab=settings&success=access_updated`);
 }
 
 export async function updateAdminStatusAction(formData: FormData) {
@@ -85,7 +85,7 @@ export async function updateAdminStatusAction(formData: FormData) {
   const statusValue = String(formData.get("status") ?? "");
 
   if (!applicationId || !(statusValue in ApplicationStatus)) {
-    redirect(`/admin/students/${applicationId || ""}?error=invalid_status#status`);
+    redirect(`/admin/students/${applicationId || ""}?tab=overview&error=invalid_status`);
   }
 
   await prisma.application.update({
@@ -96,7 +96,7 @@ export async function updateAdminStatusAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=status_updated#status`);
+  redirect(`/admin/students/${applicationId}?tab=overview&success=status_updated`);
 }
 
 export async function reviewApplicationDocumentAction(formData: FormData) {
@@ -120,7 +120,7 @@ export async function reviewApplicationDocumentAction(formData: FormData) {
     !requirementId ||
     !reviewStatuses.has(statusValue as DocumentStatus)
   ) {
-    redirect(`/admin/students/${applicationId || ""}?error=invalid_document_review#${targetTab}`);
+    redirect(`/admin/students/${applicationId || ""}?tab=${targetTab === "payments" ? "finance" : targetTab}&error=invalid_document_review`);
   }
 
   if (
@@ -128,7 +128,7 @@ export async function reviewApplicationDocumentAction(formData: FormData) {
       statusValue === DocumentStatus.REUPLOAD_REQUESTED) &&
     adminNote.length === 0
   ) {
-    redirect(`/admin/students/${applicationId}?error=missing_review_note#${targetTab}`);
+    redirect(`/admin/students/${applicationId}?tab=${targetTab === "payments" ? "finance" : targetTab}&error=missing_review_note`);
   }
 
   try {
@@ -158,7 +158,7 @@ export async function reviewApplicationDocumentAction(formData: FormData) {
       status: statusValue,
       error,
     });
-    redirect(`/admin/students/${applicationId}?error=invalid_document_review#${targetTab}`);
+    redirect(`/admin/students/${applicationId}?tab=${targetTab === "payments" ? "finance" : targetTab}&error=invalid_document_review`);
   }
 
   try {
@@ -182,7 +182,7 @@ export async function reviewApplicationDocumentAction(formData: FormData) {
   }
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=document_review_updated#${targetTab}`);
+  redirect(`/admin/students/${applicationId}?tab=${targetTab === "payments" ? "finance" : targetTab}&success=document_review_updated`);
 }
 
 export async function bulkReviewApplicationDocumentsAction(formData: FormData) {
@@ -201,7 +201,7 @@ export async function bulkReviewApplicationDocumentsAction(formData: FormData) {
   });
 
   if (!applicationId || documentIds.length === 0 || !reviewStatuses.has(statusValue as DocumentStatus)) {
-    redirect(`/admin/students/${applicationId || ""}?error=invalid_document_review#documents`);
+    redirect(`/admin/students/${applicationId || ""}?tab=documents&error=invalid_document_review`);
   }
 
   if (
@@ -209,7 +209,7 @@ export async function bulkReviewApplicationDocumentsAction(formData: FormData) {
       statusValue === DocumentStatus.REUPLOAD_REQUESTED) &&
     adminNote.length === 0
   ) {
-    redirect(`/admin/students/${applicationId}?error=missing_review_note#documents`);
+    redirect(`/admin/students/${applicationId}?tab=documents&error=missing_review_note`);
   }
 
   try {
@@ -239,7 +239,7 @@ export async function bulkReviewApplicationDocumentsAction(formData: FormData) {
       documentIdsCount: documentIds.length,
       error,
     });
-    redirect(`/admin/students/${applicationId}?error=invalid_document_review#documents`);
+    redirect(`/admin/students/${applicationId}?tab=documents&error=invalid_document_review`);
   }
 
   try {
@@ -262,7 +262,7 @@ export async function bulkReviewApplicationDocumentsAction(formData: FormData) {
   }
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=document_review_updated#documents`);
+  redirect(`/admin/students/${applicationId}?tab=documents&success=document_review_updated`);
 }
 
 export async function reviewPaymentReceiptAction(formData: FormData) {
@@ -274,7 +274,7 @@ export async function reviewPaymentReceiptAction(formData: FormData) {
   const adminNote = String(formData.get("adminNote") ?? "").trim();
 
   if (!applicationId || !receiptId || !reviewStatuses.has(statusValue as DocumentStatus)) {
-    redirect(`/admin/students/${applicationId || ""}?error=invalid_document_review#payments`);
+    redirect(`/admin/students/${applicationId || ""}?tab=finance&error=invalid_document_review`);
   }
 
   if (
@@ -282,7 +282,7 @@ export async function reviewPaymentReceiptAction(formData: FormData) {
       statusValue === DocumentStatus.REUPLOAD_REQUESTED) &&
     adminNote.length === 0
   ) {
-    redirect(`/admin/students/${applicationId}?error=missing_review_note#payments`);
+    redirect(`/admin/students/${applicationId}?tab=finance&error=missing_review_note`);
   }
 
   await prisma.paymentReceipt.update({
@@ -305,7 +305,7 @@ export async function reviewPaymentReceiptAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=document_review_updated#payments`);
+  redirect(`/admin/students/${applicationId}?tab=finance&success=document_review_updated`);
 }
 
 export async function addApplicationFeeAction(formData: FormData) {
@@ -319,7 +319,7 @@ export async function addApplicationFeeAction(formData: FormData) {
   const title = customTitle || presetTitle;
 
   if (!applicationId || !title || !Number.isFinite(amount) || amount <= 0) {
-    redirect(`/admin/students/${applicationId || ""}?error=invalid_fee#payments`);
+    redirect(`/admin/students/${applicationId || ""}?tab=finance&error=invalid_fee`);
   }
 
   await prisma.$transaction(async (tx) => {
@@ -347,7 +347,7 @@ export async function addApplicationFeeAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=fee_added#payments`);
+  redirect(`/admin/students/${applicationId}?tab=finance&success=fee_added`);
 }
 
 export async function addApplicationDiscountAction(formData: FormData) {
@@ -363,7 +363,7 @@ export async function addApplicationDiscountAction(formData: FormData) {
     .filter(Boolean);
 
   if (!applicationId || !Number.isFinite(amountValue) || amountValue <= 0) {
-    redirect(`/admin/students/${applicationId || ""}?error=invalid_fee#payments`);
+    redirect(`/admin/students/${applicationId || ""}?tab=finance&error=invalid_fee`);
   }
 
   await prisma.$transaction(async (tx) => {
@@ -397,7 +397,7 @@ export async function addApplicationDiscountAction(formData: FormData) {
         : Number(amountValue.toFixed(2));
 
     if (!Number.isFinite(discountAmount) || discountAmount <= 0) {
-      redirect(`/admin/students/${applicationId}?error=invalid_fee#payments`);
+      redirect(`/admin/students/${applicationId}?tab=finance&error=invalid_fee`);
     }
 
     await tx.applicationFee.create({
@@ -430,7 +430,7 @@ export async function addApplicationDiscountAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=fee_added#payments`);
+  redirect(`/admin/students/${applicationId}?tab=finance&success=fee_added`);
 }
 
 export async function addApplicationPaymentAction(formData: FormData) {
@@ -443,7 +443,7 @@ export async function addApplicationPaymentAction(formData: FormData) {
   const linkedReceiptId = String(formData.get("linkedReceiptId") ?? "").trim();
 
   if (!applicationId || !Number.isFinite(amount) || amount <= 0 || !paymentDateRaw) {
-    redirect(`/admin/students/${applicationId || ""}?error=invalid_payment#payments`);
+    redirect(`/admin/students/${applicationId || ""}?tab=finance&error=invalid_payment`);
   }
 
   await prisma.$transaction(async (tx) => {
@@ -471,7 +471,7 @@ export async function addApplicationPaymentAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=payment_added#payments`);
+  redirect(`/admin/students/${applicationId}?tab=finance&success=payment_added`);
 }
 
 export async function sendAdminMessageAction(formData: FormData) {
@@ -483,7 +483,7 @@ export async function sendAdminMessageAction(formData: FormData) {
     threadTypeValue === MessageThreadType.PARENT ? MessageThreadType.PARENT : MessageThreadType.STUDENT;
 
   if (!applicationId || !body) {
-    redirect(`/admin/students/${applicationId || ""}?error=message_failed#messages`);
+    redirect(`/admin/students/${applicationId || ""}?tab=messages&error=message_failed`);
   }
 
   await prisma.applicationNote.create({
@@ -507,7 +507,7 @@ export async function sendAdminMessageAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=message_sent#messages-${threadType.toLowerCase()}`);
+  redirect(`/admin/students/${applicationId}?tab=messages&success=message_sent`);
 }
 
 export async function resetAccountPasswordAction(formData: FormData) {
@@ -518,9 +518,10 @@ export async function resetAccountPasswordAction(formData: FormData) {
   const nextPassword = String(formData.get("nextPassword") ?? "").trim();
   const forceChange = formData.get("forceChange") === "on";
   const redirectTo = String(formData.get("redirectTo") ?? `/admin/students/${applicationId}`);
+  const redirectSeparator = redirectTo.includes("?") ? "&" : "?";
 
   if (!userId) {
-    redirect(`${redirectTo}?error=password_reset_failed`);
+    redirect(`${redirectTo}${redirectSeparator}error=password_reset_failed`);
   }
 
   try {
@@ -533,14 +534,14 @@ export async function resetAccountPasswordAction(formData: FormData) {
       }),
     );
   } catch {
-    redirect(`${redirectTo}?error=password_reset_failed`);
+    redirect(`${redirectTo}${redirectSeparator}error=password_reset_failed`);
   }
 
   if (applicationId) {
     refreshApplicationViews(applicationId);
   }
 
-  redirect(`${redirectTo}?success=password_reset`);
+  redirect(`${redirectTo}${redirectSeparator}success=password_reset`);
 }
 
 export async function assignAgreementTemplateAction(formData: FormData) {
@@ -551,7 +552,7 @@ export async function assignAgreementTemplateAction(formData: FormData) {
   const assignmentScope = String(formData.get("assignmentScope") ?? "student_parent");
 
   if (!applicationId || !templateId) {
-    redirect(`/admin/students/${applicationId || ""}?error=agreement_failed#agreements`);
+    redirect(`/admin/students/${applicationId || ""}?tab=agreements&error=agreement_failed`);
   }
 
   await ensureDefaultAgreementTemplates();
@@ -561,7 +562,7 @@ export async function assignAgreementTemplateAction(formData: FormData) {
   });
 
   if (!template || !template.isActive) {
-    redirect(`/admin/students/${applicationId}?error=agreement_failed#agreements`);
+    redirect(`/admin/students/${applicationId}?tab=agreements&error=agreement_failed`);
   }
 
   await prisma.applicationAgreement.create({
@@ -587,7 +588,7 @@ export async function assignAgreementTemplateAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=agreement_assigned#agreements`);
+  redirect(`/admin/students/${applicationId}?tab=agreements&success=agreement_assigned`);
 }
 
 export async function createAndAssignAgreementAction(formData: FormData) {
@@ -600,7 +601,7 @@ export async function createAndAssignAgreementAction(formData: FormData) {
   const assignmentScope = String(formData.get("assignmentScope") ?? "student_parent");
 
   if (!applicationId || !title || !content || !acknowledgmentText) {
-    redirect(`/admin/students/${applicationId || ""}?error=agreement_failed#agreements`);
+    redirect(`/admin/students/${applicationId || ""}?tab=agreements&error=agreement_failed`);
   }
 
   await prisma.$transaction(async (tx) => {
@@ -637,7 +638,7 @@ export async function createAndAssignAgreementAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=agreement_assigned#agreements`);
+  redirect(`/admin/students/${applicationId}?tab=agreements&success=agreement_assigned`);
 }
 
 export async function updateAgreementTemplateAction(formData: FormData) {
@@ -650,7 +651,7 @@ export async function updateAgreementTemplateAction(formData: FormData) {
   const acknowledgmentText = String(formData.get("acknowledgmentText") ?? "").trim();
 
   if (!applicationId || !templateId || !title || !content || !acknowledgmentText) {
-    redirect(`/admin/students/${applicationId || ""}?error=agreement_failed#agreements`);
+    redirect(`/admin/students/${applicationId || ""}?tab=agreements&error=agreement_failed`);
   }
 
   await prisma.agreementTemplate.update({
@@ -664,7 +665,7 @@ export async function updateAgreementTemplateAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=agreement_template_updated#agreements`);
+  redirect(`/admin/students/${applicationId}?tab=agreements&success=agreement_template_updated`);
 }
 
 export async function archiveAgreementTemplateAction(formData: FormData) {
@@ -674,7 +675,7 @@ export async function archiveAgreementTemplateAction(formData: FormData) {
   const templateId = String(formData.get("templateId") ?? "");
 
   if (!applicationId || !templateId) {
-    redirect(`/admin/students/${applicationId || ""}?error=agreement_failed#agreements`);
+    redirect(`/admin/students/${applicationId || ""}?tab=agreements&error=agreement_failed`);
   }
 
   await prisma.agreementTemplate.update({
@@ -685,7 +686,7 @@ export async function archiveAgreementTemplateAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=agreement_template_archived#agreements`);
+  redirect(`/admin/students/${applicationId}?tab=agreements&success=agreement_template_archived`);
 }
 
 export async function removeAssignedAgreementAction(formData: FormData) {
@@ -695,7 +696,7 @@ export async function removeAssignedAgreementAction(formData: FormData) {
   const agreementId = String(formData.get("agreementId") ?? "");
 
   if (!applicationId || !agreementId) {
-    redirect(`/admin/students/${applicationId || ""}?error=agreement_failed#agreements`);
+    redirect(`/admin/students/${applicationId || ""}?tab=agreements&error=agreement_failed`);
   }
 
   const agreement = await prisma.applicationAgreement.findUnique({
@@ -709,11 +710,11 @@ export async function removeAssignedAgreementAction(formData: FormData) {
   });
 
   if (!agreement || agreement.applicationId !== applicationId) {
-    redirect(`/admin/students/${applicationId}?error=agreement_failed#agreements`);
+    redirect(`/admin/students/${applicationId}?tab=agreements&error=agreement_failed`);
   }
 
   if (agreement.studentAccepted || agreement.parentAccepted) {
-    redirect(`/admin/students/${applicationId}?error=agreement_already_accepted#agreements`);
+    redirect(`/admin/students/${applicationId}?tab=agreements&error=agreement_already_accepted`);
   }
 
   await prisma.applicationAgreement.delete({
@@ -721,7 +722,7 @@ export async function removeAssignedAgreementAction(formData: FormData) {
   });
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=agreement_removed#agreements`);
+  redirect(`/admin/students/${applicationId}?tab=agreements&success=agreement_removed`);
 }
 
 export async function requestAgreementCancellationAction(formData: FormData) {
@@ -731,7 +732,7 @@ export async function requestAgreementCancellationAction(formData: FormData) {
   const agreementId = String(formData.get("agreementId") ?? "");
 
   if (!applicationId || !agreementId) {
-    redirect(`/admin/students/${applicationId || ""}?error=agreement_failed#agreements`);
+    redirect(`/admin/students/${applicationId || ""}?tab=agreements&error=agreement_failed`);
   }
 
   const agreement = await prisma.applicationAgreement.findUnique({
@@ -746,11 +747,11 @@ export async function requestAgreementCancellationAction(formData: FormData) {
   });
 
   if (!agreement || agreement.applicationId !== applicationId) {
-    redirect(`/admin/students/${applicationId}?error=agreement_failed#agreements`);
+    redirect(`/admin/students/${applicationId}?tab=agreements&error=agreement_failed`);
   }
 
   if (!agreement.studentAccepted && !agreement.parentAccepted) {
-    redirect(`/admin/students/${applicationId}?error=agreement_not_accepted#agreements`);
+    redirect(`/admin/students/${applicationId}?tab=agreements&error=agreement_not_accepted`);
   }
 
   if (!agreement.cancellationRequestedAt) {
@@ -763,5 +764,5 @@ export async function requestAgreementCancellationAction(formData: FormData) {
   }
 
   refreshApplicationViews(applicationId);
-  redirect(`/admin/students/${applicationId}?success=agreement_cancellation_requested#agreements`);
+  redirect(`/admin/students/${applicationId}?tab=agreements&success=agreement_cancellation_requested`);
 }

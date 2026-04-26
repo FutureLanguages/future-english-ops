@@ -194,7 +194,7 @@ export async function notifyMessageSent(params: {
     link:
       params.actorRole === UserRole.ADMIN
         ? `/portal/messages?applicationId=${params.applicationId}&thread=${params.threadType.toLowerCase()}`
-        : `/admin/students/${params.applicationId}#messages-${params.threadType.toLowerCase()}`,
+        : `/admin/students/${params.applicationId}?tab=messages`,
   });
 }
 

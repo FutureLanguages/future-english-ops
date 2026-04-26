@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AdminBulkDownloadPanel } from "@/components/admin/admin-bulk-download-panel";
 import { AdminDocumentReviewPanel } from "@/components/admin/admin-document-review-panel";
-import { AdminEntityHeader } from "@/components/admin/admin-entity-header";
 import { AdminFormSubmitButton } from "@/components/admin/admin-form-submit-button";
 import { AdminAgreementAssignmentPanel } from "@/components/admin/admin-agreement-assignment-panel";
 import { AdminPaymentControls } from "@/components/admin/admin-payment-controls";
@@ -14,6 +13,7 @@ import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
 import { DashboardStatusBadge } from "@/components/portal/dashboard-status";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminWorkspaceTabs } from "@/components/admin/admin-workspace-tabs";
+import { UserIdentity } from "@/components/shared/user-identity";
 import { getAdminNavItems } from "@/features/admin/server/nav";
 import {
   archiveAgreementTemplateAction,
@@ -210,6 +210,7 @@ export default async function AdminApplicationWorkspacePage({
   searchParams?: Promise<{
     success?: string;
     error?: string;
+    tab?: string;
   }>;
 }) {
   const session = await getAdminSession();
@@ -220,6 +221,12 @@ export default async function AdminApplicationWorkspacePage({
     applicationId,
   });
   const feedback = getFeedbackMessage(resolvedSearchParams);
+  const tabParam = resolvedSearchParams?.tab;
+  const activeTab = (
+    ["overview", "data", "documents", "finance", "messages", "agreements", "settings"].includes(tabParam ?? "")
+      ? tabParam
+      : "overview"
+  ) as "overview" | "data" | "documents" | "finance" | "messages" | "agreements" | "settings";
 
   if (!viewModel) {
     return (
@@ -310,6 +317,25 @@ export default async function AdminApplicationWorkspacePage({
       ],
     },
   ] as const;
+  const workspaceTabs = [
+    { id: "overview", label: "نظرة عامة", href: `/admin/students/${applicationId}?tab=overview` },
+    { id: "data", label: "البيانات", href: `/admin/students/${applicationId}?tab=data` },
+    { id: "documents", label: "المستندات", href: `/admin/students/${applicationId}?tab=documents` },
+    { id: "finance", label: "المالية", href: `/admin/students/${applicationId}?tab=finance` },
+    { id: "messages", label: "الرسائل", href: `/admin/students/${applicationId}?tab=messages` },
+    { id: "agreements", label: "الميثاق", href: `/admin/students/${applicationId}?tab=agreements` },
+    { id: "settings", label: "الإعدادات", href: `/admin/students/${applicationId}?tab=settings` },
+  ];
+  const agreementPendingCount = viewModel.agreements.assigned.filter((agreement) => {
+    const parentAccepted = !agreement.requiresParentAcceptance || agreement.parentAccepted;
+    return !agreement.studentAccepted || !parentAccepted;
+  }).length;
+  const agreementStateLabel =
+    viewModel.agreements.assigned.length === 0
+      ? "الميثاق غير مسند"
+      : agreementPendingCount > 0
+        ? `مواثيق معلقة: ${agreementPendingCount}`
+        : "الميثاق مكتمل";
 
   return (
     <AdminShell
@@ -324,269 +350,247 @@ export default async function AdminApplicationWorkspacePage({
           <AutoDismissToast message={feedback.text} tone={feedback.tone} />
         ) : null}
 
-        <AdminEntityHeader
-          name={viewModel.summary.studentName}
-          typeLabel="الطالب"
-          mobileNumber={viewModel.summary.studentMobileNumber}
-        />
-
-        <section id="overview" className="rounded-panel bg-white p-5 shadow-soft">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
+        <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_16rem]">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <DashboardStatusBadge status={viewModel.summary.status} />
-                <span className="text-sm text-ink/60">
+                <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink">
                   ولي الأمر: {viewModel.summary.parentMobileNumber}
                 </span>
-              </div>
-              <div className="text-sm text-ink/65">
-                آخر ملاحظة إدارية: {viewModel.summary.latestAdminNote ?? "لا توجد ملاحظات حالياً."}
-              </div>
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl bg-sand px-4 py-3 text-sm">
-                  <div className="text-xs font-medium text-ink/55">
-                    {viewModel.overview.progressIndicators.profileDocumentsAgreements.label}
-                  </div>
-                  <div className="mt-1 flex items-center justify-between gap-3">
-                    <span className="font-bold text-ink">
-                      {viewModel.overview.progressIndicators.profileDocumentsAgreements.statusLabel}
-                    </span>
-                    <span className="text-xs font-medium text-ink/60">
-                      {viewModel.overview.progressIndicators.profileDocumentsAgreements.detailLabel}
-                    </span>
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-sand px-4 py-3 text-sm">
-                  <div className="text-xs font-medium text-ink/55">
-                    {viewModel.overview.progressIndicators.payments.label}
-                  </div>
-                  <div className="mt-1 flex items-center justify-between gap-3">
-                    <span className="font-bold text-ink">
-                      {viewModel.overview.progressIndicators.payments.statusLabel}
-                    </span>
-                    <span className="text-xs font-medium text-ink/60">
-                      {viewModel.overview.progressIndicators.payments.detailLabel}
-                    </span>
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-sand px-4 py-3 text-sm">
-                  <div className="text-xs font-medium text-ink/55">
-                    {viewModel.overview.progressIndicators.messages.label}
-                  </div>
-                  <div className="mt-1 flex items-center justify-between gap-3">
-                    <span className="font-bold text-ink">
-                      {viewModel.overview.progressIndicators.messages.unreadCount} غير مقروءة
-                    </span>
-                    <span className="rounded-full bg-clay/35 px-2.5 py-1 text-[11px] font-bold text-ink">
-                      {viewModel.overview.progressIndicators.messages.unreadCount}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-sand px-4 py-4">
-              <div className="text-xs font-medium text-ink/55">نسبة الاكتمال</div>
-              <div className="mt-1 text-2xl font-bold text-ink">
-                {viewModel.summary.completionPercent}%
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <h2 className="text-lg font-bold text-ink">إدارة كلمة مرور الطالب</h2>
-            <form action={resetAccountPasswordAction} className="mt-4 space-y-3">
-              <input type="hidden" name="userId" value={viewModel.summary.studentUserId} />
-              <input type="hidden" name="applicationId" value={applicationId} />
-              <input type="hidden" name="redirectTo" value={`/admin/students/${applicationId}#overview`} />
-              <PasswordField
-                name="nextPassword"
-                label="كلمة المرور الجديدة"
-                placeholder="اتركه فارغاً لاستخدام كلمة المرور الافتراضية"
-                helperText="يمكنك كتابة كلمة مرور جديدة أو ترك الحقل فارغًا لاستخدام النمط الافتراضي."
-              />
-              <label className="flex items-center gap-2 text-sm text-ink/70">
-                <input type="checkbox" name="forceChange" defaultChecked />
-                <span>إجبار الطالب على تغيير كلمة المرور عند الدخول</span>
-              </label>
-              <AdminFormSubmitButton idleLabel="إعادة تعيين كلمة مرور الطالب" tone="primary" />
-            </form>
-          </div>
-
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <h2 className="text-lg font-bold text-ink">إدارة كلمة مرور ولي الأمر</h2>
-            <form action={resetAccountPasswordAction} className="mt-4 space-y-3">
-              <input type="hidden" name="userId" value={viewModel.summary.parentUserId} />
-              <input type="hidden" name="applicationId" value={applicationId} />
-              <input type="hidden" name="redirectTo" value={`/admin/students/${applicationId}#overview`} />
-              <PasswordField
-                name="nextPassword"
-                label="كلمة المرور الجديدة"
-                placeholder="اتركه فارغاً لاستخدام كلمة المرور الافتراضية"
-                helperText="يمكنك كتابة كلمة مرور جديدة أو ترك الحقل فارغًا لاستخدام النمط الافتراضي."
-              />
-              <label className="flex items-center gap-2 text-sm text-ink/70">
-                <input type="checkbox" name="forceChange" defaultChecked />
-                <span>إجبار ولي الأمر على تغيير كلمة المرور عند الدخول</span>
-              </label>
-              <AdminFormSubmitButton idleLabel="إعادة تعيين كلمة مرور ولي الأمر" tone="primary" />
-            </form>
-          </div>
-        </section>
-
-        <AdminWorkspaceTabs tabs={viewModel.tabs} />
-
-        <section className="grid gap-4 xl:grid-cols-4">
-          <Link
-            href={`/admin/students/${applicationId}/profile`}
-            className="rounded-panel bg-white p-5 shadow-soft transition hover:bg-sand"
-          >
-            <div className="text-sm font-medium text-ink/55">البيانات الكاملة</div>
-            <div className="mt-2 text-base font-bold text-ink">عرض وتحرير بيانات الطالب وولي الأمر</div>
-            <div className="mt-2 text-sm text-ink/60">
-              الاسم، الجوال، الجنسية، الهوية، الجواز، والجميع الحقول الأساسية للطرفين.
-            </div>
-          </Link>
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <div className="text-sm font-medium text-ink/55">ولي الأمر</div>
-            <div className="mt-2 text-base font-bold text-ink">
-              {viewModel.summary.parentMobileNumber}
-            </div>
-          </div>
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <div className="text-sm font-medium text-ink/55">المستندات الناقصة</div>
-            <div className="mt-2 text-2xl font-bold text-ink">
-              {viewModel.overview.missingDocumentsCount}
-            </div>
-          </div>
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <div className="text-sm font-medium text-ink/55">إجمالي الرسوم</div>
-            <div className="mt-2 text-2xl font-bold text-ink">
-              {viewModel.overview.paymentSummary.totalCostSar} ر.س
-            </div>
-          </div>
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <div className="text-sm font-medium text-ink/55">المتبقي</div>
-            <div className="mt-2 text-2xl font-bold text-ink">
-              {viewModel.overview.paymentSummary.remainingAmountSar} ر.س
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-4 xl:grid-cols-[1.1fr,0.9fr]">
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-bold text-ink">الإجراءات الأساسية</h2>
-              <div className="flex items-center gap-2 text-sm font-medium text-ink/55">
-                <span>{viewModel.overview.requiredActions.length} إجراء</span>
-                <span className="rounded-full bg-sand px-3 py-1 text-xs font-semibold text-ink">
-                  الرسائل غير المقروءة: {viewModel.overview.unreadMessagesCount}
+                <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink">
+                  {agreementStateLabel}
                 </span>
               </div>
-            </div>
-            <div className="mt-4 space-y-3">
-              {viewModel.overview.requiredActions.length > 0 ? (
-                viewModel.overview.requiredActions.map((action) => (
-                  <div
-                    key={action}
-                    className="rounded-2xl border border-black/5 bg-sand px-4 py-3 text-sm font-medium text-ink"
-                  >
-                    {action}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-black/5 bg-sand px-4 py-3 text-sm text-ink/65">
-                  لا توجد إجراءات حرجة حالياً على هذا الطلب.
+              <UserIdentity
+                name={viewModel.summary.studentName}
+                typeLabel="الطالب"
+                mobileNumber={viewModel.summary.studentMobileNumber}
+              />
+              <div className="grid gap-3 md:grid-cols-4">
+                <div className="rounded-xl bg-sand px-4 py-3">
+                  <div className="text-xs font-bold text-ink/50">الاكتمال</div>
+                  <div className="mt-1 text-xl font-extrabold text-ink">{viewModel.summary.completionPercent}%</div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <h2 className="text-lg font-bold text-ink">إعدادات الوصول والأقفال</h2>
-            <div className="mt-4 space-y-4">
-              <div className="rounded-2xl bg-sand px-4 py-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold text-ink">السماح للطالب بعرض تفاصيل المدفوعات</div>
-                    <div className="mt-1 text-sm text-ink/65">
-                      الحالة الحالية: {viewModel.accessSettings.showPaymentToStudent ? "مفعّل" : "غير مفعّل"}
-                    </div>
+                <div className="rounded-xl bg-sand px-4 py-3">
+                  <div className="text-xs font-bold text-ink/50">مستندات تحتاج إجراء</div>
+                  <div className="mt-1 text-xl font-extrabold text-ink">
+                    {viewModel.documents.documentsNeedingReviewCount + viewModel.documents.reuploadCount + viewModel.overview.missingDocumentsCount}
                   </div>
-                  <form action={updateAdminAccessSettingAction}>
-                    <input type="hidden" name="applicationId" value={applicationId} />
-                    <input type="hidden" name="field" value="showPaymentToStudent" />
-                    <input
-                      type="hidden"
-                      name="value"
-                      value={String(!viewModel.accessSettings.showPaymentToStudent)}
-                    />
-                    <AdminFormSubmitButton
-                      idleLabel={
-                        viewModel.accessSettings.showPaymentToStudent ? "إخفاء" : "إظهار"
-                      }
-                    />
-                  </form>
+                </div>
+                <div className="rounded-xl bg-sand px-4 py-3">
+                  <div className="text-xs font-bold text-ink/50">رسائل غير مقروءة</div>
+                  <div className="mt-1 text-xl font-extrabold text-ink">{viewModel.overview.unreadMessagesCount}</div>
+                </div>
+                <div className="rounded-xl bg-sand px-4 py-3">
+                  <div className="text-xs font-bold text-ink/50">المتبقي</div>
+                  <div className="mt-1 text-xl font-extrabold text-ink">{viewModel.overview.paymentSummary.remainingAmountSar} ر.س</div>
                 </div>
               </div>
+            </div>
+            <div className="rounded-xl bg-mist px-4 py-4">
+              <div className="text-xs font-bold text-ink/50">الحالة التشغيلية</div>
+              <div className="mt-2 text-sm leading-6 text-ink/70">
+                {viewModel.summary.latestAdminNote ?? "لا توجد ملاحظات إدارية حالياً."}
+              </div>
+            </div>
+          </div>
+        </section>
 
-              {accessSections.map((section) => (
-                <div key={section.key} className="rounded-2xl bg-sand px-4 py-4">
+        <AdminWorkspaceTabs tabs={workspaceTabs} activeTab={activeTab} />
+
+        {activeTab === "overview" ? (
+          <section className="grid gap-4 xl:grid-cols-[1fr,0.95fr]">
+            <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-lg font-extrabold text-ink">الإجراءات المطلوبة الآن</h2>
+                <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink">
+                  {viewModel.overview.requiredActions.length} إجراء
+                </span>
+              </div>
+              <div className="mt-4 space-y-3">
+                {viewModel.overview.requiredActions.length > 0 ? (
+                  viewModel.overview.requiredActions.map((action) => (
+                    <div key={action} className="rounded-xl border border-black/5 bg-sand px-4 py-3 text-sm font-bold text-ink">
+                      {action}
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-xl border border-black/5 bg-sand px-4 py-3 text-sm text-ink/65">
+                    لا توجد إجراءات حرجة حالياً على هذا الطلب.
+                  </div>
+                )}
+              </div>
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <Link href={`/admin/students/${applicationId}?tab=documents`} className="rounded-xl bg-mist px-4 py-3 text-sm font-bold text-pine transition hover:bg-sand">
+                  مراجعة المستندات
+                </Link>
+                <Link href={`/admin/students/${applicationId}?tab=finance`} className="rounded-xl bg-mist px-4 py-3 text-sm font-bold text-pine transition hover:bg-sand">
+                  متابعة المالية
+                </Link>
+                <Link href={`/admin/students/${applicationId}?tab=messages`} className="rounded-xl bg-mist px-4 py-3 text-sm font-bold text-pine transition hover:bg-sand">
+                  فتح الرسائل
+                </Link>
+                <Link href={`/admin/students/${applicationId}?tab=agreements`} className="rounded-xl bg-mist px-4 py-3 text-sm font-bold text-pine transition hover:bg-sand">
+                  متابعة الميثاق
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
+              <h2 className="text-lg font-extrabold text-ink">تحديث حالة الطلب</h2>
+              <p className="mt-1 text-sm leading-6 text-ink/60">
+                هذا التحكم يومي ومتاح مباشرة من النظرة العامة.
+              </p>
+              <div className="mt-4">
+                <AdminStatusControl
+                  applicationId={applicationId}
+                  currentStatus={viewModel.statusControls.currentStatus}
+                  options={viewModel.statusControls.options}
+                />
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {activeTab === "data" ? (
+          <section className="grid gap-4 xl:grid-cols-[1fr,0.8fr]">
+            <Link
+              href={`/admin/students/${applicationId}/profile`}
+              className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft transition hover:bg-sand"
+            >
+              <div className="text-sm font-bold text-ink/55">البيانات الكاملة</div>
+              <div className="mt-2 text-lg font-extrabold text-ink">عرض وتحرير بيانات الطالب وولي الأمر</div>
+              <div className="mt-2 text-sm leading-6 text-ink/60">
+                الاسم، الجوال، البريد، الجنسية، الهوية، الجواز، بيانات الأسرة، الحالة الصحية والسلوكية، وملاحظات ولي الأمر للمشرفين.
+              </div>
+            </Link>
+            <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
+              <h2 className="text-lg font-extrabold text-ink">مرجع سريع</h2>
+              <div className="mt-4 space-y-3 text-sm text-ink/70">
+                <div className="flex justify-between gap-3 rounded-xl bg-sand px-4 py-3">
+                  <span>رقم الطالب</span>
+                  <span dir="ltr" className="font-bold">{viewModel.summary.studentMobileNumber}</span>
+                </div>
+                <div className="flex justify-between gap-3 rounded-xl bg-sand px-4 py-3">
+                  <span>رقم ولي الأمر</span>
+                  <span dir="ltr" className="font-bold">{viewModel.summary.parentMobileNumber}</span>
+                </div>
+                <div className="rounded-xl bg-sand px-4 py-3">
+                  آخر ملاحظة إدارية: {viewModel.summary.latestAdminNote ?? "لا توجد ملاحظات حالياً."}
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {activeTab === "settings" ? (
+          <>
+            <section className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
+                <h2 className="text-lg font-extrabold text-ink">إدارة كلمة مرور الطالب</h2>
+                <form action={resetAccountPasswordAction} className="mt-4 space-y-3">
+                  <input type="hidden" name="userId" value={viewModel.summary.studentUserId} />
+                  <input type="hidden" name="applicationId" value={applicationId} />
+                  <input type="hidden" name="redirectTo" value={`/admin/students/${applicationId}?tab=settings`} />
+                  <PasswordField
+                    name="nextPassword"
+                    label="كلمة المرور الجديدة"
+                    placeholder="اتركه فارغاً لاستخدام كلمة المرور الافتراضية"
+                    helperText="يمكنك كتابة كلمة مرور جديدة أو ترك الحقل فارغًا لاستخدام النمط الافتراضي."
+                  />
+                  <label className="flex items-center gap-2 text-sm text-ink/70">
+                    <input type="checkbox" name="forceChange" defaultChecked />
+                    <span>إجبار الطالب على تغيير كلمة المرور عند الدخول</span>
+                  </label>
+                  <AdminFormSubmitButton idleLabel="إعادة تعيين كلمة مرور الطالب" tone="primary" />
+                </form>
+              </div>
+
+              <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
+                <h2 className="text-lg font-extrabold text-ink">إدارة كلمة مرور ولي الأمر</h2>
+                <form action={resetAccountPasswordAction} className="mt-4 space-y-3">
+                  <input type="hidden" name="userId" value={viewModel.summary.parentUserId} />
+                  <input type="hidden" name="applicationId" value={applicationId} />
+                  <input type="hidden" name="redirectTo" value={`/admin/students/${applicationId}?tab=settings`} />
+                  <PasswordField
+                    name="nextPassword"
+                    label="كلمة المرور الجديدة"
+                    placeholder="اتركه فارغاً لاستخدام كلمة المرور الافتراضية"
+                    helperText="يمكنك كتابة كلمة مرور جديدة أو ترك الحقل فارغًا لاستخدام النمط الافتراضي."
+                  />
+                  <label className="flex items-center gap-2 text-sm text-ink/70">
+                    <input type="checkbox" name="forceChange" defaultChecked />
+                    <span>إجبار ولي الأمر على تغيير كلمة المرور عند الدخول</span>
+                  </label>
+                  <AdminFormSubmitButton idleLabel="إعادة تعيين كلمة مرور ولي الأمر" tone="primary" />
+                </form>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
+              <h2 className="text-lg font-extrabold text-ink">إعدادات الوصول والأقفال</h2>
+              <div className="mt-4 space-y-4">
+                <div className="rounded-2xl bg-sand px-4 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-ink">{section.title}</div>
+                      <div className="text-sm font-semibold text-ink">السماح للطالب بعرض تفاصيل المدفوعات</div>
                       <div className="mt-1 text-sm text-ink/65">
-                        قفل القسم: {section.locked ? "مفعّل" : "غير مفعّل"}
+                        الحالة الحالية: {viewModel.accessSettings.showPaymentToStudent ? "مفعّل" : "غير مفعّل"}
                       </div>
                     </div>
                     <form action={updateAdminAccessSettingAction}>
                       <input type="hidden" name="applicationId" value={applicationId} />
-                      <input type="hidden" name="field" value={section.field} />
-                      <input type="hidden" name="value" value={String(!section.locked)} />
-                      <AdminLockToggleButton
-                        locked={section.locked}
-                        title={section.locked ? `فتح ${section.title}` : `قفل ${section.title}`}
-                      />
+                      <input type="hidden" name="field" value="showPaymentToStudent" />
+                      <input type="hidden" name="value" value={String(!viewModel.accessSettings.showPaymentToStudent)} />
+                      <AdminFormSubmitButton idleLabel={viewModel.accessSettings.showPaymentToStudent ? "إخفاء" : "إظهار"} />
                     </form>
                   </div>
-
-                  <div className="mt-4 space-y-2">
-                    {section.items.map((item) => (
-                      <div
-                        key={item.key}
-                        className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-3"
-                      >
-                        <div>
-                          <div className="text-sm font-medium text-ink">{item.title}</div>
-                          <div className="mt-1 text-xs text-ink/55">
-                            {section.locked
-                              ? "خاضع لقفل القسم الرئيسي"
-                              : item.locked
-                                ? "مقفل على مستوى المجموعة"
-                                : "مفتوح على مستوى المجموعة"}
-                          </div>
-                        </div>
-                        <form action={updateAdminAccessSettingAction}>
-                          <input type="hidden" name="applicationId" value={applicationId} />
-                          <input type="hidden" name="field" value={item.field} />
-                          <input type="hidden" name="value" value={String(!item.locked)} />
-                          <AdminLockToggleButton
-                            locked={item.locked}
-                            title={item.locked ? `فتح ${item.title}` : `قفل ${item.title}`}
-                          />
-                        </form>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
-        <section id="documents" className="rounded-panel bg-white p-5 shadow-soft">
+                {accessSections.map((section) => (
+                  <div key={section.key} className="rounded-2xl bg-sand px-4 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-ink">{section.title}</div>
+                        <div className="mt-1 text-sm text-ink/65">
+                          قفل القسم: {section.locked ? "مفعّل" : "غير مفعّل"}
+                        </div>
+                      </div>
+                      <form action={updateAdminAccessSettingAction}>
+                        <input type="hidden" name="applicationId" value={applicationId} />
+                        <input type="hidden" name="field" value={section.field} />
+                        <input type="hidden" name="value" value={String(!section.locked)} />
+                        <AdminLockToggleButton locked={section.locked} title={section.locked ? `فتح ${section.title}` : `قفل ${section.title}`} />
+                      </form>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {section.items.map((item) => (
+                        <div key={item.key} className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-3">
+                          <div>
+                            <div className="text-sm font-medium text-ink">{item.title}</div>
+                            <div className="mt-1 text-xs text-ink/55">
+                              {section.locked ? "خاضع لقفل القسم الرئيسي" : item.locked ? "مقفل على مستوى المجموعة" : "مفتوح على مستوى المجموعة"}
+                            </div>
+                          </div>
+                          <form action={updateAdminAccessSettingAction}>
+                            <input type="hidden" name="applicationId" value={applicationId} />
+                            <input type="hidden" name="field" value={item.field} />
+                            <input type="hidden" name="value" value={String(!item.locked)} />
+                            <AdminLockToggleButton locked={item.locked} title={item.locked ? `فتح ${item.title}` : `قفل ${item.title}`} />
+                          </form>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        ) : null}
+
+        {activeTab === "documents" ? <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-bold text-ink">مراجعة المستندات</h2>
@@ -619,9 +623,9 @@ export default async function AdminApplicationWorkspacePage({
               groups={viewModel.documents.groups}
             />
           </div>
-        </section>
+        </section> : null}
 
-        <section id="payments" className="rounded-panel bg-white p-5 shadow-soft">
+        {activeTab === "finance" ? <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-bold text-ink">إدارة المدفوعات</h2>
@@ -671,9 +675,9 @@ export default async function AdminApplicationWorkspacePage({
             <div className="text-sm font-semibold text-ink">إيصالات السداد المرفوعة</div>
             <AdminReceiptReviewPanel applicationId={applicationId} receipts={viewModel.payments.receipts} />
           </div>
-        </section>
+        </section> : null}
 
-        <section id="agreements" className="rounded-panel bg-white p-5 shadow-soft">
+        {activeTab === "agreements" ? <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <h2 className="text-lg font-bold text-ink">المواثيق</h2>
@@ -881,9 +885,9 @@ export default async function AdminApplicationWorkspacePage({
               )}
             </div>
           </div>
-        </section>
+        </section> : null}
 
-        <section id="messages" className="rounded-panel bg-white p-5 shadow-soft">
+        {activeTab === "messages" ? <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-ink">الرسائل الداخلية</h2>
@@ -902,27 +906,7 @@ export default async function AdminApplicationWorkspacePage({
             endpoint="/api/admin/messages"
             readEndpoint="/api/admin/messages/read"
           />
-        </section>
-
-        <section id="status" className="rounded-panel bg-white p-5 shadow-soft">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-ink">إدارة الحالة</h2>
-              <p className="mt-1 text-sm text-ink/65">
-                تغيير حالة الطلب من نفس مساحة العمل بدون الانتقال لصفحة أخرى.
-              </p>
-            </div>
-            <DashboardStatusBadge status={viewModel.statusControls.currentStatus} />
-          </div>
-
-          <div className="mt-5">
-            <AdminStatusControl
-              applicationId={applicationId}
-              currentStatus={viewModel.statusControls.currentStatus}
-              options={viewModel.statusControls.options}
-            />
-          </div>
-        </section>
+        </section> : null}
 
         <Link href="/admin/students" className="inline-flex rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white">
           العودة إلى قائمة الطلاب

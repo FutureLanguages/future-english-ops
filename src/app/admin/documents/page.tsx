@@ -103,7 +103,7 @@ export default async function AdminDocumentsPage({
                   <div className="flex items-center gap-3">
                     <FileActionLinks fileAssetId={row.fileAssetId} mimeType={row.fileMimeType} />
                     <LoadingLink
-                      href={`/admin/students/${row.applicationId}#documents`}
+                      href={`/admin/students/${row.applicationId}?tab=documents`}
                       className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink"
                     >
                       فتح الطلب
