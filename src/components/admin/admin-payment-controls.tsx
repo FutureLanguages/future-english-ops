@@ -55,6 +55,7 @@ export function AdminPaymentControls({
   const inFlightActions = useRef(new Set<string>());
   const [editingFeeId, setEditingFeeId] = useState<string | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<"fees" | "payments">("fees");
 
   function isPending(actionKey: string) {
     return pendingActions.includes(actionKey);
@@ -189,8 +190,40 @@ export function AdminPaymentControls({
     <div className="space-y-4">
       <AutoDismissToast message={toast?.message ?? ""} tone={toast?.tone ?? "success"} />
 
+      <div className="flex flex-wrap gap-2 rounded-2xl bg-sand p-2">
+        <button
+          type="button"
+          onClick={() => setActiveSection("fees")}
+          className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${
+            activeSection === "fees" ? "bg-pine text-white shadow-soft" : "bg-white text-ink hover:bg-mist"
+          }`}
+        >
+          الرسوم والخصومات ({feeItems.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSection("payments")}
+          className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${
+            activeSection === "payments" ? "bg-pine text-white shadow-soft" : "bg-white text-ink hover:bg-mist"
+          }`}
+        >
+          الدفعات الرسمية ({paymentItems.length})
+        </button>
+      </div>
+
+      {activeSection === "fees" ? (
       <div className="rounded-2xl bg-sand px-4 py-4">
-        <h3 className="text-sm font-semibold text-ink">الرسوم والخصومات</h3>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 className="text-sm font-extrabold text-ink">الرسوم والخصومات</h3>
+            <p className="mt-1 text-xs text-ink/55">
+              أضف الرسوم الرسمية أو الخصومات دون التأثير على إيصالات ولي الأمر.
+            </p>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-ink">
+            {feeItems.length} بند
+          </span>
+        </div>
         <form
           className="mt-3 grid gap-3"
           onSubmit={(event) => {
@@ -447,9 +480,21 @@ export function AdminPaymentControls({
           })}
         </div>
       </div>
+      ) : null}
 
+      {activeSection === "payments" ? (
       <div className="rounded-2xl bg-sand px-4 py-4">
-        <h3 className="text-sm font-semibold text-ink">الدفعات الرسمية</h3>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 className="text-sm font-extrabold text-ink">الدفعات الرسمية</h3>
+            <p className="mt-1 text-xs text-ink/55">
+              الدفعات الرسمية تحت تحكم الإدارة، ويمكن ربطها بإيصال مرفوع عند الحاجة.
+            </p>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-ink">
+            {paymentItems.length} دفعة
+          </span>
+        </div>
         <form
           className="mt-3 grid gap-3"
           onSubmit={(event) => {
@@ -675,6 +720,7 @@ export function AdminPaymentControls({
           })}
         </div>
       </div>
+      ) : null}
     </div>
   );
 }

@@ -336,6 +336,16 @@ export default async function AdminApplicationWorkspacePage({
       : agreementPendingCount > 0
         ? `مواثيق معلقة: ${agreementPendingCount}`
         : "الميثاق مكتمل";
+  const documentItems = viewModel.documents.groups.flatMap((group) => group.items);
+  const documentTotalCount = documentItems.length;
+  const documentReviewCount = documentItems.filter(
+    (item) => item.canReview && (item.status === "UPLOADED" || item.status === "UNDER_REVIEW"),
+  ).length;
+  const documentAttentionCount = documentItems.filter(
+    (item) => item.status === "REJECTED" || item.status === "REUPLOAD_REQUESTED",
+  ).length;
+  const documentMissingCount = documentItems.filter((item) => item.status === "MISSING").length;
+  const documentApprovedCount = documentItems.filter((item) => item.status === "APPROVED").length;
 
   return (
     <AdminShell
@@ -593,22 +603,40 @@ export default async function AdminApplicationWorkspacePage({
         {activeTab === "documents" ? <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-ink">مراجعة المستندات</h2>
+              <h2 className="text-lg font-extrabold text-ink">مراجعة المستندات</h2>
               <p className="mt-1 text-sm text-ink/65">
-                قائمة تشغيلية بالمستندات المطلوبة وحالاتها وملاحظات المراجعة.
+                مساحة مراجعة مركزة تعرض ما يحتاج قرارًا أولاً، ثم الملفات التي تحتاج متابعة.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 text-sm">
-              <span className="rounded-full bg-sand px-3 py-1 font-semibold text-ink">
-                تحتاج مراجعة: {viewModel.documents.documentsNeedingReviewCount}
-              </span>
-              <span className="rounded-full bg-sand px-3 py-1 font-semibold text-ink">
-                إعادة رفع: {viewModel.documents.reuploadCount}
-              </span>
+            <div className="rounded-2xl bg-sand px-4 py-3 text-sm font-bold text-ink">
+              إجمالي المتطلبات: {documentTotalCount}
             </div>
           </div>
 
-          <div className="mt-5 space-y-5">
+          <div className="mt-5 grid gap-3 md:grid-cols-5">
+            <div className="rounded-2xl bg-mist px-4 py-3">
+              <div className="text-xs font-bold text-ink/50">بانتظار مراجعة</div>
+              <div className="mt-1 text-2xl font-extrabold text-pine">{documentReviewCount}</div>
+            </div>
+            <div className="rounded-2xl bg-clay/20 px-4 py-3">
+              <div className="text-xs font-bold text-ink/50">تحتاج إجراء</div>
+              <div className="mt-1 text-2xl font-extrabold text-ink">{documentAttentionCount}</div>
+            </div>
+            <div className="rounded-2xl bg-sand px-4 py-3">
+              <div className="text-xs font-bold text-ink/50">غير مرفوعة</div>
+              <div className="mt-1 text-2xl font-extrabold text-ink">{documentMissingCount}</div>
+            </div>
+            <div className="rounded-2xl bg-sand px-4 py-3">
+              <div className="text-xs font-bold text-ink/50">معتمدة</div>
+              <div className="mt-1 text-2xl font-extrabold text-ink">{documentApprovedCount}</div>
+            </div>
+            <div className="rounded-2xl bg-sand px-4 py-3">
+              <div className="text-xs font-bold text-ink/50">إعادة رفع</div>
+              <div className="mt-1 text-2xl font-extrabold text-ink">{viewModel.documents.reuploadCount}</div>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-4">
             <AdminBulkDownloadPanel
               items={viewModel.documents.groups.flatMap((group) =>
                 group.items.map((item) => ({
@@ -628,52 +656,73 @@ export default async function AdminApplicationWorkspacePage({
         {activeTab === "finance" ? <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-ink">إدارة المدفوعات</h2>
+              <h2 className="text-lg font-extrabold text-ink">المساحة المالية</h2>
               <p className="mt-1 text-sm text-ink/65">
-                الرسوم والدفعات الرسمية تُدار من الإدارة، بينما يمكن ربط أي دفعة بإيصال مرفوع
-                اختياريًا.
+                الرسوم والخصومات والدفعات الرسمية والإيصالات مفصولة بوضوح داخل نفس مساحة الطالب.
               </p>
             </div>
-            <span className="rounded-full bg-sand px-3 py-1 text-sm font-semibold text-ink">
+            <span className={`rounded-full px-3 py-1 text-sm font-bold ${
+              viewModel.payments.isPaymentComplete ? "bg-mist text-pine" : "bg-clay/25 text-ink"
+            }`}>
               {viewModel.payments.isPaymentComplete ? "السداد مكتمل" : "يوجد مبلغ متبقٍ"}
             </span>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <div className="mt-5 grid gap-3 lg:grid-cols-5">
             <div className="rounded-2xl bg-sand px-4 py-4">
               <div className="text-sm font-medium text-ink/55">إجمالي الرسوم</div>
-              <div className="mt-2 text-2xl font-bold text-ink">{viewModel.payments.totalFeesSar} ر.س</div>
+              <div className="mt-2 text-2xl font-extrabold text-ink">{viewModel.payments.totalFeesSar} ر.س</div>
             </div>
             <div className="rounded-2xl bg-sand px-4 py-4">
               <div className="text-sm font-medium text-ink/55">إجمالي الخصم</div>
-              <div className="mt-2 text-2xl font-bold text-ink">{viewModel.payments.discountSar} ر.س</div>
+              <div className="mt-2 text-2xl font-extrabold text-ink">{viewModel.payments.discountSar} ر.س</div>
             </div>
             <div className="rounded-2xl bg-sand px-4 py-4">
-              <div className="text-sm font-medium text-ink/55">الإجمالي بعد الخصم</div>
-              <div className="mt-2 text-2xl font-bold text-ink">{viewModel.payments.totalCostSar} ر.س</div>
+              <div className="text-sm font-medium text-ink/55">الصافي بعد الخصم</div>
+              <div className="mt-2 text-2xl font-extrabold text-ink">{viewModel.payments.totalCostSar} ر.س</div>
             </div>
             <div className="rounded-2xl bg-sand px-4 py-4">
               <div className="text-sm font-medium text-ink/55">المدفوع</div>
-              <div className="mt-2 text-2xl font-bold text-ink">{viewModel.payments.paidAmountSar} ر.س</div>
+              <div className="mt-2 text-2xl font-extrabold text-ink">{viewModel.payments.paidAmountSar} ر.س</div>
             </div>
-            <div className="rounded-2xl bg-sand px-4 py-4">
+            <div className={`rounded-2xl px-4 py-4 ${
+              viewModel.payments.isPaymentComplete ? "bg-mist" : "bg-clay/25"
+            }`}>
               <div className="text-sm font-medium text-ink/55">المتبقي</div>
-              <div className="mt-2 text-2xl font-bold text-ink">{viewModel.payments.remainingAmountSar} ر.س</div>
+              <div className="mt-2 text-3xl font-extrabold text-ink">{viewModel.payments.remainingAmountSar} ر.س</div>
             </div>
           </div>
 
-          <div className="mt-4">
-            <AdminPaymentControls
-              applicationId={applicationId}
-              fees={viewModel.payments.fees}
-              payments={viewModel.payments.payments}
-              receipts={viewModel.payments.receipts}
-            />
-          </div>
+          <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_0.95fr]">
+            <section className="rounded-2xl border border-black/5 bg-white p-4">
+              <div className="mb-4">
+                <h3 className="text-base font-extrabold text-ink">الرسوم والدفعات الرسمية</h3>
+                <p className="mt-1 text-sm text-ink/55">
+                  استخدم التبديل الداخلي للفصل بين بنود الرسوم والدفعات دون تشتيت.
+                </p>
+              </div>
+              <AdminPaymentControls
+                applicationId={applicationId}
+                fees={viewModel.payments.fees}
+                payments={viewModel.payments.payments}
+                receipts={viewModel.payments.receipts}
+              />
+            </section>
 
-          <div className="mt-4 rounded-2xl bg-sand px-4 py-4">
-            <div className="text-sm font-semibold text-ink">إيصالات السداد المرفوعة</div>
-            <AdminReceiptReviewPanel applicationId={applicationId} receipts={viewModel.payments.receipts} />
+            <section className="rounded-2xl border border-black/5 bg-sand px-4 py-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h3 className="text-base font-extrabold text-ink">إيصالات السداد</h3>
+                  <p className="mt-1 text-sm text-ink/55">
+                    عرض وتحميل ومراجعة الإيصالات المرفوعة من ولي الأمر.
+                  </p>
+                </div>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-ink">
+                  {viewModel.payments.receipts.length} إيصال
+                </span>
+              </div>
+              <AdminReceiptReviewPanel applicationId={applicationId} receipts={viewModel.payments.receipts} />
+            </section>
           </div>
         </section> : null}
 
