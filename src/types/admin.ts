@@ -62,17 +62,32 @@ export type AdminDashboardViewModel = {
     label: string;
     value: number;
     status?: ApplicationStatus;
+    detail?: string;
   }>;
-  reviewQueues: Array<{
+  actionQueue: Array<{
     label: string;
+    description: string;
     value: number;
     href: string;
+    priority: "high" | "medium" | "low";
   }>;
-  quickActions: Array<{
+  workPanels: Array<{
     label: string;
-    href?: string;
-    disabled?: boolean;
-    devOnlyLabel?: string;
+    value: number;
+    detail: string;
+    href: string;
+    actionLabel: string;
+    tone: "neutral" | "attention" | "success";
+  }>;
+  studentsNeedingAction: Array<{
+    applicationId: string;
+    studentName: string;
+    nextActionLabel: string;
+    completionPercent: number;
+    remainingAmountSar: number;
+    documentsNeedingReviewCount: number;
+    unreadMessagesCount: number;
+    href: string;
   }>;
 };
 
