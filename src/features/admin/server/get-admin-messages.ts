@@ -69,10 +69,7 @@ export async function getAdminMessagesViewModel(params: { adminMobileNumber: str
 
   return {
     adminMobileNumber: params.adminMobileNumber,
-    navItems: [
-      ...getAdminNavItems(),
-      { key: "messages", label: "الرسائل", href: "/admin/messages", active: true },
-    ],
+    navItems: getAdminNavItems("messages"),
     rows,
   };
 }
