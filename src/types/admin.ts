@@ -21,6 +21,8 @@ export type AdminApplicationRow = {
   missingDocumentsCount: number;
   documentsNeedingReviewCount: number;
   reuploadCount: number;
+  unreadMessagesCount: number;
+  nextActionLabel: string;
   updatedAt: Date;
   city: string;
   needsAction: boolean;
@@ -81,7 +83,7 @@ export type AdminStudentsViewModel = {
   filters: {
     q: string;
     status: string;
-    view: "needs_action" | "all";
+    view: "all" | "needs_action" | "missing_documents" | "outstanding_payment" | "unread_messages" | "completed";
   };
 };
 

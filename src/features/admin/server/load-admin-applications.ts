@@ -1,4 +1,4 @@
-import { ApplicationNoteType, DocumentStatus, UserRole, type ApplicationStatus } from "@prisma/client";
+import { ApplicationNoteType, DocumentStatus, MessageThreadType, UserRole, type ApplicationStatus } from "@prisma/client";
 import {
   buildApplicationContext,
   getProfileCompleteness,
@@ -9,6 +9,7 @@ import {
   getApplicableDocumentRequirements,
 } from "@/features/documents/services";
 import { getPaymentSummary } from "@/features/payments/services";
+import { getUnreadThreadNotesCount } from "@/features/messages/server/thread";
 import { prisma } from "@/lib/db/prisma";
 import type {
   ApplicationDocumentRecord,
@@ -67,6 +68,41 @@ function toDocumentRecord(document: {
   return document;
 }
 
+function resolveNextActionLabel(params: {
+  missingDocumentsCount: number;
+  documentsNeedingReviewCount: number;
+  reuploadCount: number;
+  remainingAmountSar: number;
+  completionPercent: number;
+  unreadMessagesCount: number;
+}) {
+  if (params.documentsNeedingReviewCount > 0) {
+    return `مراجعة مستندات: ${params.documentsNeedingReviewCount}`;
+  }
+
+  if (params.reuploadCount > 0) {
+    return `متابعة إعادة رفع: ${params.reuploadCount}`;
+  }
+
+  if (params.missingDocumentsCount > 0) {
+    return `استكمال مستندات: ${params.missingDocumentsCount}`;
+  }
+
+  if (params.remainingAmountSar > 0) {
+    return `متابعة المتبقي: ${params.remainingAmountSar} ر.س`;
+  }
+
+  if (params.unreadMessagesCount > 0) {
+    return `رسائل غير مقروءة: ${params.unreadMessagesCount}`;
+  }
+
+  if (params.completionPercent < 100) {
+    return `استكمال البيانات: ${params.completionPercent}%`;
+  }
+
+  return "مراجعة دورية";
+}
+
 export function buildAdminApplicationDerivedData(params: {
   application: {
     id: string;
@@ -103,6 +139,21 @@ export function buildAdminApplicationDerivedData(params: {
       fileAssetId: string | null;
       reviewedAt: Date | null;
     }>;
+    notes?: Array<{
+      id: string;
+      body: string;
+      noteType: ApplicationNoteType;
+      threadType: MessageThreadType | null;
+      createdAt: Date;
+      senderUserId: string;
+      senderUser: {
+        role: UserRole;
+        mobileNumber: string;
+      };
+    }>;
+    adminLastViewedNotesAt?: Date | null;
+    adminLastViewedStudentThreadAt?: Date | null;
+    adminLastViewedParentThreadAt?: Date | null;
   };
   requirements: DocumentRequirementRecord[];
 }) {
@@ -142,6 +193,21 @@ export function buildAdminApplicationDerivedData(params: {
       item.status === DocumentStatus.REJECTED ||
       item.status === DocumentStatus.REUPLOAD_REQUESTED,
   ).length;
+  const unreadMessagesCount =
+    getUnreadThreadNotesCount({
+      role: UserRole.ADMIN,
+      threadType: MessageThreadType.STUDENT,
+      notes: params.application.notes ?? [],
+      lastViewedAt:
+        params.application.adminLastViewedStudentThreadAt ?? params.application.adminLastViewedNotesAt ?? null,
+    }) +
+    getUnreadThreadNotesCount({
+      role: UserRole.ADMIN,
+      threadType: MessageThreadType.PARENT,
+      notes: params.application.notes ?? [],
+      lastViewedAt:
+        params.application.adminLastViewedParentThreadAt ?? params.application.adminLastViewedNotesAt ?? null,
+    });
 
   const row: AdminApplicationRow = {
     id: params.application.id,
@@ -155,9 +221,18 @@ export function buildAdminApplicationDerivedData(params: {
     missingDocumentsCount,
     documentsNeedingReviewCount,
     reuploadCount,
+    unreadMessagesCount,
+    nextActionLabel: resolveNextActionLabel({
+      missingDocumentsCount,
+      documentsNeedingReviewCount,
+      reuploadCount,
+      remainingAmountSar: paymentSummary.remainingAmountSar,
+      completionPercent: profile.completionPercent,
+      unreadMessagesCount,
+    }),
     updatedAt: params.application.updatedAt,
     city: params.application.studentProfile?.city ?? "غير محدد",
-    needsAction: requiredActions.length > 0 || documentsNeedingReviewCount > 0,
+    needsAction: requiredActions.length > 0 || documentsNeedingReviewCount > 0 || unreadMessagesCount > 0,
     requiredActionsCount: requiredActions.length,
   };
 
@@ -196,6 +271,7 @@ export async function loadAdminApplications() {
             senderUser: {
               select: {
                 role: true,
+                mobileNumber: true,
               },
             },
           },

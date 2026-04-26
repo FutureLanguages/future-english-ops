@@ -12,12 +12,38 @@ export async function getAdminStudentsViewModel(params: {
 
   const q = params.q?.trim() ?? "";
   const status = params.status ?? "";
-  const view = params.view === "all" ? "all" : "needs_action";
+  const viewOptions = [
+    "all",
+    "needs_action",
+    "missing_documents",
+    "outstanding_payment",
+    "unread_messages",
+    "completed",
+  ] as const;
+  const view = viewOptions.includes(params.view as (typeof viewOptions)[number])
+    ? (params.view as (typeof viewOptions)[number])
+    : "needs_action";
 
   let filteredRows = rows.slice();
 
   if (view === "needs_action") {
     filteredRows = filteredRows.filter((row) => row.needsAction);
+  }
+
+  if (view === "missing_documents") {
+    filteredRows = filteredRows.filter((row) => row.missingDocumentsCount + row.reuploadCount > 0);
+  }
+
+  if (view === "outstanding_payment") {
+    filteredRows = filteredRows.filter((row) => row.remainingAmountSar > 0);
+  }
+
+  if (view === "unread_messages") {
+    filteredRows = filteredRows.filter((row) => row.unreadMessagesCount > 0);
+  }
+
+  if (view === "completed") {
+    filteredRows = filteredRows.filter((row) => row.status === "COMPLETED" || row.completionPercent === 100);
   }
 
   if (status) {
