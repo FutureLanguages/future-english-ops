@@ -1,7 +1,7 @@
 import { ApplicationNoteType, ApplicationStatus, MessageThreadType, UserRole, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { formatThreadMessages, getUnreadNotesCount, getUnreadThreadNotesCount } from "@/features/messages/server/thread";
-import { getSmallFinancialAdjustmentThresholdSar } from "@/features/admin/server/payment-mutations";
+import { getSmallFinancialAdjustmentThresholdSar } from "@/features/payments/server/small-difference";
 import type { DocumentRequirementRecord } from "@/types/application";
 import type { AdminApplicationWorkspaceViewModel, AdminWorkspaceDocumentGroup } from "@/types/admin";
 import { buildAdminApplicationDerivedData } from "./load-admin-applications";
@@ -495,7 +495,7 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
       totalCostSar: derived.paymentSummary.totalCostSar,
       paidAmountSar: derived.paymentSummary.paidAmountSar,
       remainingAmountSar: derived.paymentSummary.remainingAmountSar,
-      balanceDifferenceSar: Number((derived.paymentSummary.totalCostSar - derived.paymentSummary.paidAmountSar).toFixed(2)),
+      balanceDifferenceSar: Number((derived.paymentSummary.paidAmountSar - derived.paymentSummary.totalCostSar).toFixed(2)),
       smallDifferenceThresholdSar: getSmallFinancialAdjustmentThresholdSar(),
       isPaymentComplete: derived.paymentSummary.isPaymentComplete,
       latestPaymentNote,

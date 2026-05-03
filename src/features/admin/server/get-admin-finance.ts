@@ -1,4 +1,5 @@
 import type { AdminFinanceViewModel } from "@/types/admin";
+import { getSmallFinancialAdjustmentThresholdSar } from "@/features/payments/server/small-difference";
 import { getAdminNavItems } from "./nav";
 import { loadAdminReportRecords } from "./load-admin-report-records";
 
@@ -56,6 +57,7 @@ export async function getAdminFinanceViewModel(params: {
       totalDiscountSar,
       totalPaidSar,
       totalRemainingSar,
+      smallDifferenceThresholdSar: getSmallFinancialAdjustmentThresholdSar(),
       fullyPaidStudentsCount: sortedRows.filter((row) => row.remainingSar <= 0).length,
       studentsWithRemainingCount: sortedRows.filter((row) => row.remainingSar > 0).length,
       highestRemainingStudent: highestRemainingStudent

@@ -397,6 +397,7 @@ export type AdminFinanceViewModel = {
     totalDiscountSar: number;
     totalPaidSar: number;
     totalRemainingSar: number;
+    smallDifferenceThresholdSar: number;
     fullyPaidStudentsCount: number;
     studentsWithRemainingCount: number;
     highestRemainingStudent: {

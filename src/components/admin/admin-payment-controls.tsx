@@ -123,7 +123,11 @@ export function AdminPaymentControls({
       }
 
       if (payload?.fee) {
-        setFeeItems((current) => current.map((fee) => (fee.id === payload.fee!.id ? payload.fee! : fee)));
+        setFeeItems((current) =>
+          current.some((fee) => fee.id === payload.fee!.id)
+            ? current.map((fee) => (fee.id === payload.fee!.id ? payload.fee! : fee))
+            : [payload.fee!, ...current],
+        );
       }
       setCurrentBalanceDifferenceSar(0);
       setToast({ tone: "success", message: "تمت تسوية الفرق المالي البسيط بنجاح." });
@@ -137,7 +141,7 @@ export function AdminPaymentControls({
   const canShowSmallDifferenceTool =
     absoluteSmallDifference > 0 && absoluteSmallDifference <= smallDifferenceThresholdSar;
   const smallDifferenceMode =
-    currentBalanceDifferenceSar > 0 ? "remaining" : currentBalanceDifferenceSar < 0 ? "overpaid" : null;
+    currentBalanceDifferenceSar < 0 ? "remaining" : currentBalanceDifferenceSar > 0 ? "overpaid" : null;
   const adjustmentTargets = feeItems.filter((fee) =>
     smallDifferenceMode === "remaining" ? fee.amountSar < 0 : fee.amountSar > 0,
   );
@@ -291,27 +295,19 @@ export function AdminPaymentControls({
                 <h4 className="text-sm font-extrabold text-ink">تسوية فرق مالي بسيط</h4>
                 <p className="mt-1 text-xs leading-5 text-ink/60">
                   {smallDifferenceMode === "remaining"
-                    ? `يوجد متبقٍ بسيط قدره ${absoluteSmallDifference} ر.س. اختر بند خصم قائم لتطبيقه بعد التأكيد.`
-                    : `يوجد دفع زائد بسيط قدره ${absoluteSmallDifference} ر.س. اختر بند رسوم قائم لتطبيقه بعد التأكيد.`}
+                    ? `يوجد متبقٍ بسيط قدره ${absoluteSmallDifference} ر.س. سيتم استخدام بند فروقات مالية لتصفير المتبقي بعد التأكيد.`
+                    : `يوجد دفع زائد بسيط قدره ${absoluteSmallDifference} ر.س. سيتم استخدام بند فروقات مالية لامتصاص الزيادة بعد التأكيد.`}
                 </p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <select
                   name="targetFeeId"
                   required
-                  defaultValue={smallDifferenceMode === "overpaid" ? "__difference_fee__" : ""}
-                  disabled={
-                    (smallDifferenceMode === "remaining" && adjustmentTargets.length === 0) ||
-                    isPending("adjust:small-difference")
-                  }
+                  defaultValue="__difference_fee__"
+                  disabled={isPending("adjust:small-difference")}
                   className="rounded-xl border border-black/10 bg-sand px-3 py-2 text-sm outline-none"
                 >
-                  <option value="">
-                    {smallDifferenceMode === "remaining" ? "اختر بند الخصم" : "اختر بند الرسوم"}
-                  </option>
-                  {smallDifferenceMode === "overpaid" ? (
-                    <option value="__difference_fee__">فروقات مالية (افتراضي)</option>
-                  ) : null}
+                  <option value="__difference_fee__">فروقات مالية (افتراضي)</option>
                   {adjustmentTargets.map((fee) => (
                     <option key={fee.id} value={fee.id}>
                       {fee.title} ({formatMoney(fee.amountSar)})
@@ -320,21 +316,13 @@ export function AdminPaymentControls({
                 </select>
                 <button
                   type="submit"
-                  disabled={
-                    (smallDifferenceMode === "remaining" && adjustmentTargets.length === 0) ||
-                    isPending("adjust:small-difference")
-                  }
+                  disabled={isPending("adjust:small-difference")}
                   className="rounded-xl bg-pine px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isPending("adjust:small-difference") ? "جاري التنفيذ..." : "تطبيق التسوية"}
+                  {isPending("adjust:small-difference") ? "جاري التنفيذ..." : "تسوية"}
                 </button>
               </div>
             </div>
-            {smallDifferenceMode === "remaining" && adjustmentTargets.length === 0 ? (
-              <div className="mt-3 rounded-xl bg-clay/20 px-3 py-2 text-xs font-semibold text-ink">
-                لا يوجد بند خصم قائم. أضف خصماً أولاً ثم اختره للتسوية.
-              </div>
-            ) : null}
           </form>
         ) : null}
         <form

@@ -18,11 +18,13 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/g, "");
 }
 
-function requireEnv(name: string, fallbackName?: string) {
-  const value = process.env[name] ?? (fallbackName ? process.env[fallbackName] : undefined);
+function requireEnv(name: string, fallbackNames: string[] = []) {
+  const value = [name, ...fallbackNames]
+    .map((candidate) => process.env[candidate])
+    .find((candidate) => Boolean(candidate));
 
   if (!value) {
-    throw new Error(`missing_${name.toLowerCase()}${fallbackName ? `_or_${fallbackName.toLowerCase()}` : ""}`);
+    throw new Error(`missing_${[name, ...fallbackNames].map((candidate) => candidate.toLowerCase()).join("_or_")}`);
   }
 
   return value;
@@ -30,8 +32,12 @@ function requireEnv(name: string, fallbackName?: string) {
 
 export function getSupabaseStorageConfig(): SupabaseStorageConfig {
   return {
-    url: trimTrailingSlash(requireEnv("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL")),
-    serviceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE"),
+    url: trimTrailingSlash(requireEnv("SUPABASE_URL", ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_PROJECT_URL"])),
+    serviceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY", [
+      "SUPABASE_SERVICE_ROLE",
+      "SUPABASE_SERVICE_KEY",
+      "SUPABASE_SERVICE_ROLE_SECRET",
+    ]),
     bucket: process.env.SUPABASE_STORAGE_BUCKET || "application-files",
   };
 }

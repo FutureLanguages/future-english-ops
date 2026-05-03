@@ -435,10 +435,10 @@ export default async function AdminApplicationWorkspacePage({
                 </div>
                 <div className="rounded-xl bg-sand px-4 py-3">
                   <div className="text-xs font-bold text-ink/50">
-                    {viewModel.payments.balanceDifferenceSar < 0 ? "زيادة مدفوعة" : "المتبقي"}
+                    {viewModel.payments.balanceDifferenceSar > 0 ? "زيادة مدفوعة" : "المتبقي"}
                   </div>
                   <div className="mt-1 text-xl font-extrabold text-ink">
-                    {viewModel.payments.balanceDifferenceSar < 0
+                    {viewModel.payments.balanceDifferenceSar > 0
                       ? `${Math.abs(viewModel.payments.balanceDifferenceSar)} ر.س زيادة مدفوعة`
                       : `${viewModel.overview.paymentSummary.remainingAmountSar} ر.س`}
                   </div>
@@ -711,7 +711,7 @@ export default async function AdminApplicationWorkspacePage({
             <span className={`rounded-full px-3 py-1 text-sm font-bold ${
               viewModel.payments.isPaymentComplete ? "bg-mist text-pine" : "bg-clay/25 text-ink"
             }`}>
-              {viewModel.payments.balanceDifferenceSar < 0
+              {viewModel.payments.balanceDifferenceSar > 0
                 ? "يوجد مبلغ زائد"
                 : viewModel.payments.isPaymentComplete
                   ? "السداد مكتمل"
@@ -740,13 +740,17 @@ export default async function AdminApplicationWorkspacePage({
               viewModel.payments.isPaymentComplete ? "bg-mist" : "bg-clay/25"
             }`}>
               <div className="text-sm font-medium text-ink/55">
-                {viewModel.payments.balanceDifferenceSar < 0 ? "زيادة مدفوعة" : "المتبقي"}
+                المتبقي
               </div>
               <div className="mt-2 text-3xl font-extrabold text-ink">
-                {viewModel.payments.balanceDifferenceSar < 0
-                  ? `${Math.abs(viewModel.payments.balanceDifferenceSar)} ر.س زيادة مدفوعة`
-                  : `${viewModel.payments.remainingAmountSar} ر.س`}
+                {viewModel.payments.remainingAmountSar} ر.س
               </div>
+              {viewModel.payments.balanceDifferenceSar > 0 &&
+              viewModel.payments.balanceDifferenceSar <= viewModel.payments.smallDifferenceThresholdSar ? (
+                <div className="mt-3 rounded-xl bg-white/75 px-3 py-2 text-sm font-bold text-pine">
+                  {viewModel.payments.balanceDifferenceSar} ر.س زيادة مدفوعة
+                </div>
+              ) : null}
             </div>
           </div>
 

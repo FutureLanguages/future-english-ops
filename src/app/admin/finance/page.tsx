@@ -71,6 +71,20 @@ export default async function AdminFinancePage({
           </div>
         </section>
 
+        <section className="rounded-panel border border-black/10 bg-white p-5 shadow-soft">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-base font-bold text-ink">الفروقات المالية</h2>
+              <p className="mt-1 text-sm text-ink/60">
+                حد إداري عام لإظهار إجراء التسوية للفروقات الصغيرة فقط.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-sand px-4 py-3 text-sm font-bold text-ink">
+              الحد الحالي: {viewModel.summary.smallDifferenceThresholdSar} ر.س
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-panel bg-white p-5 shadow-soft">
           <form className="grid gap-3 md:grid-cols-[1fr,1fr,1fr,auto]">
             <select
