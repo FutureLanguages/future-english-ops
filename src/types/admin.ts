@@ -231,7 +231,13 @@ export type AdminApplicationWorkspaceViewModel = {
     discountSar: number;
     totalCostSar: number;
     paidAmountSar: number;
+    totalRefundsSar: number;
+    netPaidSar: number;
+    totalFinancialDifferencesSar: number;
     remainingAmountSar: number;
+    excessPaidSar: number;
+    finalBalanceSar: number;
+    settlementPercent: number;
     balanceDifferenceSar: number;
     smallDifferenceThresholdSar: number;
     isPaymentComplete: boolean;
@@ -395,8 +401,14 @@ export type AdminFinanceViewModel = {
   summary: {
     totalFeesSar: number;
     totalDiscountSar: number;
+    totalNetDueSar: number;
     totalPaidSar: number;
+    totalRefundsSar: number;
+    netPaidSar: number;
+    totalFinancialDifferencesSar: number;
     totalRemainingSar: number;
+    totalFinalBalanceSar: number;
+    settlementPercent: number;
     smallDifferenceThresholdSar: number;
     fullyPaidStudentsCount: number;
     studentsWithRemainingCount: number;
@@ -411,8 +423,15 @@ export type AdminFinanceViewModel = {
     status: ApplicationStatus;
     totalFeesSar: number;
     totalDiscountSar: number;
+    netDueSar: number;
     totalPaidSar: number;
+    totalRefundsSar: number;
+    netPaidSar: number;
+    totalFinancialDifferencesSar: number;
     remainingSar: number;
+    excessPaidSar: number;
+    finalBalanceSar: number;
+    settlementPercent: number;
     balanceDifferenceSar: number;
     settlementEligible: boolean;
   }>;

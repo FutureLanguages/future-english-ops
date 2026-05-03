@@ -2,7 +2,7 @@ import { ApplicationNoteType, ApplicationStatus, MessageThreadType, UserRole, ty
 import { prisma } from "@/lib/db/prisma";
 import { formatThreadMessages, getUnreadNotesCount, getUnreadThreadNotesCount } from "@/features/messages/server/thread";
 import { getSmallFinancialAdjustmentThresholdSar } from "@/features/payments/server/small-difference";
-import { smallFinancialDifferenceFeeTitle } from "@/features/payments/constants";
+import { summarizeAdminFinance } from "@/features/payments/services/admin-finance-summary";
 import type { DocumentRequirementRecord } from "@/types/application";
 import type { AdminApplicationWorkspaceViewModel, AdminWorkspaceDocumentGroup } from "@/types/admin";
 import { buildAdminApplicationDerivedData } from "./load-admin-applications";
@@ -87,21 +87,8 @@ function summarizeFees(
     };
   });
 
-  const totalFeesSar = normalized
-    .filter((fee) => fee.title !== smallFinancialDifferenceFeeTitle)
-    .filter((fee) => fee.amountSar > 0)
-    .reduce((sum, fee) => sum + fee.amountSar, 0);
-  const discountSar = Math.abs(
-    normalized
-      .filter((fee) => fee.title !== smallFinancialDifferenceFeeTitle)
-      .filter((fee) => fee.amountSar < 0)
-      .reduce((sum, fee) => sum + fee.amountSar, 0),
-  );
-
   return {
     items: normalized,
-    totalFeesSar: Number(totalFeesSar.toFixed(2)),
-    discountSar: Number(discountSar.toFixed(2)),
   };
 }
 
@@ -374,6 +361,10 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
     hydratedApplication.paymentReceipts.find((receipt) => Boolean(receipt.adminNote))?.adminNote ??
     latestAdminNote;
   const feeSummary = summarizeFees(hydratedApplication.fees);
+  const adminFinanceSummary = summarizeAdminFinance({
+    fees: hydratedApplication.fees,
+    payments: hydratedApplication.payments,
+  });
   const agreementsPendingCount = hydratedApplication.agreements.filter((agreement) => {
     const parentAccepted = !agreement.requiresParentAcceptance || agreement.parentAccepted;
     return !agreement.studentAccepted || !parentAccepted;
@@ -495,12 +486,18 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
       reuploadCount: derived.reuploadCount,
     },
     payments: {
-      totalFeesSar: feeSummary.totalFeesSar,
-      discountSar: feeSummary.discountSar,
-      totalCostSar: derived.paymentSummary.totalCostSar,
-      paidAmountSar: derived.paymentSummary.paidAmountSar,
-      remainingAmountSar: derived.paymentSummary.remainingAmountSar,
-      balanceDifferenceSar: Number((derived.paymentSummary.paidAmountSar - derived.paymentSummary.totalCostSar).toFixed(2)),
+      totalFeesSar: adminFinanceSummary.totalFeesSar,
+      discountSar: adminFinanceSummary.totalDiscountsSar,
+      totalCostSar: adminFinanceSummary.netDueSar,
+      paidAmountSar: adminFinanceSummary.totalPaymentsSar,
+      totalRefundsSar: adminFinanceSummary.totalRefundsSar,
+      netPaidSar: adminFinanceSummary.netPaidSar,
+      totalFinancialDifferencesSar: adminFinanceSummary.totalFinancialDifferencesSar,
+      remainingAmountSar: adminFinanceSummary.finalRemainingSar,
+      excessPaidSar: adminFinanceSummary.excessPaidSar,
+      finalBalanceSar: adminFinanceSummary.finalBalanceSar,
+      settlementPercent: adminFinanceSummary.settlementPercent,
+      balanceDifferenceSar: Number((adminFinanceSummary.netPaidSar - (adminFinanceSummary.netDueSar - adminFinanceSummary.totalFinancialDifferencesSar)).toFixed(2)),
       smallDifferenceThresholdSar: await getSmallFinancialAdjustmentThresholdSar(),
       isPaymentComplete: derived.paymentSummary.isPaymentComplete,
       latestPaymentNote,

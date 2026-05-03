@@ -35,9 +35,15 @@ export async function getAdminFinanceViewModel(params: {
     sortedRows.reduce((sum, row) => sum + row.totalDiscountSar, 0).toFixed(2),
   );
   const totalPaidSar = Number(sortedRows.reduce((sum, row) => sum + row.totalPaidSar, 0).toFixed(2));
+  const totalRefundsSar = Number(sortedRows.reduce((sum, row) => sum + row.totalRefundsSar, 0).toFixed(2));
+  const netPaidSar = Number(sortedRows.reduce((sum, row) => sum + row.netPaidSar, 0).toFixed(2));
+  const totalFinancialDifferencesSar = Number(sortedRows.reduce((sum, row) => sum + row.totalFinancialDifferencesSar, 0).toFixed(2));
   const totalRemainingSar = Number(
     sortedRows.reduce((sum, row) => sum + row.remainingSar, 0).toFixed(2),
   );
+  const totalFinalBalanceSar = Number(sortedRows.reduce((sum, row) => sum + row.finalBalanceSar, 0).toFixed(2));
+  const totalNetDueSar = Number(sortedRows.reduce((sum, row) => sum + row.netDueSar, 0).toFixed(2));
+  const settlementPercent = totalNetDueSar > 0 ? Number(((netPaidSar / totalNetDueSar) * 100).toFixed(2)) : 0;
   const highestRemainingStudent =
     sortedRows.length > 0
       ? sortedRows.reduce((highest, row) =>
@@ -56,8 +62,14 @@ export async function getAdminFinanceViewModel(params: {
     summary: {
       totalFeesSar,
       totalDiscountSar,
+      totalNetDueSar,
       totalPaidSar,
+      totalRefundsSar,
+      netPaidSar,
+      totalFinancialDifferencesSar,
       totalRemainingSar,
+      totalFinalBalanceSar,
+      settlementPercent,
       smallDifferenceThresholdSar,
       fullyPaidStudentsCount: sortedRows.filter((row) => row.remainingSar <= 0).length,
       studentsWithRemainingCount: sortedRows.filter((row) => row.remainingSar > 0).length,
@@ -74,8 +86,15 @@ export async function getAdminFinanceViewModel(params: {
       status: row.status,
       totalFeesSar: row.totalFeesSar,
       totalDiscountSar: row.totalDiscountSar,
+      netDueSar: row.netDueSar,
       totalPaidSar: row.totalPaidSar,
+      totalRefundsSar: row.totalRefundsSar,
+      netPaidSar: row.netPaidSar,
+      totalFinancialDifferencesSar: row.totalFinancialDifferencesSar,
       remainingSar: row.remainingSar,
+      excessPaidSar: row.excessPaidSar,
+      finalBalanceSar: row.finalBalanceSar,
+      settlementPercent: row.settlementPercent,
       balanceDifferenceSar: row.balanceDifferenceSar,
       settlementEligible:
         Math.abs(row.balanceDifferenceSar) > 0 &&

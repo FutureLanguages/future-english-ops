@@ -31,22 +31,38 @@ export default async function AdminFinancePage({
       subtitle="ملخص تشغيلي للرسوم والخصومات والمدفوعات والمتبقي على مستوى جميع الطلاب."
     >
       <div className="space-y-5">
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 xl:grid-cols-[1fr,1fr,0.8fr,1fr]">
           <div className="rounded-panel bg-white p-5 shadow-soft">
-            <div className="text-sm font-medium text-ink/55">إجمالي الرسوم</div>
-            <div className="mt-2 text-2xl font-bold text-ink">{viewModel.summary.totalFeesSar} ر.س</div>
+            <div className="text-xs font-extrabold text-ink/45">الالتزام المالي</div>
+            <div className="mt-3 space-y-2 text-sm text-ink">
+              <div className="flex justify-between gap-3"><span>إجمالي الرسوم</span><strong>{viewModel.summary.totalFeesSar} ر.س</strong></div>
+              <div className="flex justify-between gap-3"><span>إجمالي الخصومات</span><strong>{viewModel.summary.totalDiscountSar} ر.س</strong></div>
+              <div className="rounded-2xl bg-sand px-3 py-2 font-extrabold">الصافي المستحق: {viewModel.summary.totalNetDueSar} ر.س</div>
+            </div>
           </div>
           <div className="rounded-panel bg-white p-5 shadow-soft">
-            <div className="text-sm font-medium text-ink/55">إجمالي الخصومات</div>
-            <div className="mt-2 text-2xl font-bold text-ink">{viewModel.summary.totalDiscountSar} ر.س</div>
+            <div className="text-xs font-extrabold text-ink/45">المدفوعات والمرتجعات</div>
+            <div className="mt-3 space-y-2 text-sm text-ink">
+              <div className="flex justify-between gap-3"><span>إجمالي المدفوعات</span><strong>{viewModel.summary.totalPaidSar} ر.س</strong></div>
+              <div className="flex justify-between gap-3"><span>إجمالي المرتجعات</span><strong>{viewModel.summary.totalRefundsSar} ر.س</strong></div>
+              <div className="rounded-2xl bg-sand px-3 py-2 font-extrabold">صافي المدفوع الفعلي: {viewModel.summary.netPaidSar} ر.س</div>
+            </div>
+          </div>
+          <div className="rounded-panel border border-pine/15 bg-mist p-5 shadow-soft">
+            <div className="text-xs font-extrabold text-pine/70">تسويات الإدارة</div>
+            <div className="mt-3 text-2xl font-bold text-pine">{viewModel.summary.totalFinancialDifferencesSar} ر.س</div>
+            <p className="mt-2 text-xs leading-5 text-ink/55">إجمالي الفروقات المالية للإدارة فقط.</p>
           </div>
           <div className="rounded-panel bg-white p-5 shadow-soft">
-            <div className="text-sm font-medium text-ink/55">إجمالي المدفوعات</div>
-            <div className="mt-2 text-2xl font-bold text-ink">{viewModel.summary.totalPaidSar} ر.س</div>
-          </div>
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <div className="text-sm font-medium text-ink/55">إجمالي المتبقي</div>
-            <div className="mt-2 text-2xl font-bold text-ink">{viewModel.summary.totalRemainingSar} ر.س</div>
+            <div className="text-xs font-extrabold text-ink/45">الرصيد النهائي</div>
+            <div className="mt-2 text-2xl font-bold text-ink">{viewModel.summary.totalRemainingSar} ر.س متبقي</div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-sand">
+              <div
+                className="h-full rounded-full bg-pine"
+                style={{ width: `${Math.min(Math.max(viewModel.summary.settlementPercent, 0), 100)}%` }}
+              />
+            </div>
+            <div className="mt-2 text-xs font-bold text-ink/55">نسبة السداد: {viewModel.summary.settlementPercent}%</div>
           </div>
         </section>
 
@@ -130,6 +146,7 @@ export default async function AdminFinancePage({
                   <th className="px-3 py-2 text-right text-sm font-bold text-ink">الحالة</th>
                   <th className="px-3 py-2 text-right text-sm font-bold text-ink">إجمالي الرسوم</th>
                   <th className="px-3 py-2 text-right text-sm font-bold text-ink">إجمالي الخصم</th>
+                  <th className="px-3 py-2 text-right text-sm font-bold text-ink">صافي المدفوع</th>
                   <th className="px-3 py-2 text-right text-sm font-bold text-ink">المدفوع</th>
                   <th className="px-3 py-2 text-right text-sm font-bold text-ink">المتبقي</th>
                   <th className="px-3 py-2 text-right text-sm font-bold text-ink">الفروقات المالية</th>
@@ -147,6 +164,7 @@ export default async function AdminFinancePage({
                     <td className="px-3 py-3 text-sm"><ApplicationStatusBadge status={row.status} compact /></td>
                     <td className="px-3 py-3 text-sm text-ink">{row.totalFeesSar} ر.س</td>
                     <td className="px-3 py-3 text-sm text-ink">{row.totalDiscountSar} ر.س</td>
+                    <td className="px-3 py-3 text-sm text-ink">{row.netPaidSar} ر.س</td>
                     <td className="px-3 py-3 text-sm text-ink">{row.totalPaidSar} ر.س</td>
                     <td className={`px-3 py-3 text-sm font-bold text-ink ${row.remainingSar > 0 ? "bg-clay/25" : "bg-mist/80"}`}>
                       {row.remainingSar} ر.س
@@ -162,19 +180,23 @@ export default async function AdminFinancePage({
                         <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink">
                           {row.balanceDifferenceSar} ر.س زيادة
                         </span>
+                      ) : row.totalFinancialDifferencesSar !== 0 ? (
+                        <span className="rounded-full bg-mist px-3 py-1 text-xs font-bold text-pine">
+                          تمت التسوية: {row.totalFinancialDifferencesSar} ر.س
+                        </span>
                       ) : (
                         <span className="text-xs text-ink/45">لا توجد فروقات صغيرة</span>
                       )}
                     </td>
                     <td className="rounded-l-2xl px-3 py-3 text-sm">
-                      <Link href={`/admin/students/${row.applicationId}`} className="font-semibold text-pine">
+                      <Link href={`/admin/students/${row.applicationId}?tab=finance`} className="font-semibold text-pine">
                         عرض الطلب
                       </Link>
                     </td>
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={8} className="rounded-2xl bg-sand px-4 py-6 text-center text-sm text-ink/55">
+                    <td colSpan={9} className="rounded-2xl bg-sand px-4 py-6 text-center text-sm text-ink/55">
                       لا توجد نتائج مالية مطابقة للفلاتر الحالية.
                     </td>
                   </tr>

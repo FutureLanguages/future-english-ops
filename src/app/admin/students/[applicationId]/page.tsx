@@ -719,36 +719,55 @@ export default async function AdminApplicationWorkspacePage({
             </span>
           </div>
 
-          <div className="mt-5 grid gap-3 lg:grid-cols-5">
+          <div className="mt-5 grid gap-3 xl:grid-cols-[1fr,1fr,0.72fr,1fr]">
             <div className="rounded-2xl bg-sand px-4 py-4">
-              <div className="text-sm font-medium text-ink/55">إجمالي الرسوم</div>
-              <div className="mt-2 text-2xl font-extrabold text-ink">{viewModel.payments.totalFeesSar} ر.س</div>
+              <div className="text-xs font-extrabold text-ink/45">الالتزام المالي</div>
+              <div className="mt-3 grid gap-2">
+                <div className="flex justify-between gap-3 text-sm"><span>إجمالي الرسوم</span><strong>{viewModel.payments.totalFeesSar} ر.س</strong></div>
+                <div className="flex justify-between gap-3 text-sm"><span>إجمالي الخصومات</span><strong>{viewModel.payments.discountSar} ر.س</strong></div>
+                <div className="rounded-xl bg-white px-3 py-2 text-sm font-extrabold text-ink">الصافي المستحق: {viewModel.payments.totalCostSar} ر.س</div>
+              </div>
             </div>
             <div className="rounded-2xl bg-sand px-4 py-4">
-              <div className="text-sm font-medium text-ink/55">إجمالي الخصم</div>
-              <div className="mt-2 text-2xl font-extrabold text-ink">{viewModel.payments.discountSar} ر.س</div>
+              <div className="text-xs font-extrabold text-ink/45">المدفوعات والتعديلات</div>
+              <div className="mt-3 grid gap-2">
+                <div className="flex justify-between gap-3 text-sm"><span>إجمالي المدفوعات</span><strong>{viewModel.payments.paidAmountSar} ر.س</strong></div>
+                <div className="flex justify-between gap-3 text-sm"><span>إجمالي المرتجعات</span><strong>{viewModel.payments.totalRefundsSar} ر.س</strong></div>
+                <div className="rounded-xl bg-white px-3 py-2 text-sm font-extrabold text-ink">صافي المدفوع الفعلي: {viewModel.payments.netPaidSar} ر.س</div>
+              </div>
             </div>
-            <div className="rounded-2xl bg-sand px-4 py-4">
-              <div className="text-sm font-medium text-ink/55">الصافي بعد الخصم</div>
-              <div className="mt-2 text-2xl font-extrabold text-ink">{viewModel.payments.totalCostSar} ر.س</div>
-            </div>
-            <div className="rounded-2xl bg-sand px-4 py-4">
-              <div className="text-sm font-medium text-ink/55">المدفوع</div>
-              <div className="mt-2 text-2xl font-extrabold text-ink">{viewModel.payments.paidAmountSar} ر.س</div>
+            <div className="rounded-2xl border border-pine/15 bg-mist px-4 py-4">
+              <div className="text-xs font-extrabold text-pine/70">تسويات الإدارة</div>
+              <div className="mt-3 text-2xl font-extrabold text-pine">{viewModel.payments.totalFinancialDifferencesSar} ر.س</div>
+              <p className="mt-2 text-xs leading-5 text-ink/55">إجمالي الفروقات المالية يظهر للإدارة فقط ولا يدخل ضمن الرسوم أو الخصومات العامة.</p>
             </div>
             <div className={`rounded-2xl px-4 py-4 ${
-              viewModel.payments.isPaymentComplete ? "bg-mist" : "bg-clay/25"
+              viewModel.payments.remainingAmountSar <= 0 ? "bg-mist" : "bg-clay/25"
             }`}>
-              <div className="text-sm font-medium text-ink/55">
-                المتبقي
+              <div className="text-xs font-extrabold text-ink/45">الرصيد النهائي</div>
+              <div className="mt-2 text-sm font-bold text-ink/60">
+                {viewModel.payments.finalBalanceSar < 0
+                  ? "زيادة مدفوعة"
+                  : viewModel.payments.finalBalanceSar === 0
+                    ? "السداد مكتمل"
+                    : "متبقي نهائي"}
               </div>
               <div className="mt-2 text-3xl font-extrabold text-ink">
-                {viewModel.payments.remainingAmountSar} ر.س
+                {viewModel.payments.finalBalanceSar < 0
+                  ? `${viewModel.payments.excessPaidSar} ر.س`
+                  : `${viewModel.payments.remainingAmountSar} ر.س`}
               </div>
-              {viewModel.payments.balanceDifferenceSar > 0 &&
-              viewModel.payments.balanceDifferenceSar <= viewModel.payments.smallDifferenceThresholdSar ? (
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70">
+                <div
+                  className="h-full rounded-full bg-pine"
+                  style={{ width: `${Math.min(Math.max(viewModel.payments.settlementPercent, 0), 100)}%` }}
+                />
+              </div>
+              <div className="mt-2 text-xs font-bold text-ink/55">نسبة السداد: {viewModel.payments.settlementPercent}%</div>
+              {Math.abs(viewModel.payments.balanceDifferenceSar) > 0 &&
+              Math.abs(viewModel.payments.balanceDifferenceSar) <= viewModel.payments.smallDifferenceThresholdSar ? (
                 <div className="mt-3 rounded-xl bg-white/75 px-3 py-2 text-sm font-bold text-pine">
-                  {viewModel.payments.balanceDifferenceSar} ر.س زيادة مدفوعة
+                  قابل للتسوية ضمن حد الفروقات المالية
                 </div>
               ) : null}
             </div>

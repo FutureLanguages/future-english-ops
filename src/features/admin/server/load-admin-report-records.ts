@@ -2,9 +2,9 @@ import { DocumentStatus, type ApplicationStatus, type Prisma } from "@prisma/cli
 import { getUnreadNotesCount } from "@/features/messages/server/thread";
 import { prisma } from "@/lib/db/prisma";
 import type { DocumentRequirementRecord } from "@/types/application";
+import { summarizeAdminFinance } from "@/features/payments/services/admin-finance-summary";
 import { buildAdminApplicationDerivedData } from "./load-admin-applications";
 import { resolveParentMobileDisplay } from "./parent-display";
-import { smallFinancialDifferenceFeeTitle } from "@/features/payments/constants";
 
 export type AdminReportRecord = {
   applicationId: string;
@@ -15,8 +15,15 @@ export type AdminReportRecord = {
   status: ApplicationStatus;
   totalFeesSar: number;
   totalDiscountSar: number;
+  netDueSar: number;
   totalPaidSar: number;
+  totalRefundsSar: number;
+  netPaidSar: number;
+  totalFinancialDifferencesSar: number;
   remainingSar: number;
+  excessPaidSar: number;
+  finalBalanceSar: number;
+  settlementPercent: number;
   balanceDifferenceSar: number;
   documentsCompletedCount: number;
   unreadMessagesCount: number;
@@ -33,30 +40,6 @@ export type AdminReportFilters = {
   healthFilter?: string;
   sort?: "updated_desc" | "name_asc" | "status" | "documents_desc" | "financial_desc" | "messages_desc";
 };
-
-function toNumber(value: { toNumber(): number } | number) {
-  return typeof value === "number" ? value : value.toNumber();
-}
-
-function summarizeFees(
-  fees: Array<{
-    title: string;
-    amount: { toNumber(): number } | number;
-  }>,
-) {
-  const amounts = fees
-    .filter((fee) => fee.title !== smallFinancialDifferenceFeeTitle)
-    .map((fee) => toNumber(fee.amount));
-  const totalFeesSar = amounts.filter((amount) => amount > 0).reduce((sum, amount) => sum + amount, 0);
-  const totalDiscountSar = Math.abs(
-    amounts.filter((amount) => amount < 0).reduce((sum, amount) => sum + amount, 0),
-  );
-
-  return {
-    totalFeesSar: Number(totalFeesSar.toFixed(2)),
-    totalDiscountSar: Number(totalDiscountSar.toFixed(2)),
-  };
-}
 
 export async function loadAdminReportRecords(filters: AdminReportFilters = {}) {
   const [applications, requirementRows] = await Promise.all([
@@ -77,6 +60,7 @@ export async function loadAdminReportRecords(filters: AdminReportFilters = {}) {
         },
         documents: true,
         fees: true,
+        payments: true,
         paymentReceipts: {
           select: {
             id: true,
@@ -117,7 +101,10 @@ export async function loadAdminReportRecords(filters: AdminReportFilters = {}) {
       application: application as Parameters<typeof buildAdminApplicationDerivedData>[0]["application"],
       requirements,
     });
-    const feeSummary = summarizeFees(application.fees);
+    const financeSummary = summarizeAdminFinance({
+      fees: application.fees,
+      payments: application.payments,
+    });
     const parentName =
       application.parentProfiles.find((profile) => Boolean(profile.fullName?.trim()))?.fullName?.trim() ??
       "ولي أمر بدون اسم";
@@ -142,11 +129,18 @@ export async function loadAdminReportRecords(filters: AdminReportFilters = {}) {
         parentProfiles: application.parentProfiles,
       }),
       status: application.status,
-      totalFeesSar: feeSummary.totalFeesSar,
-      totalDiscountSar: feeSummary.totalDiscountSar,
-      totalPaidSar: derived.paymentSummary.paidAmountSar,
-      remainingSar: derived.paymentSummary.remainingAmountSar,
-      balanceDifferenceSar: Number((derived.paymentSummary.paidAmountSar - derived.paymentSummary.totalCostSar).toFixed(2)),
+      totalFeesSar: financeSummary.totalFeesSar,
+      totalDiscountSar: financeSummary.totalDiscountsSar,
+      netDueSar: financeSummary.netDueSar,
+      totalPaidSar: financeSummary.totalPaymentsSar,
+      totalRefundsSar: financeSummary.totalRefundsSar,
+      netPaidSar: financeSummary.netPaidSar,
+      totalFinancialDifferencesSar: financeSummary.totalFinancialDifferencesSar,
+      remainingSar: financeSummary.finalRemainingSar,
+      excessPaidSar: financeSummary.excessPaidSar,
+      finalBalanceSar: financeSummary.finalBalanceSar,
+      settlementPercent: financeSummary.settlementPercent,
+      balanceDifferenceSar: -financeSummary.finalBalanceSar,
       documentsCompletedCount,
       unreadMessagesCount: getUnreadNotesCount({
         role: "ADMIN",
