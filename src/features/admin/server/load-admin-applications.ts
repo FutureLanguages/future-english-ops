@@ -11,6 +11,7 @@ import {
 import { getPaymentSummary } from "@/features/payments/services";
 import { getUnreadThreadNotesCount } from "@/features/messages/server/thread";
 import { prisma } from "@/lib/db/prisma";
+import { resolveParentMobileDisplay } from "./parent-display";
 import type {
   ApplicationDocumentRecord,
   ApplicationContext,
@@ -212,7 +213,10 @@ export function buildAdminApplicationDerivedData(params: {
   const row: AdminApplicationRow = {
     id: params.application.id,
     studentName: params.application.studentProfile?.fullNameAr ?? "طالب بدون اسم",
-    parentMobileNumber: params.application.parentUser.mobileNumber,
+    parentMobileNumber: resolveParentMobileDisplay({
+      parentUserMobileNumber: params.application.parentUser.mobileNumber,
+      parentProfiles: params.application.parentProfiles,
+    }),
     status: params.application.status,
     completionPercent: profile.completionPercent,
     totalCostSar: paymentSummary.totalCostSar,

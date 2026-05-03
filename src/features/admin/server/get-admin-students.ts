@@ -7,6 +7,7 @@ export async function getAdminStudentsViewModel(params: {
   q?: string;
   status?: string;
   view?: string;
+  sort?: string;
 }): Promise<AdminStudentsViewModel> {
   const { rows } = await loadAdminApplications();
 
@@ -23,6 +24,18 @@ export async function getAdminStudentsViewModel(params: {
   const view = viewOptions.includes(params.view as (typeof viewOptions)[number])
     ? (params.view as (typeof viewOptions)[number])
     : "needs_action";
+  const sortOptions = [
+    "priority",
+    "name_asc",
+    "status",
+    "documents_desc",
+    "financial_desc",
+    "messages_desc",
+    "updated_desc",
+  ] as const;
+  const sort = sortOptions.includes(params.sort as (typeof sortOptions)[number])
+    ? (params.sort as (typeof sortOptions)[number])
+    : "priority";
   const presetCounts = {
     all: rows.length,
     needs_action: rows.filter((row) => row.needsAction).length,
@@ -69,6 +82,32 @@ export async function getAdminStudentsViewModel(params: {
   }
 
   filteredRows.sort((left, right) => {
+    if (sort === "name_asc") {
+      return left.studentName.localeCompare(right.studentName, "ar");
+    }
+
+    if (sort === "status") {
+      return left.status.localeCompare(right.status) || right.updatedAt.getTime() - left.updatedAt.getTime();
+    }
+
+    if (sort === "documents_desc") {
+      const leftDocuments = left.documentsNeedingReviewCount + left.reuploadCount + left.missingDocumentsCount;
+      const rightDocuments = right.documentsNeedingReviewCount + right.reuploadCount + right.missingDocumentsCount;
+      return rightDocuments - leftDocuments || right.updatedAt.getTime() - left.updatedAt.getTime();
+    }
+
+    if (sort === "financial_desc") {
+      return right.remainingAmountSar - left.remainingAmountSar || right.updatedAt.getTime() - left.updatedAt.getTime();
+    }
+
+    if (sort === "messages_desc") {
+      return right.unreadMessagesCount - left.unreadMessagesCount || right.updatedAt.getTime() - left.updatedAt.getTime();
+    }
+
+    if (sort === "updated_desc") {
+      return right.updatedAt.getTime() - left.updatedAt.getTime();
+    }
+
     if (left.needsAction !== right.needsAction) {
       return left.needsAction ? -1 : 1;
     }
@@ -89,6 +128,7 @@ export async function getAdminStudentsViewModel(params: {
       q,
       status,
       view,
+      sort,
     },
   };
 }

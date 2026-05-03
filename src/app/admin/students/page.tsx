@@ -29,6 +29,7 @@ export default async function AdminStudentsPage({
     q?: string;
     status?: string;
     view?: string;
+    sort?: string;
   }>;
 }) {
   const session = await getAdminSession();
@@ -38,12 +39,14 @@ export default async function AdminStudentsPage({
     q: resolvedSearchParams?.q,
     status: resolvedSearchParams?.status,
     view: resolvedSearchParams?.view,
+    sort: resolvedSearchParams?.sort,
   });
 
   function presetHref(view: string) {
     const params = new URLSearchParams();
     if (viewModel.filters.q) params.set("q", viewModel.filters.q);
     if (viewModel.filters.status) params.set("status", viewModel.filters.status);
+    if (viewModel.filters.sort !== "priority") params.set("sort", viewModel.filters.sort);
     params.set("view", view);
     return `/admin/students?${params.toString()}`;
   }
@@ -77,7 +80,7 @@ export default async function AdminStudentsPage({
         </div>
 
         <section className="rounded-2xl border border-black/10 bg-white p-4 shadow-soft">
-          <form className="grid gap-3 lg:grid-cols-[minmax(14rem,1.4fr)_12rem_auto]">
+          <form className="grid gap-3 lg:grid-cols-[minmax(14rem,1.4fr)_12rem_13rem_auto]">
             <input
               type="search"
               name="q"
@@ -95,6 +98,20 @@ export default async function AdminStudentsPage({
                   {label}
                 </option>
               ))}
+            </select>
+            <select
+              name="sort"
+              defaultValue={viewModel.filters.sort}
+              className="rounded-xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine/40 focus:bg-white"
+              aria-label="ترتيب النتائج"
+            >
+              <option value="priority">الأولوية التشغيلية</option>
+              <option value="name_asc">الاسم أ-ي</option>
+              <option value="status">حالة الطلب</option>
+              <option value="documents_desc">الأكثر احتياجاً للمستندات</option>
+              <option value="financial_desc">الأعلى متبقياً مالياً</option>
+              <option value="messages_desc">الأكثر رسائل غير مقروءة</option>
+              <option value="updated_desc">آخر تحديث</option>
             </select>
             <input type="hidden" name="view" value={viewModel.filters.view} />
             <button

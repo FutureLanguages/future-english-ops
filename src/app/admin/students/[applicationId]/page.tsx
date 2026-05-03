@@ -13,6 +13,7 @@ import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
 import { DashboardStatusBadge } from "@/components/portal/dashboard-status";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminWorkspaceTabs } from "@/components/admin/admin-workspace-tabs";
+import { AdminEntitySwitcher } from "@/components/admin/admin-entity-switcher";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { LoadingLink } from "@/components/shared/loading-link";
 import { getAdminNavItems } from "@/features/admin/server/nav";
@@ -382,6 +383,17 @@ export default async function AdminApplicationWorkspacePage({
                 />
                 <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-sand p-2 text-xs font-bold text-ink/70">
                   <span className="px-2">{viewModel.studentSwitch.positionLabel}</span>
+                  <AdminEntitySwitcher
+                    currentId={applicationId}
+                    buttonLabel="اختيار طالب"
+                    searchPlaceholder="ابحث باسم الطالب"
+                    items={viewModel.studentSwitch.items.map((item) => ({
+                      id: item.applicationId,
+                      label: item.studentName,
+                      description: new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium" }).format(item.updatedAt),
+                      href: `/admin/students/${item.applicationId}${tabQuery}`,
+                    }))}
+                  />
                   {viewModel.studentSwitch.previous ? (
                     <LoadingLink
                       href={`/admin/students/${viewModel.studentSwitch.previous.applicationId}${tabQuery}`}
@@ -735,6 +747,8 @@ export default async function AdminApplicationWorkspacePage({
                 fees={viewModel.payments.fees}
                 payments={viewModel.payments.payments}
                 receipts={viewModel.payments.receipts}
+                balanceDifferenceSar={viewModel.payments.balanceDifferenceSar}
+                smallDifferenceThresholdSar={viewModel.payments.smallDifferenceThresholdSar}
               />
             </section>
 

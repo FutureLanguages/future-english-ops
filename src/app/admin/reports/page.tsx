@@ -11,6 +11,7 @@ export default async function AdminReportsPage({
     status?: string;
     paymentView?: string;
     healthFilter?: string;
+    sort?: string;
   }>;
 }) {
   const session = await getAdminSession();
@@ -21,6 +22,7 @@ export default async function AdminReportsPage({
     status: resolvedSearchParams?.status,
     paymentView: resolvedSearchParams?.paymentView,
     healthFilter: resolvedSearchParams?.healthFilter,
+    sort: resolvedSearchParams?.sort,
   });
 
   return (
@@ -32,7 +34,7 @@ export default async function AdminReportsPage({
     >
       <div className="space-y-5">
         <section className="rounded-panel bg-white p-5 shadow-soft">
-          <form className="grid gap-3 md:grid-cols-[1.5fr,1fr,1fr,1fr,auto]">
+          <form className="grid gap-3 md:grid-cols-[1.4fr,1fr,1fr,1fr,1fr,auto]">
             <input
               type="search"
               name="q"
@@ -74,6 +76,19 @@ export default async function AdminReportsPage({
               <option value="bedwetting">تبول لا إرادي</option>
               <option value="phobias">لديه رهاب</option>
               <option value="requiresSpecialAttention">يتطلب متابعة خاصة</option>
+            </select>
+            <select
+              name="sort"
+              defaultValue={viewModel.filters.sort}
+              className="rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+              aria-label="ترتيب الجدول"
+            >
+              <option value="updated_desc">آخر تحديث</option>
+              <option value="name_asc">الاسم أ-ي</option>
+              <option value="status">حالة الطلب</option>
+              <option value="documents_desc">الأكثر احتياجاً للمستندات</option>
+              <option value="financial_desc">الأعلى متبقياً مالياً</option>
+              <option value="messages_desc">الأكثر رسائل غير مقروءة</option>
             </select>
             <button
               type="submit"

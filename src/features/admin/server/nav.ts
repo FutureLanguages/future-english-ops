@@ -9,7 +9,6 @@ export function getAdminNavItems(activeKey?: string): AdminNavItem[] {
     { key: "finance", label: "المالية", href: "/admin/finance", active: activeKey === "finance" },
     { key: "messages", label: "الرسائل", href: "/admin/messages", active: activeKey === "messages" },
     { key: "reports", label: "التقارير", href: "/admin/reports", active: activeKey === "reports" },
-    { key: "exports", label: "التصدير", href: "/admin/reports", active: activeKey === "exports" },
     { key: "notifications", label: "الإشعارات", href: "/admin/notifications", active: activeKey === "notifications" },
   ];
 }

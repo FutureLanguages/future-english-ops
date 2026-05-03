@@ -21,6 +21,7 @@ export async function GET(request: Request) {
   const status = searchParams.get("status") ?? "";
   const paymentView = searchParams.get("paymentView") ?? "all";
   const healthFilter = searchParams.get("healthFilter") ?? "";
+  const sort = searchParams.get("sort") ?? "updated_desc";
   const columns = searchParams.getAll("columns");
 
   const [viewModel, data] = await Promise.all([
@@ -30,12 +31,21 @@ export async function GET(request: Request) {
       status,
       paymentView,
       healthFilter,
+      sort,
     }),
     loadAdminReportRecords({
       q,
       status,
       paymentView: paymentView === "remaining_only" || paymentView === "paid_only" ? paymentView : "all",
       healthFilter,
+      sort:
+        sort === "name_asc" ||
+        sort === "status" ||
+        sort === "documents_desc" ||
+        sort === "financial_desc" ||
+        sort === "messages_desc"
+          ? sort
+          : "updated_desc",
     }),
   ]);
 

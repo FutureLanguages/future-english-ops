@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { canViewApplication, canViewPayments } from "@/features/auth/services/permissions.service";
 import { getOptionalAuthSession } from "@/features/auth/server/session";
 import { readStoredFile } from "@/lib/storage/file-access";
+import { SupabaseStorageError } from "@/lib/storage/supabase-storage";
 import { prisma } from "@/lib/db/prisma";
 
 export async function GET(
@@ -92,8 +93,18 @@ export async function GET(
 
   try {
     fileBuffer = await readStoredFile(fileOwner.fileAsset.storageKey);
-  } catch {
-    return NextResponse.json({ error: "file_not_found" }, { status: 404 });
+  } catch (error) {
+    if (error instanceof SupabaseStorageError && error.status === 404) {
+      return NextResponse.json({ error: "file_not_found" }, { status: 404 });
+    }
+
+    console.error("FILE_VIEW_ERROR", {
+      fileAssetId,
+      storageKey: fileOwner.fileAsset.storageKey,
+      error,
+    });
+
+    return NextResponse.json({ error: "file_access_failed" }, { status: 500 });
   }
 
   return new NextResponse(new Uint8Array(fileBuffer), {

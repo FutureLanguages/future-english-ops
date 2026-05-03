@@ -23,10 +23,11 @@ export async function GET(request: Request) {
     selectedIds,
     scopeStatus: searchParams.get("scopeStatus") ?? undefined,
   };
+  const origin = new URL(request.url).origin;
 
   const fileBuffer =
     format === "pdf"
-      ? await generatePdfExport({ filters, dataTypes, fields })
+      ? await generatePdfExport({ filters, dataTypes, fields, fontBaseUrl: origin })
       : await generateExcelExport({ filters, dataTypes, fields });
 
   return new NextResponse(new Uint8Array(fileBuffer), {

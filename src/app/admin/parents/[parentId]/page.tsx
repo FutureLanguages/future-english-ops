@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Eye } from "lucide-react";
 import { AdminEntityHeader } from "@/components/admin/admin-entity-header";
+import { AdminEntitySwitcher } from "@/components/admin/admin-entity-switcher";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { PasswordField } from "@/components/shared/password-field";
 import { ApplicationStatusBadge } from "@/components/shared/application-status-badge";
@@ -48,6 +49,21 @@ export default async function AdminParentDetailsPage({
           typeLabel="ولي الأمر"
           mobileNumber={viewModel.parent.mobileNumber}
         />
+
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-sand p-2 text-xs font-bold text-ink/70">
+          <span className="px-2">{viewModel.parentSwitch.positionLabel}</span>
+          <AdminEntitySwitcher
+            currentId={viewModel.parent.id}
+            buttonLabel="اختيار ولي أمر"
+            searchPlaceholder="ابحث باسم أو جوال ولي الأمر"
+            items={viewModel.parentSwitch.items.map((item) => ({
+              id: item.parentId,
+              label: item.fullName,
+              description: item.mobileNumber,
+              href: `/admin/parents/${item.parentId}`,
+            }))}
+          />
+        </div>
 
         <section className="rounded-panel bg-white p-5 shadow-soft">
           <h2 className="text-lg font-bold text-ink">معلومات ولي الأمر</h2>

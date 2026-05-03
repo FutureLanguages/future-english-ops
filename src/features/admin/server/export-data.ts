@@ -3,6 +3,7 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import * as XLSX from "xlsx";
 import { buildAdminApplicationDerivedData } from "@/features/admin/server/load-admin-applications";
+import { resolveParentMobileDisplay } from "@/features/admin/server/parent-display";
 import { prisma } from "@/lib/db/prisma";
 import type { DocumentRequirementRecord } from "@/types/application";
 
@@ -273,7 +274,10 @@ function buildExportRows(
       student_city: studentProfile?.city ?? "",
       student_school: studentProfile?.schoolName ?? "",
       parent_name: parentName,
-      parent_mobile: application.parentUser.mobileNumber,
+      parent_mobile: resolveParentMobileDisplay({
+        parentUserMobileNumber: application.parentUser.mobileNumber,
+        parentProfiles,
+      }),
       parent_relation: parentRelations,
       application_status: applicationStatusLabels[application.status],
       application_created_at: new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium" }).format(
@@ -362,8 +366,8 @@ function getApplicationBaseUrl() {
   return null;
 }
 
-async function loadBundledFontBytes(filename: string) {
-  const baseUrl = getApplicationBaseUrl();
+async function loadBundledFontBytes(filename: string, baseUrlOverride?: string) {
+  const baseUrl = baseUrlOverride?.replace(/\/+$/g, "") ?? getApplicationBaseUrl();
 
   if (!baseUrl) {
     return null;
@@ -382,6 +386,7 @@ export async function generatePdfExport(params: {
   filters: ExportFilters;
   dataTypes: string[];
   fields: string[];
+  fontBaseUrl?: string;
 }) {
   const records = await loadApplicationsForExport(params.filters);
   const selectedFields = normalizeFieldSelection(params.dataTypes, params.fields);
@@ -390,13 +395,19 @@ export async function generatePdfExport(params: {
   pdf.registerFontkit(fontkit);
 
   let font = await pdf.embedFont(StandardFonts.Helvetica);
-  const fontBytes = await loadBundledFontBytes("tajawal-arabic-400-normal.woff2");
+  let boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const fontBytes = await loadBundledFontBytes("tajawal-arabic-400-normal.woff2", params.fontBaseUrl);
+  const boldFontBytes = await loadBundledFontBytes("tajawal-arabic-700-normal.woff2", params.fontBaseUrl);
 
   if (fontBytes) {
     font = await pdf.embedFont(fontBytes);
   }
 
-  const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+  if (boldFontBytes) {
+    boldFont = await pdf.embedFont(boldFontBytes);
+  } else if (fontBytes) {
+    boldFont = font;
+  }
   let page = pdf.addPage([842, 595]);
   let y = 560;
   const margin = 36;

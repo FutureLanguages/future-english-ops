@@ -8,6 +8,7 @@ export async function getAdminReportsViewModel(params: {
   status?: string;
   paymentView?: string;
   healthFilter?: string;
+  sort?: string;
 }): Promise<AdminReportsViewModel> {
   const paymentView =
     params.paymentView === "remaining_only" || params.paymentView === "paid_only"
@@ -16,12 +17,24 @@ export async function getAdminReportsViewModel(params: {
   const q = params.q?.trim() ?? "";
   const status = params.status ?? "";
   const healthFilter = params.healthFilter ?? "";
+  const sortOptions = [
+    "updated_desc",
+    "name_asc",
+    "status",
+    "documents_desc",
+    "financial_desc",
+    "messages_desc",
+  ] as const;
+  const sort = sortOptions.includes(params.sort as (typeof sortOptions)[number])
+    ? (params.sort as (typeof sortOptions)[number])
+    : "updated_desc";
 
   const { records, documentRequirements } = await loadAdminReportRecords({
     q,
     status,
     paymentView,
     healthFilter,
+    sort,
   });
 
   const columns: AdminReportsViewModel["columns"] = [
@@ -61,6 +74,7 @@ export async function getAdminReportsViewModel(params: {
       status,
       paymentView,
       healthFilter,
+      sort,
     },
     columns,
     defaultColumnKeys: [

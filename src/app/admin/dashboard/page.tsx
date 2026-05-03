@@ -60,7 +60,15 @@ export default async function AdminDashboardPage() {
                 هذه اللوحة لا تكرر القائمة الجانبية؛ هي تختصر طوابير العمل اليومية وتفتح لك المكان الصحيح مباشرة.
               </p>
             </div>
-            <AdminExportTrigger title="تصدير البيانات" currentFilters={{ view: "all" }} />
+            <div className="flex flex-wrap gap-2">
+              <LoadingLink
+                href="/admin/students/new"
+                className="inline-flex items-center gap-2 rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white transition hover:bg-pine/90"
+              >
+                إضافة طالب جديد
+              </LoadingLink>
+              <AdminExportTrigger title="تصدير البيانات" currentFilters={{ view: "all" }} />
+            </div>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">

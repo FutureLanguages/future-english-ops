@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCircle, CreditCard, FileText, MessageCircle, ScrollText } from "lucide-react";
 import clsx from "clsx";
+import { dispatchNotificationsRead } from "@/lib/notifications/client-events";
 
 type NotificationItem = {
   id: string;
@@ -67,6 +68,7 @@ export function NotificationsCenter({
     }
 
     setItems((current) => current.map((item) => ({ ...item, isRead: true })));
+    dispatchNotificationsRead({ all: true });
     setToast("تم تعليم جميع الإشعارات كمقروءة");
     startTransition(async () => {
       await fetch("/api/notifications/read-all", { method: "POST" });
@@ -81,6 +83,7 @@ export function NotificationsCenter({
           item.id === notification.id ? { ...item, isRead: true } : item,
         ),
       );
+      dispatchNotificationsRead({ notificationIds: [notification.id] });
     }
 
     startTransition(async () => {
@@ -101,6 +104,7 @@ export function NotificationsCenter({
         item.id === notification.id ? { ...item, isRead: true } : item,
       ),
     );
+    dispatchNotificationsRead({ notificationIds: [notification.id] });
 
     startTransition(async () => {
       const response = await fetch(`/api/notifications/${notification.id}/read`, { method: "POST" });
@@ -110,6 +114,8 @@ export function NotificationsCenter({
             item.id === notification.id ? { ...item, isRead: false } : item,
           ),
         );
+        // The backend rejected the optimistic read, so ask sibling widgets to recover on refresh.
+        router.refresh();
         setToast("تعذر تحديث الإشعار حالياً");
         return;
       }

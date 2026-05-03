@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { Bell } from "lucide-react";
 import clsx from "clsx";
+import { notificationsReadEventName, type NotificationsReadEventDetail } from "@/lib/notifications/client-events";
 
 type NotificationItem = {
   id: string;
@@ -55,6 +56,38 @@ export function NotificationBell({
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    function onNotificationsRead(event: Event) {
+      const detail = (event as CustomEvent<NotificationsReadEventDetail>).detail;
+
+      if (!detail) {
+        return;
+      }
+
+      if ("all" in detail && detail.all) {
+        setItems((current) => current.map((item) => ({ ...item, isRead: true })));
+        setCount(0);
+        return;
+      }
+
+      if (!("notificationIds" in detail)) {
+        return;
+      }
+
+      const ids = new Set(detail.notificationIds);
+      setItems((current) =>
+        current.map((item) => (ids.has(item.id) ? { ...item, isRead: true } : item)),
+      );
+      setCount((current) => Math.max(current - ids.size, 0));
+    }
+
+    window.addEventListener(notificationsReadEventName, onNotificationsRead);
+
+    return () => {
+      window.removeEventListener(notificationsReadEventName, onNotificationsRead);
+    };
   }, []);
 
   useEffect(() => {

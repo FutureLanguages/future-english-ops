@@ -28,6 +28,7 @@ export function AdminSmartTable({
     status?: string;
     paymentView?: string;
     healthFilter?: string;
+    sort?: string;
   };
 }) {
   const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[]>(defaultColumnKeys);
@@ -173,6 +174,7 @@ export function AdminSmartTable({
       if (filters.status) params.set("status", filters.status);
       if (filters.paymentView) params.set("paymentView", filters.paymentView);
       if (filters.healthFilter) params.set("healthFilter", filters.healthFilter);
+      if (filters.sort) params.set("sort", filters.sort);
       for (const columnKey of selectedColumnKeys) {
         params.append("columns", columnKey);
       }

@@ -3,7 +3,6 @@ import clsx from "clsx";
 import {
   Bell,
   CreditCard,
-  Download,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -20,7 +19,7 @@ import { getUserNotificationSummary } from "@/features/notifications/server/noti
 import type { AdminNavItem } from "@/types/admin";
 
 const primaryNavKeys = ["dashboard", "students", "parents", "documents", "finance", "messages"];
-const secondaryNavKeys = ["reports", "exports", "notifications"];
+const secondaryNavKeys = ["reports", "notifications"];
 
 const navIconMap = {
   dashboard: LayoutDashboard,
@@ -30,7 +29,6 @@ const navIconMap = {
   finance: CreditCard,
   messages: MessageCircle,
   reports: Table2,
-  exports: Download,
   notifications: Bell,
 };
 

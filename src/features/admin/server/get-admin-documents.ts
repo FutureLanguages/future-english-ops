@@ -1,6 +1,7 @@
 import { DocumentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getAdminNavItems } from "./nav";
+import { resolveParentMobileDisplay } from "./parent-display";
 
 export async function getAdminDocumentsViewModel(params: {
   adminMobileNumber: string;
@@ -22,6 +23,11 @@ export async function getAdminDocumentsViewModel(params: {
         application: {
           include: {
             studentProfile: true,
+            parentProfiles: {
+              select: {
+                mobileNumber: true,
+              },
+            },
             parentUser: {
               select: {
                 mobileNumber: true,
@@ -40,6 +46,11 @@ export async function getAdminDocumentsViewModel(params: {
         application: {
           include: {
             studentProfile: true,
+            parentProfiles: {
+              select: {
+                mobileNumber: true,
+              },
+            },
             parentUser: {
               select: {
                 mobileNumber: true,
@@ -63,7 +74,10 @@ export async function getAdminDocumentsViewModel(params: {
       typeCode: document.requirement.code,
       status: document.status,
       studentName: document.application.studentProfile?.fullNameAr ?? "طالب بدون اسم",
-      parentMobileNumber: document.application.parentUser.mobileNumber,
+      parentMobileNumber: resolveParentMobileDisplay({
+        parentUserMobileNumber: document.application.parentUser.mobileNumber,
+        parentProfiles: document.application.parentProfiles,
+      }),
       applicationId: document.applicationId,
       createdAt: document.updatedAt,
     })),
@@ -75,7 +89,10 @@ export async function getAdminDocumentsViewModel(params: {
       typeCode: "payment_receipt",
       status: receipt.status,
       studentName: receipt.application.studentProfile?.fullNameAr ?? "طالب بدون اسم",
-      parentMobileNumber: receipt.application.parentUser.mobileNumber,
+      parentMobileNumber: resolveParentMobileDisplay({
+        parentUserMobileNumber: receipt.application.parentUser.mobileNumber,
+        parentProfiles: receipt.application.parentProfiles,
+      }),
       applicationId: receipt.applicationId,
       createdAt: receipt.updatedAt,
     })),

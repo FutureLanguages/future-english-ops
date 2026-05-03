@@ -3,6 +3,7 @@ import { getUnreadNotesCount } from "@/features/messages/server/thread";
 import { prisma } from "@/lib/db/prisma";
 import type { DocumentRequirementRecord } from "@/types/application";
 import { buildAdminApplicationDerivedData } from "./load-admin-applications";
+import { resolveParentMobileDisplay } from "./parent-display";
 
 export type AdminReportRecord = {
   applicationId: string;
@@ -28,6 +29,7 @@ export type AdminReportFilters = {
   status?: string;
   paymentView?: "all" | "remaining_only" | "paid_only";
   healthFilter?: string;
+  sort?: "updated_desc" | "name_asc" | "status" | "documents_desc" | "financial_desc" | "messages_desc";
 };
 
 function toNumber(value: { toNumber(): number } | number) {
@@ -130,7 +132,10 @@ export async function loadAdminReportRecords(filters: AdminReportFilters = {}) {
       studentName: application.studentProfile?.fullNameAr ?? "طالب بدون اسم",
       studentMobile: application.studentUser.mobileNumber,
       parentName,
-      parentMobile: application.parentUser.mobileNumber,
+      parentMobile: resolveParentMobileDisplay({
+        parentUserMobileNumber: application.parentUser.mobileNumber,
+        parentProfiles: application.parentProfiles,
+      }),
       status: application.status,
       totalFeesSar: feeSummary.totalFeesSar,
       totalDiscountSar: feeSummary.totalDiscountSar,
@@ -186,6 +191,42 @@ export async function loadAdminReportRecords(filters: AdminReportFilters = {}) {
       );
     });
   }
+
+  filteredRecords.sort((left, right) => {
+    if (filters.sort === "name_asc") {
+      return left.studentName.localeCompare(right.studentName, "ar");
+    }
+
+    if (filters.sort === "status") {
+      return left.status.localeCompare(right.status) || right.updatedAt.getTime() - left.updatedAt.getTime();
+    }
+
+    if (filters.sort === "documents_desc") {
+      const leftNeedsDocuments = Object.values(left.documentStatuses).filter(
+        (status) =>
+          status === DocumentStatus.MISSING ||
+          status === DocumentStatus.REJECTED ||
+          status === DocumentStatus.REUPLOAD_REQUESTED,
+      ).length;
+      const rightNeedsDocuments = Object.values(right.documentStatuses).filter(
+        (status) =>
+          status === DocumentStatus.MISSING ||
+          status === DocumentStatus.REJECTED ||
+          status === DocumentStatus.REUPLOAD_REQUESTED,
+      ).length;
+      return rightNeedsDocuments - leftNeedsDocuments || right.updatedAt.getTime() - left.updatedAt.getTime();
+    }
+
+    if (filters.sort === "financial_desc") {
+      return right.remainingSar - left.remainingSar || right.updatedAt.getTime() - left.updatedAt.getTime();
+    }
+
+    if (filters.sort === "messages_desc") {
+      return right.unreadMessagesCount - left.unreadMessagesCount || right.updatedAt.getTime() - left.updatedAt.getTime();
+    }
+
+    return right.updatedAt.getTime() - left.updatedAt.getTime();
+  });
 
   return {
     records: filteredRecords,

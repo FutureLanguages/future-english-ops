@@ -100,6 +100,14 @@ export type AdminStudentsViewModel = {
     q: string;
     status: string;
     view: "all" | "needs_action" | "missing_documents" | "outstanding_payment" | "unread_messages" | "completed";
+    sort:
+      | "priority"
+      | "name_asc"
+      | "status"
+      | "documents_desc"
+      | "financial_desc"
+      | "messages_desc"
+      | "updated_desc";
   };
 };
 
@@ -126,6 +134,14 @@ export type AdminParentDetailsViewModel = {
     status: ApplicationStatus;
     updatedAt: Date;
   }>;
+  parentSwitch: {
+    items: Array<{
+      parentId: string;
+      fullName: string;
+      mobileNumber: string;
+    }>;
+    positionLabel: string;
+  };
 };
 
 export type AdminParentsViewModel = {
@@ -210,6 +226,8 @@ export type AdminApplicationWorkspaceViewModel = {
     totalCostSar: number;
     paidAmountSar: number;
     remainingAmountSar: number;
+    balanceDifferenceSar: number;
+    smallDifferenceThresholdSar: number;
     isPaymentComplete: boolean;
     latestPaymentNote: string | null;
     receipts: Array<{
@@ -303,6 +321,11 @@ export type AdminApplicationWorkspaceViewModel = {
       studentName: string;
     } | null;
     positionLabel: string;
+    items: Array<{
+      applicationId: string;
+      studentName: string;
+      updatedAt: Date;
+    }>;
   };
 };
 
@@ -342,6 +365,13 @@ export type AdminReportsViewModel = {
     status: string;
     paymentView: "all" | "remaining_only" | "paid_only";
     healthFilter: string;
+    sort:
+      | "updated_desc"
+      | "name_asc"
+      | "status"
+      | "documents_desc"
+      | "financial_desc"
+      | "messages_desc";
   };
   columns: AdminReportColumn[];
   defaultColumnKeys: string[];

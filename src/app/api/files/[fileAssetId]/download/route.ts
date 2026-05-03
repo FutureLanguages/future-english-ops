@@ -3,6 +3,7 @@ import path from "path";
 import { canViewApplication, canViewPayments } from "@/features/auth/services/permissions.service";
 import { getOptionalAuthSession } from "@/features/auth/server/session";
 import { readStoredFile } from "@/lib/storage/file-access";
+import { SupabaseStorageError } from "@/lib/storage/supabase-storage";
 import { prisma } from "@/lib/db/prisma";
 
 export async function GET(
@@ -109,8 +110,18 @@ export async function GET(
 
   try {
     fileBuffer = await readStoredFile(resolvedFileAsset.storageKey);
-  } catch {
-    return NextResponse.json({ error: "file_not_found" }, { status: 404 });
+  } catch (error) {
+    if (error instanceof SupabaseStorageError && error.status === 404) {
+      return NextResponse.json({ error: "file_not_found" }, { status: 404 });
+    }
+
+    console.error("FILE_DOWNLOAD_ERROR", {
+      fileAssetId,
+      storageKey: resolvedFileAsset.storageKey,
+      error,
+    });
+
+    return NextResponse.json({ error: "file_access_failed" }, { status: 500 });
   }
   const downloadName = buildDownloadFilename();
 

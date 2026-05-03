@@ -4,6 +4,16 @@ type SupabaseStorageConfig = {
   bucket: string;
 };
 
+export class SupabaseStorageError extends Error {
+  status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = "SupabaseStorageError";
+    this.status = status;
+  }
+}
+
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/g, "");
 }
@@ -71,7 +81,7 @@ export async function downloadObjectFromSupabaseStorage(storageKey: string) {
   });
 
   if (!response.ok) {
-    throw new Error(`supabase_storage_download_failed:${response.status}`);
+    throw new SupabaseStorageError(`supabase_storage_download_failed:${response.status}`, response.status);
   }
 
   return Buffer.from(await response.arrayBuffer());

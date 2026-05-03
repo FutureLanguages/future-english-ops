@@ -69,6 +69,7 @@ export function AdminStudentsTable({
     q?: string;
     status?: string;
     view?: string;
+    sort?: string;
   };
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
 import { FileActionLinks } from "@/components/shared/file-action-links";
 
@@ -42,14 +43,20 @@ export function AdminPaymentControls({
   fees,
   payments,
   receipts,
+  balanceDifferenceSar,
+  smallDifferenceThresholdSar,
 }: {
   applicationId: string;
   fees: FeeItem[];
   payments: PaymentItem[];
   receipts: ReceiptOption[];
+  balanceDifferenceSar: number;
+  smallDifferenceThresholdSar: number;
 }) {
+  const router = useRouter();
   const [feeItems, setFeeItems] = useState(fees);
   const [paymentItems, setPaymentItems] = useState(payments);
+  const [currentBalanceDifferenceSar, setCurrentBalanceDifferenceSar] = useState(balanceDifferenceSar);
   const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);
   const inFlightActions = useRef(new Set<string>());
@@ -84,9 +91,56 @@ export function AdminPaymentControls({
           ? "يرجى إدخال مبلغ الدفعة وتاريخها بشكل صحيح."
           : error === "invalid_fee"
             ? "يرجى إدخال قيمة صحيحة لهذا البند المالي."
+            : error === "difference_out_of_range"
+              ? "الفرق المالي خارج حد التسوية الصغيرة."
+              : error === "discount_target_required"
+                ? "اختر بند خصم قائم لتسوية المتبقي."
+                : error === "fee_target_required"
+                  ? "اختر بند رسوم قائم لتسوية الزيادة."
             : "تعذر حفظ العملية المالية حالياً.",
     });
   }
+
+  async function submitSmallDifferenceAdjustment(form: HTMLFormElement) {
+    const actionKey = "adjust:small-difference";
+    if (!startAction(actionKey)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/applications/${applicationId}/finance/adjust-small-difference`, {
+        method: "POST",
+        body: new FormData(form),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        fee?: FeeItem;
+      } | null;
+
+      if (!response.ok) {
+        showError(payload?.error);
+        return;
+      }
+
+      if (payload?.fee) {
+        setFeeItems((current) => current.map((fee) => (fee.id === payload.fee!.id ? payload.fee! : fee)));
+      }
+      setCurrentBalanceDifferenceSar(0);
+      setToast({ tone: "success", message: "تمت تسوية الفرق المالي البسيط بنجاح." });
+      router.refresh();
+    } finally {
+      finishAction(actionKey);
+    }
+  }
+
+  const absoluteSmallDifference = Math.abs(currentBalanceDifferenceSar);
+  const canShowSmallDifferenceTool =
+    absoluteSmallDifference > 0 && absoluteSmallDifference <= smallDifferenceThresholdSar;
+  const smallDifferenceMode =
+    currentBalanceDifferenceSar > 0 ? "remaining" : currentBalanceDifferenceSar < 0 ? "overpaid" : null;
+  const adjustmentTargets = feeItems.filter((fee) =>
+    smallDifferenceMode === "remaining" ? fee.amountSar < 0 : fee.amountSar > 0,
+  );
 
   async function submitCreate(
     actionKey: string,
@@ -224,6 +278,57 @@ export function AdminPaymentControls({
             {feeItems.length} بند
           </span>
         </div>
+        {canShowSmallDifferenceTool ? (
+          <form
+            className="mt-4 rounded-2xl border border-clay/45 bg-white px-4 py-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitSmallDifferenceAdjustment(event.currentTarget);
+            }}
+          >
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h4 className="text-sm font-extrabold text-ink">تسوية فرق مالي بسيط</h4>
+                <p className="mt-1 text-xs leading-5 text-ink/60">
+                  {smallDifferenceMode === "remaining"
+                    ? `يوجد متبقٍ بسيط قدره ${absoluteSmallDifference} ر.س. اختر بند خصم قائم لتطبيقه بعد التأكيد.`
+                    : `يوجد دفع زائد بسيط قدره ${absoluteSmallDifference} ر.س. اختر بند رسوم قائم لتطبيقه بعد التأكيد.`}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <select
+                  name="targetFeeId"
+                  required
+                  disabled={adjustmentTargets.length === 0 || isPending("adjust:small-difference")}
+                  className="rounded-xl border border-black/10 bg-sand px-3 py-2 text-sm outline-none"
+                >
+                  <option value="">
+                    {smallDifferenceMode === "remaining" ? "اختر بند الخصم" : "اختر بند الرسوم"}
+                  </option>
+                  {adjustmentTargets.map((fee) => (
+                    <option key={fee.id} value={fee.id}>
+                      {fee.title} ({formatMoney(fee.amountSar)})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  disabled={adjustmentTargets.length === 0 || isPending("adjust:small-difference")}
+                  className="rounded-xl bg-pine px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isPending("adjust:small-difference") ? "جاري التنفيذ..." : "تطبيق التسوية"}
+                </button>
+              </div>
+            </div>
+            {adjustmentTargets.length === 0 ? (
+              <div className="mt-3 rounded-xl bg-clay/20 px-3 py-2 text-xs font-semibold text-ink">
+                {smallDifferenceMode === "remaining"
+                  ? "لا يوجد بند خصم قائم. أضف خصماً أولاً ثم اختره للتسوية."
+                  : "لا يوجد بند رسوم قائم. أضف رسماً أولاً ثم اختره للتسوية."}
+              </div>
+            ) : null}
+          </form>
+        ) : null}
         <form
           className="mt-3 grid gap-3"
           onSubmit={(event) => {
