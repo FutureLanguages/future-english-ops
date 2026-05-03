@@ -47,9 +47,8 @@ export function summarizeAdminFinance(params: {
   );
   const netPaidSar = totalPaymentsSar - totalRefundsSar;
 
-  // The special fee line affects the ledger with the opposite sign of the final balance adjustment.
-  const totalFinancialDifferencesSar = -financialDifferenceAmount;
-  const finalBalanceSar = netDueSar - netPaidSar - totalFinancialDifferencesSar;
+  const totalFinancialDifferencesSar = financialDifferenceAmount;
+  const finalBalanceSar = netDueSar + totalFinancialDifferencesSar - netPaidSar;
   const settlementPercent = netDueSar > 0 ? (netPaidSar / netDueSar) * 100 : netPaidSar > 0 ? 100 : 0;
 
   return {
