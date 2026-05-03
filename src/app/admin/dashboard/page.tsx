@@ -1,5 +1,6 @@
 import { AlertCircle, ArrowUpLeft, CheckCircle2, ClipboardList, FileText, MessageCircle, Wallet } from "lucide-react";
 import { AdminExportTrigger } from "@/components/admin/admin-export-trigger";
+import { AdminEntitySwitcher } from "@/components/admin/admin-entity-switcher";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { LoadingLink } from "@/components/shared/loading-link";
 import { getAdminSession } from "@/features/auth/server/admin-session";
@@ -67,6 +68,17 @@ export default async function AdminDashboardPage() {
               >
                 إضافة طالب جديد
               </LoadingLink>
+              <AdminEntitySwitcher
+                currentId=""
+                buttonLabel="فتح طالب مباشرة"
+                searchPlaceholder="ابحث باسم الطالب"
+                items={viewModel.studentSwitchItems.map((item) => ({
+                  id: item.applicationId,
+                  label: item.studentName,
+                  description: item.nextActionLabel,
+                  href: item.href,
+                }))}
+              />
               <AdminExportTrigger title="تصدير البيانات" currentFilters={{ view: "all" }} />
             </div>
           </div>

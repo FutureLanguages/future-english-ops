@@ -73,8 +73,110 @@ export function AdminStudentsTable({
   };
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const allIds = useMemo(() => rows.map((row) => row.id), [rows]);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const displayedRows = useMemo(() => {
+    const activeFilters = Object.entries(columnFilters)
+      .map(([key, value]) => [key, value.trim().toLowerCase()] as const)
+      .filter(([, value]) => Boolean(value));
+    let nextRows = rows.slice();
+
+    if (activeFilters.length > 0) {
+      nextRows = nextRows.filter((row) =>
+        activeFilters.every(([key, value]) => {
+          const cellValue =
+            key === "student"
+              ? `${row.studentName} ${row.parentMobileNumber} ${row.city}`
+              : key === "status"
+                ? row.status
+                : key === "completion"
+                  ? String(row.completionPercent)
+                  : key === "documents"
+                    ? String(row.documentsNeedingReviewCount + row.reuploadCount + row.missingDocumentsCount)
+                    : key === "financial"
+                      ? String(row.remainingAmountSar)
+                      : key === "messages"
+                        ? String(row.unreadMessagesCount)
+                        : key === "nextAction"
+                          ? row.nextActionLabel
+                          : "";
+
+          return cellValue.toLowerCase().includes(value);
+        }),
+      );
+    }
+
+    if (sortConfig) {
+      nextRows.sort((left, right) => {
+        const direction = sortConfig.direction === "asc" ? 1 : -1;
+        if (sortConfig.key === "student") {
+          return left.studentName.localeCompare(right.studentName, "ar") * direction;
+        }
+        if (sortConfig.key === "completion") {
+          return (left.completionPercent - right.completionPercent) * direction;
+        }
+        if (sortConfig.key === "documents") {
+          const leftDocuments = left.documentsNeedingReviewCount + left.reuploadCount + left.missingDocumentsCount;
+          const rightDocuments = right.documentsNeedingReviewCount + right.reuploadCount + right.missingDocumentsCount;
+          return (leftDocuments - rightDocuments) * direction;
+        }
+        if (sortConfig.key === "financial") {
+          return (left.remainingAmountSar - right.remainingAmountSar) * direction;
+        }
+        if (sortConfig.key === "messages") {
+          return (left.unreadMessagesCount - right.unreadMessagesCount) * direction;
+        }
+        if (sortConfig.key === "updated") {
+          return (left.updatedAt.getTime() - right.updatedAt.getTime()) * direction;
+        }
+        return left.status.localeCompare(right.status) * direction;
+      });
+    }
+
+    return nextRows;
+  }, [columnFilters, rows, sortConfig]);
+  const allIds = useMemo(() => displayedRows.map((row) => row.id), [displayedRows]);
   const allSelected = allIds.length > 0 && selectedIds.length === allIds.length;
+
+  function toggleSort(key: string) {
+    setSortConfig((current) => {
+      if (current?.key !== key) {
+        return { key, direction: "asc" };
+      }
+      if (current.direction === "asc") {
+        return { key, direction: "desc" };
+      }
+      return null;
+    });
+  }
+
+  function renderColumnControl(key: string, label: string) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => toggleSort(key)}
+          className="font-bold text-ink/70 transition hover:text-pine"
+          title="ترتيب حسب هذا العمود"
+        >
+          {label}
+          {sortConfig?.key === key ? (sortConfig.direction === "asc" ? " ↑" : " ↓") : ""}
+        </button>
+        <input
+          type="search"
+          value={columnFilters[key] ?? ""}
+          onChange={(event) =>
+            setColumnFilters((current) => ({
+              ...current,
+              [key]: event.target.value,
+            }))
+          }
+          placeholder="تصفية"
+          className="mt-2 block w-24 rounded-lg border border-black/10 bg-white px-2 py-1 text-xs font-medium outline-none"
+        />
+      </div>
+    );
+  }
 
   function toggleSelection(id: string) {
     setSelectedIds((current) =>
@@ -100,7 +202,7 @@ export function AdminStudentsTable({
         <div>
           <h2 className="text-base font-extrabold text-ink">قائمة الطلاب التشغيلية</h2>
           <p className="mt-1 text-xs leading-5 text-ink/55">
-            {selectedIds.length > 0 ? `تم تحديد ${selectedIds.length} طلب` : "اختر صفوفًا للتصدير أو افتح ملف الطالب مباشرة."}
+            {selectedIds.length > 0 ? `تم تحديد ${selectedIds.length} طلب` : `المعروض الآن ${displayedRows.length} طلب. اختر صفوفًا للتصدير أو افتح ملف الطالب مباشرة.`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -127,19 +229,19 @@ export function AdminStudentsTable({
               <th className="w-10 px-4 py-3">
                 <span className="sr-only">تحديد</span>
               </th>
-              <th className="px-3 py-3">الطالب</th>
-              <th className="px-3 py-3">الحالة</th>
-              <th className="px-3 py-3">الاكتمال</th>
-              <th className="px-3 py-3">المستندات</th>
-              <th className="px-3 py-3">المالي</th>
-              <th className="px-3 py-3">الرسائل</th>
-              <th className="px-3 py-3">آخر تحديث</th>
-              <th className="px-3 py-3">الإجراء التالي</th>
+              <th className="px-3 py-3">{renderColumnControl("student", "الطالب")}</th>
+              <th className="px-3 py-3">{renderColumnControl("status", "الحالة")}</th>
+              <th className="px-3 py-3">{renderColumnControl("completion", "الاكتمال")}</th>
+              <th className="px-3 py-3">{renderColumnControl("documents", "المستندات")}</th>
+              <th className="px-3 py-3">{renderColumnControl("financial", "المالي")}</th>
+              <th className="px-3 py-3">{renderColumnControl("messages", "الرسائل")}</th>
+              <th className="px-3 py-3">{renderColumnControl("updated", "آخر تحديث")}</th>
+              <th className="px-3 py-3">{renderColumnControl("nextAction", "الإجراء التالي")}</th>
               <th className="px-4 py-3">فتح</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-black/5">
-            {rows.map((row) => (
+            {displayedRows.map((row) => (
               <tr key={row.id} className="transition hover:bg-mist/45">
                 <td className="px-4 py-3 align-middle">
                   <input
@@ -210,7 +312,7 @@ export function AdminStudentsTable({
       </div>
 
       <div className="space-y-3 p-3 lg:hidden">
-        {rows.map((row) => (
+        {displayedRows.map((row) => (
           <div key={row.id} className="rounded-xl border border-black/10 bg-white p-4">
             <div className="flex flex-col gap-4">
               <div className="flex items-start gap-3">

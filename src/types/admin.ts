@@ -89,6 +89,12 @@ export type AdminDashboardViewModel = {
     unreadMessagesCount: number;
     href: string;
   }>;
+  studentSwitchItems: Array<{
+    applicationId: string;
+    studentName: string;
+    nextActionLabel: string;
+    href: string;
+  }>;
 };
 
 export type AdminStudentsViewModel = {

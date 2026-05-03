@@ -32,6 +32,8 @@ export function AdminSmartTable({
   };
 }) {
   const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[]>(defaultColumnKeys);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
@@ -93,6 +95,34 @@ export function AdminSmartTable({
       default:
         return "—";
     }
+  }
+
+  function getCellPlainText(row: AdminReportRecordView, column: AdminReportColumn) {
+    if (column.documentCode) {
+      return row.documentStatuses[column.documentCode] ?? "MISSING";
+    }
+
+    if (column.key.startsWith("health:")) {
+      const healthKey = column.key.replace("health:", "");
+      return row.healthFlags[healthKey] ? "نعم" : "لا";
+    }
+
+    const value = row[column.key as keyof AdminReportRecordView];
+    return typeof value === "number" ? value : String(value ?? "");
+  }
+
+  function toggleSort(columnKey: string) {
+    setSortConfig((current) => {
+      if (current?.key !== columnKey) {
+        return { key: columnKey, direction: "asc" };
+      }
+
+      if (current.direction === "asc") {
+        return { key: columnKey, direction: "desc" };
+      }
+
+      return null;
+    });
   }
 
   function getCellHighlightClass(row: AdminReportRecordView, column: AdminReportColumn) {
@@ -160,6 +190,45 @@ export function AdminSmartTable({
 
     return column.label;
   }
+
+  const displayedRows = useMemo(() => {
+    const activeFilters = Object.entries(columnFilters)
+      .map(([key, value]) => [key, value.trim().toLowerCase()] as const)
+      .filter(([, value]) => Boolean(value));
+    let nextRows = rows.slice();
+
+    if (activeFilters.length > 0) {
+      nextRows = nextRows.filter((row) =>
+        activeFilters.every(([columnKey, value]) => {
+          const column = columns.find((item) => item.key === columnKey);
+          if (!column) {
+            return true;
+          }
+
+          return String(getCellPlainText(row, column)).toLowerCase().includes(value);
+        }),
+      );
+    }
+
+    if (sortConfig) {
+      const column = columns.find((item) => item.key === sortConfig.key);
+      if (column) {
+        nextRows.sort((left, right) => {
+          const leftValue = getCellPlainText(left, column);
+          const rightValue = getCellPlainText(right, column);
+          const direction = sortConfig.direction === "asc" ? 1 : -1;
+
+          if (typeof leftValue === "number" && typeof rightValue === "number") {
+            return (leftValue - rightValue) * direction;
+          }
+
+          return String(leftValue).localeCompare(String(rightValue), "ar") * direction;
+        });
+      }
+    }
+
+    return nextRows;
+  }, [columnFilters, columns, rows, sortConfig]);
 
   function exportCurrentTable() {
     if (selectedColumnKeys.length === 0) {
@@ -256,7 +325,7 @@ export function AdminSmartTable({
 
       <section className="rounded-panel bg-white p-5 shadow-soft">
         <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-ink/60">
-          <span>عدد الصفوف: {rows.length}</span>
+          <span>عدد الصفوف: {displayedRows.length}</span>
           <span>•</span>
           <span>عدد الأعمدة المعروضة: {selectedColumns.length}</span>
         </div>
@@ -269,13 +338,33 @@ export function AdminSmartTable({
                     key={column.key}
                     className="whitespace-nowrap px-3 py-2 text-right text-sm font-bold text-ink"
                   >
-                    {column.label}
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(column.key)}
+                      className="font-bold text-ink transition hover:text-pine"
+                      title="ترتيب حسب هذا العمود"
+                    >
+                      {column.label}
+                      {sortConfig?.key === column.key ? (sortConfig.direction === "asc" ? " ↑" : " ↓") : ""}
+                    </button>
+                    <input
+                      type="search"
+                      value={columnFilters[column.key] ?? ""}
+                      onChange={(event) =>
+                        setColumnFilters((current) => ({
+                          ...current,
+                          [column.key]: event.target.value,
+                        }))
+                      }
+                      placeholder="تصفية"
+                      className="mt-2 block w-28 rounded-lg border border-black/10 bg-white px-2 py-1 text-xs font-medium outline-none"
+                    />
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {displayedRows.map((row) => (
                 <tr
                   key={row.applicationId}
                   className={getRowHighlightClass(row)}

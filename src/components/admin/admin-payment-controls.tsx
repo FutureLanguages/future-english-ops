@@ -299,12 +299,19 @@ export function AdminPaymentControls({
                 <select
                   name="targetFeeId"
                   required
-                  disabled={adjustmentTargets.length === 0 || isPending("adjust:small-difference")}
+                  defaultValue={smallDifferenceMode === "overpaid" ? "__difference_fee__" : ""}
+                  disabled={
+                    (smallDifferenceMode === "remaining" && adjustmentTargets.length === 0) ||
+                    isPending("adjust:small-difference")
+                  }
                   className="rounded-xl border border-black/10 bg-sand px-3 py-2 text-sm outline-none"
                 >
                   <option value="">
                     {smallDifferenceMode === "remaining" ? "اختر بند الخصم" : "اختر بند الرسوم"}
                   </option>
+                  {smallDifferenceMode === "overpaid" ? (
+                    <option value="__difference_fee__">فروقات مالية (افتراضي)</option>
+                  ) : null}
                   {adjustmentTargets.map((fee) => (
                     <option key={fee.id} value={fee.id}>
                       {fee.title} ({formatMoney(fee.amountSar)})
@@ -313,18 +320,19 @@ export function AdminPaymentControls({
                 </select>
                 <button
                   type="submit"
-                  disabled={adjustmentTargets.length === 0 || isPending("adjust:small-difference")}
+                  disabled={
+                    (smallDifferenceMode === "remaining" && adjustmentTargets.length === 0) ||
+                    isPending("adjust:small-difference")
+                  }
                   className="rounded-xl bg-pine px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isPending("adjust:small-difference") ? "جاري التنفيذ..." : "تطبيق التسوية"}
                 </button>
               </div>
             </div>
-            {adjustmentTargets.length === 0 ? (
+            {smallDifferenceMode === "remaining" && adjustmentTargets.length === 0 ? (
               <div className="mt-3 rounded-xl bg-clay/20 px-3 py-2 text-xs font-semibold text-ink">
-                {smallDifferenceMode === "remaining"
-                  ? "لا يوجد بند خصم قائم. أضف خصماً أولاً ثم اختره للتسوية."
-                  : "لا يوجد بند رسوم قائم. أضف رسماً أولاً ثم اختره للتسوية."}
+                لا يوجد بند خصم قائم. أضف خصماً أولاً ثم اختره للتسوية.
               </div>
             ) : null}
           </form>

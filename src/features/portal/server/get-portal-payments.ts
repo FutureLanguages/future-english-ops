@@ -1,4 +1,5 @@
 import { canUploadPaymentReceipt } from "@/features/auth/services";
+import { smallFinancialDifferenceFeeTitle } from "@/features/payments/constants";
 import { loadPortalApplicationData } from "@/features/portal/server/load-portal-application";
 import { buildPortalNavItems } from "@/features/portal/server/nav";
 import type { ApplicationUser } from "@/types/application";
@@ -135,13 +136,15 @@ export async function getPortalPaymentsViewModel(params: {
       })) ?? [],
     ledger: {
       fees:
-        selectedApplication?.fees.map((fee) => ({
-          id: fee.id,
-          title: fee.title,
-          amountSar: typeof fee.amount === "number" ? fee.amount : fee.amount.toNumber(),
-          note: fee.note,
-          feeDate: fee.feeDate,
-        })) ?? [],
+        selectedApplication?.fees
+          .filter((fee) => fee.title !== smallFinancialDifferenceFeeTitle)
+          .map((fee) => ({
+            id: fee.id,
+            title: fee.title,
+            amountSar: typeof fee.amount === "number" ? fee.amount : fee.amount.toNumber(),
+            note: fee.note,
+            feeDate: fee.feeDate,
+          })) ?? [],
       payments:
         selectedApplication?.payments.map((payment) => ({
           id: payment.id,

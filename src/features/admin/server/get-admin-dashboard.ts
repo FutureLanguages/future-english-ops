@@ -121,5 +121,11 @@ export async function getAdminDashboardViewModel(params: {
       unreadMessagesCount: row.unreadMessagesCount,
       href: `/admin/students/${row.id}`,
     })),
+    studentSwitchItems: rows.map((row) => ({
+      applicationId: row.id,
+      studentName: row.studentName,
+      nextActionLabel: row.nextActionLabel,
+      href: `/admin/students/${row.id}`,
+    })),
   };
 }

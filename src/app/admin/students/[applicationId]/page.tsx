@@ -434,8 +434,14 @@ export default async function AdminApplicationWorkspacePage({
                   <div className="mt-1 text-xl font-extrabold text-ink">{viewModel.overview.unreadMessagesCount}</div>
                 </div>
                 <div className="rounded-xl bg-sand px-4 py-3">
-                  <div className="text-xs font-bold text-ink/50">المتبقي</div>
-                  <div className="mt-1 text-xl font-extrabold text-ink">{viewModel.overview.paymentSummary.remainingAmountSar} ر.س</div>
+                  <div className="text-xs font-bold text-ink/50">
+                    {viewModel.payments.balanceDifferenceSar < 0 ? "زيادة مدفوعة" : "المتبقي"}
+                  </div>
+                  <div className="mt-1 text-xl font-extrabold text-ink">
+                    {viewModel.payments.balanceDifferenceSar < 0
+                      ? `${Math.abs(viewModel.payments.balanceDifferenceSar)} ر.س`
+                      : `${viewModel.overview.paymentSummary.remainingAmountSar} ر.س`}
+                  </div>
                 </div>
               </div>
             </div>
@@ -705,7 +711,11 @@ export default async function AdminApplicationWorkspacePage({
             <span className={`rounded-full px-3 py-1 text-sm font-bold ${
               viewModel.payments.isPaymentComplete ? "bg-mist text-pine" : "bg-clay/25 text-ink"
             }`}>
-              {viewModel.payments.isPaymentComplete ? "السداد مكتمل" : "يوجد مبلغ متبقٍ"}
+              {viewModel.payments.balanceDifferenceSar < 0
+                ? "يوجد مبلغ زائد"
+                : viewModel.payments.isPaymentComplete
+                  ? "السداد مكتمل"
+                  : "يوجد مبلغ متبقٍ"}
             </span>
           </div>
 
@@ -729,8 +739,14 @@ export default async function AdminApplicationWorkspacePage({
             <div className={`rounded-2xl px-4 py-4 ${
               viewModel.payments.isPaymentComplete ? "bg-mist" : "bg-clay/25"
             }`}>
-              <div className="text-sm font-medium text-ink/55">المتبقي</div>
-              <div className="mt-2 text-3xl font-extrabold text-ink">{viewModel.payments.remainingAmountSar} ر.س</div>
+              <div className="text-sm font-medium text-ink/55">
+                {viewModel.payments.balanceDifferenceSar < 0 ? "زيادة مدفوعة" : "المتبقي"}
+              </div>
+              <div className="mt-2 text-3xl font-extrabold text-ink">
+                {viewModel.payments.balanceDifferenceSar < 0
+                  ? `${Math.abs(viewModel.payments.balanceDifferenceSar)} ر.س`
+                  : `${viewModel.payments.remainingAmountSar} ر.س`}
+              </div>
             </div>
           </div>
 

@@ -18,11 +18,11 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/g, "");
 }
 
-function requireEnv(name: string) {
-  const value = process.env[name];
+function requireEnv(name: string, fallbackName?: string) {
+  const value = process.env[name] ?? (fallbackName ? process.env[fallbackName] : undefined);
 
   if (!value) {
-    throw new Error(`missing_${name.toLowerCase()}`);
+    throw new Error(`missing_${name.toLowerCase()}${fallbackName ? `_or_${fallbackName.toLowerCase()}` : ""}`);
   }
 
   return value;
@@ -30,8 +30,8 @@ function requireEnv(name: string) {
 
 export function getSupabaseStorageConfig(): SupabaseStorageConfig {
   return {
-    url: trimTrailingSlash(requireEnv("SUPABASE_URL")),
-    serviceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    url: trimTrailingSlash(requireEnv("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL")),
+    serviceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE"),
     bucket: process.env.SUPABASE_STORAGE_BUCKET || "application-files",
   };
 }

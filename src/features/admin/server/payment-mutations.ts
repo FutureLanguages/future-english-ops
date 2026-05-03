@@ -3,6 +3,7 @@ import { NotificationType, UserRole } from "@prisma/client";
 import { getAdminSession } from "@/features/auth/server/admin-session";
 import { notifyPortalUsers } from "@/features/notifications/server/notifications";
 import { syncApplicationFinancialTotals } from "@/features/payments/server/ledger";
+import { smallFinancialDifferenceFeeTitle } from "@/features/payments/constants";
 import { prisma } from "@/lib/db/prisma";
 
 export class AdminPaymentMutationError extends Error {
@@ -450,18 +451,25 @@ export async function adjustSmallFinancialDifference(params: {
       },
     });
 
-    const targetFee = await tx.applicationFee.findUnique({
-      where: { id: params.targetFeeId },
-      select: {
-        id: true,
-        applicationId: true,
-        title: true,
-        amount: true,
-        note: true,
-      },
-    });
+    const targetFee =
+      params.targetFeeId === "__difference_fee__"
+        ? null
+        : await tx.applicationFee.findUnique({
+            where: { id: params.targetFeeId },
+            select: {
+              id: true,
+              applicationId: true,
+              title: true,
+              amount: true,
+              note: true,
+            },
+          });
 
-    if (!application || !targetFee || targetFee.applicationId !== params.applicationId) {
+    if (!application) {
+      throw new AdminPaymentMutationError("invalid_fee");
+    }
+
+    if (targetFee && targetFee.applicationId !== params.applicationId) {
       throw new AdminPaymentMutationError("invalid_fee");
     }
 
@@ -474,7 +482,30 @@ export async function adjustSmallFinancialDifference(params: {
       throw new AdminPaymentMutationError("difference_out_of_range");
     }
 
-    const currentAmount = toNumber(targetFee.amount);
+    if (!targetFee && difference > 0) {
+      throw new AdminPaymentMutationError("discount_target_required");
+    }
+
+    if (!targetFee && difference < 0) {
+      const createdFee = await tx.applicationFee.create({
+        data: {
+          applicationId: params.applicationId,
+          title: smallFinancialDifferenceFeeTitle,
+          amount: absoluteDifference,
+          feeDate: null,
+          note: `تسوية دفع زائد بسيط: ${absoluteDifference} ر.س`,
+        },
+      });
+
+      const totals = await syncApplicationFinancialTotals(tx, params.applicationId);
+
+      return {
+        fee: createdFee,
+        totals,
+      };
+    }
+
+    const currentAmount = toNumber(targetFee!.amount);
     const nextAmount =
       difference > 0
         ? currentAmount - absoluteDifference
@@ -493,7 +524,7 @@ export async function adjustSmallFinancialDifference(params: {
       data: {
         amount: Number(nextAmount.toFixed(2)),
         note:
-          [targetFee.note, `تسوية فرق مالي بسيط: ${absoluteDifference} ر.س`]
+          [targetFee!.note, `تسوية فرق مالي بسيط: ${absoluteDifference} ر.س`]
             .filter(Boolean)
             .join(" - ") || null,
       },
