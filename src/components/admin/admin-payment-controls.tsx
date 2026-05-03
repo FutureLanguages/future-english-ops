@@ -63,6 +63,11 @@ export function AdminPaymentControls({
   const [editingFeeId, setEditingFeeId] = useState<string | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"fees" | "payments">("fees");
+  const [settlementState, setSettlementState] = useState<{
+    amountSar: number;
+    createdAt: string;
+    mode: "remaining" | "overpaid";
+  } | null>(null);
 
   function isPending(actionKey: string) {
     return pendingActions.includes(actionKey);
@@ -103,6 +108,17 @@ export function AdminPaymentControls({
 
   async function submitSmallDifferenceAdjustment(form: HTMLFormElement) {
     const actionKey = "adjust:small-difference";
+    const settlementMode = currentBalanceDifferenceSar < 0 ? "remaining" : "overpaid";
+    const settlementAmount = Math.abs(currentBalanceDifferenceSar);
+    const confirmationText =
+      settlementMode === "remaining"
+        ? `سيتم تسوية متبقٍ بسيط قدره ${settlementAmount} ر.س عبر بند "فروقات مالية".\n\nقبل التسوية: المتبقي ${settlementAmount} ر.س.\nبعد التسوية المتوقع: المتبقي 0 ر.س.`
+        : `سيتم تسوية زيادة مدفوعة قدرها ${settlementAmount} ر.س عبر بند "فروقات مالية".\n\nقبل التسوية: زيادة مدفوعة ${settlementAmount} ر.س.\nبعد التسوية المتوقع: الزيادة 0 ر.س.`;
+
+    if (!window.confirm(confirmationText)) {
+      return;
+    }
+
     if (!startAction(actionKey)) {
       return;
     }
@@ -115,6 +131,10 @@ export function AdminPaymentControls({
       const payload = (await response.json().catch(() => null)) as {
         error?: string;
         fee?: FeeItem;
+        settlement?: {
+          createdAt: string;
+          amountSar: number;
+        };
       } | null;
 
       if (!response.ok) {
@@ -130,6 +150,11 @@ export function AdminPaymentControls({
         );
       }
       setCurrentBalanceDifferenceSar(0);
+      setSettlementState({
+        amountSar: payload?.settlement?.amountSar ?? settlementAmount,
+        createdAt: payload?.settlement?.createdAt ?? new Date().toISOString(),
+        mode: settlementMode,
+      });
       setToast({ tone: "success", message: "تمت تسوية الفرق المالي البسيط بنجاح." });
       router.refresh();
     } finally {
@@ -142,10 +167,6 @@ export function AdminPaymentControls({
     absoluteSmallDifference > 0 && absoluteSmallDifference <= smallDifferenceThresholdSar;
   const smallDifferenceMode =
     currentBalanceDifferenceSar < 0 ? "remaining" : currentBalanceDifferenceSar > 0 ? "overpaid" : null;
-  const adjustmentTargets = feeItems.filter((fee) =>
-    smallDifferenceMode === "remaining" ? fee.amountSar < 0 : fee.amountSar > 0,
-  );
-
   async function submitCreate(
     actionKey: string,
     url: string,
@@ -300,20 +321,10 @@ export function AdminPaymentControls({
                 </p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <select
-                  name="targetFeeId"
-                  required
-                  defaultValue="__difference_fee__"
-                  disabled={isPending("adjust:small-difference")}
-                  className="rounded-xl border border-black/10 bg-sand px-3 py-2 text-sm outline-none"
-                >
-                  <option value="__difference_fee__">فروقات مالية (افتراضي)</option>
-                  {adjustmentTargets.map((fee) => (
-                    <option key={fee.id} value={fee.id}>
-                      {fee.title} ({formatMoney(fee.amountSar)})
-                    </option>
-                  ))}
-                </select>
+                <input type="hidden" name="targetFeeId" value="__difference_fee__" />
+                <span className="rounded-xl bg-sand px-3 py-2 text-sm font-bold text-ink">
+                  فروقات مالية
+                </span>
                 <button
                   type="submit"
                   disabled={isPending("adjust:small-difference")}
@@ -324,6 +335,13 @@ export function AdminPaymentControls({
               </div>
             </div>
           </form>
+        ) : null}
+        {!canShowSmallDifferenceTool && settlementState ? (
+          <div className="mt-4 rounded-2xl border border-mist bg-white px-4 py-3 text-sm font-bold text-pine">
+            تمت التسوية: {settlementState.amountSar} ر.س{" "}
+            {settlementState.mode === "remaining" ? "متبقٍ بسيط" : "زيادة مدفوعة"} بتاريخ{" "}
+            {new Date(settlementState.createdAt).toLocaleString("ar-SA")}
+          </div>
         ) : null}
         <form
           className="mt-3 grid gap-3"

@@ -26,6 +26,7 @@ model User {
   sentNotes           ApplicationNote[]     @relation("ApplicationNoteSender")
   notifications       Notification[]
   updatedParentNotes  ApplicationParentNote[] @relation("ApplicationParentNoteUpdater")
+  financialDifferenceSettlements FinancialDifferenceSettlement[] @relation("FinancialDifferenceSettlementExecutor")
 }
 
 model Application {
@@ -69,6 +70,7 @@ model Application {
   parentProfiles       ParentProfile[]
   studentHealthProfile StudentHealthProfile?
   studentProfile       StudentProfile?
+  financialDifferenceSettlements FinancialDifferenceSettlement[]
 }
 
 model AgreementTemplate {
@@ -272,6 +274,7 @@ model ApplicationFee {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  financialDifferenceSettlements FinancialDifferenceSettlement[]
 }
 
 model ApplicationPayment {
@@ -301,6 +304,36 @@ model Notification {
   user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead, createdAt])
+}
+
+model AdminSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FinancialDifferenceSettlement {
+  id                  String                              @id @default(cuid())
+  applicationId       String
+  executedByUserId    String
+  settlementType      FinancialDifferenceSettlementType
+  amount              Decimal                             @db.Decimal(10, 2)
+  deltaBefore         Decimal                             @db.Decimal(10, 2)
+  deltaAfter          Decimal                             @db.Decimal(10, 2)
+  netAmountBefore     Decimal                             @db.Decimal(10, 2)
+  netAmountAfter      Decimal                             @db.Decimal(10, 2)
+  paidAmountSar       Decimal                             @db.Decimal(10, 2)
+  thresholdSar        Decimal                             @db.Decimal(10, 2)
+  relatedFeeId        String?
+  createdAt           DateTime                            @default(now())
+  application         Application                         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  executedByUser      User                                @relation("FinancialDifferenceSettlementExecutor", fields: [executedByUserId], references: [id])
+  relatedFee          ApplicationFee?                     @relation(fields: [relatedFeeId], references: [id])
+
+  @@index([applicationId, createdAt])
+  @@index([executedByUserId, createdAt])
 }
 
 enum UserRole {
@@ -360,4 +393,9 @@ enum NotificationType {
   DOCUMENT
   PAYMENT
   AGREEMENT
+}
+
+enum FinancialDifferenceSettlementType {
+  DEFICIT
+  EXCESS
 }

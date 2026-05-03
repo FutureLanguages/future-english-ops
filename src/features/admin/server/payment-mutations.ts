@@ -1,8 +1,8 @@
 import { revalidatePath } from "next/cache";
-import { NotificationType, UserRole } from "@prisma/client";
+import { FinancialDifferenceSettlementType, NotificationType, UserRole } from "@prisma/client";
 import { getAdminSession } from "@/features/auth/server/admin-session";
 import { notifyPortalUsers } from "@/features/notifications/server/notifications";
-import { syncApplicationFinancialTotals } from "@/features/payments/server/ledger";
+import { computeLedgerTotals, syncApplicationFinancialTotals } from "@/features/payments/server/ledger";
 import { smallFinancialDifferenceFeeTitle } from "@/features/payments/constants";
 import { getSmallFinancialAdjustmentThresholdSar } from "@/features/payments/server/small-difference";
 import { prisma } from "@/lib/db/prisma";
@@ -432,59 +432,59 @@ export async function adjustSmallFinancialDifference(params: {
   applicationId: string;
   targetFeeId: string;
 }) {
-  await getAdminSession();
+  const adminSession = await getAdminSession();
 
-  if (!params.applicationId || !params.targetFeeId) {
+  if (!params.applicationId || params.targetFeeId !== smallFinancialDifferenceTargetId) {
     throw new AdminPaymentMutationError("invalid_fee");
   }
 
-  const threshold = getSmallFinancialAdjustmentThresholdSar();
+  const threshold = await getSmallFinancialAdjustmentThresholdSar();
   const result = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${params.applicationId}))`;
+
     const application = await tx.application.findUnique({
       where: { id: params.applicationId },
       select: {
         id: true,
-        totalCostSar: true,
-        paidAmountSar: true,
       },
     });
-
-    const targetFee =
-      params.targetFeeId === smallFinancialDifferenceTargetId
-        ? await tx.applicationFee.findFirst({
-            where: {
-              applicationId: params.applicationId,
-              title: smallFinancialDifferenceFeeTitle,
-            },
-            select: {
-              id: true,
-              applicationId: true,
-              title: true,
-              amount: true,
-              note: true,
-            },
-          })
-        : await tx.applicationFee.findUnique({
-            where: { id: params.targetFeeId },
-            select: {
-              id: true,
-              applicationId: true,
-              title: true,
-              amount: true,
-              note: true,
-            },
-          });
 
     if (!application) {
       throw new AdminPaymentMutationError("invalid_fee");
     }
 
+    const [fees, payments] = await Promise.all([
+      tx.applicationFee.findMany({
+        where: { applicationId: params.applicationId },
+        select: { amount: true },
+      }),
+      tx.applicationPayment.findMany({
+        where: { applicationId: params.applicationId },
+        select: { amount: true },
+      }),
+    ]);
+    const currentTotals = computeLedgerTotals({ fees, payments });
+
+    const targetFee = await tx.applicationFee.findFirst({
+      where: {
+        applicationId: params.applicationId,
+        title: smallFinancialDifferenceFeeTitle,
+      },
+      select: {
+        id: true,
+        applicationId: true,
+        title: true,
+        amount: true,
+        note: true,
+      },
+    });
+
     if (targetFee && targetFee.applicationId !== params.applicationId) {
       throw new AdminPaymentMutationError("invalid_fee");
     }
 
-    const totalCostSar = toNumber(application.totalCostSar);
-    const paidAmountSar = toNumber(application.paidAmountSar);
+    const totalCostSar = currentTotals.totalCostSar;
+    const paidAmountSar = currentTotals.paidAmountSar;
     const difference = Number((paidAmountSar - totalCostSar).toFixed(2));
     const absoluteDifference = Math.abs(difference);
 
@@ -492,7 +492,7 @@ export async function adjustSmallFinancialDifference(params: {
       throw new AdminPaymentMutationError("difference_out_of_range");
     }
 
-    if (!targetFee && params.targetFeeId === smallFinancialDifferenceTargetId) {
+    if (!targetFee) {
       const createdFee = await tx.applicationFee.create({
         data: {
           applicationId: params.applicationId,
@@ -507,10 +507,29 @@ export async function adjustSmallFinancialDifference(params: {
       });
 
       const totals = await syncApplicationFinancialTotals(tx, params.applicationId);
+      const settlement = await tx.financialDifferenceSettlement.create({
+        data: {
+          applicationId: params.applicationId,
+          executedByUserId: adminSession.id,
+          settlementType:
+            difference > 0
+              ? FinancialDifferenceSettlementType.EXCESS
+              : FinancialDifferenceSettlementType.DEFICIT,
+          amount: absoluteDifference,
+          deltaBefore: difference,
+          deltaAfter: Number((paidAmountSar - totals.totalCostSar).toFixed(2)),
+          netAmountBefore: totalCostSar,
+          netAmountAfter: totals.totalCostSar,
+          paidAmountSar,
+          thresholdSar: threshold,
+          relatedFeeId: createdFee.id,
+        },
+      });
 
       return {
         fee: createdFee,
         totals,
+        settlement,
       };
     }
 
@@ -520,16 +539,8 @@ export async function adjustSmallFinancialDifference(params: {
         ? currentAmount + absoluteDifference
         : currentAmount - absoluteDifference;
 
-    if (difference < 0 && currentAmount >= 0 && params.targetFeeId !== smallFinancialDifferenceTargetId) {
-      throw new AdminPaymentMutationError("discount_target_required");
-    }
-
-    if (difference > 0 && currentAmount <= 0 && params.targetFeeId !== smallFinancialDifferenceTargetId) {
-      throw new AdminPaymentMutationError("fee_target_required");
-    }
-
     const updatedFee = await tx.applicationFee.update({
-      where: { id: params.targetFeeId },
+      where: { id: targetFee.id },
       data: {
         amount: Number(nextAmount.toFixed(2)),
         note:
@@ -540,10 +551,29 @@ export async function adjustSmallFinancialDifference(params: {
     });
 
     const totals = await syncApplicationFinancialTotals(tx, params.applicationId);
+    const settlement = await tx.financialDifferenceSettlement.create({
+      data: {
+        applicationId: params.applicationId,
+        executedByUserId: adminSession.id,
+        settlementType:
+          difference > 0
+            ? FinancialDifferenceSettlementType.EXCESS
+            : FinancialDifferenceSettlementType.DEFICIT,
+        amount: absoluteDifference,
+        deltaBefore: difference,
+        deltaAfter: Number((paidAmountSar - totals.totalCostSar).toFixed(2)),
+        netAmountBefore: totalCostSar,
+        netAmountAfter: totals.totalCostSar,
+        paidAmountSar,
+        thresholdSar: threshold,
+        relatedFeeId: updatedFee.id,
+      },
+    });
 
     return {
       fee: updatedFee,
       totals,
+      settlement,
     };
   });
 
@@ -553,5 +583,13 @@ export async function adjustSmallFinancialDifference(params: {
     code: "small_difference_adjusted" as const,
     fee: mapFeeItem(result.fee),
     totals: result.totals,
+    settlement: {
+      id: result.settlement.id,
+      createdAt: result.settlement.createdAt,
+      settlementType: result.settlement.settlementType,
+      amountSar: toNumber(result.settlement.amount),
+      deltaBeforeSar: toNumber(result.settlement.deltaBefore),
+      deltaAfterSar: toNumber(result.settlement.deltaAfter),
+    },
   };
 }

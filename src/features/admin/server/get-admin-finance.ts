@@ -57,7 +57,7 @@ export async function getAdminFinanceViewModel(params: {
       totalDiscountSar,
       totalPaidSar,
       totalRemainingSar,
-      smallDifferenceThresholdSar: getSmallFinancialAdjustmentThresholdSar(),
+      smallDifferenceThresholdSar: await getSmallFinancialAdjustmentThresholdSar(),
       fullyPaidStudentsCount: sortedRows.filter((row) => row.remainingSar <= 0).length,
       studentsWithRemainingCount: sortedRows.filter((row) => row.remainingSar > 0).length,
       highestRemainingStudent: highestRemainingStudent

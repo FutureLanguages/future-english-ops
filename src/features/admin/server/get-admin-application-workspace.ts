@@ -496,7 +496,7 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
       paidAmountSar: derived.paymentSummary.paidAmountSar,
       remainingAmountSar: derived.paymentSummary.remainingAmountSar,
       balanceDifferenceSar: Number((derived.paymentSummary.paidAmountSar - derived.paymentSummary.totalCostSar).toFixed(2)),
-      smallDifferenceThresholdSar: getSmallFinancialAdjustmentThresholdSar(),
+      smallDifferenceThresholdSar: await getSmallFinancialAdjustmentThresholdSar(),
       isPaymentComplete: derived.paymentSummary.isPaymentComplete,
       latestPaymentNote,
       receipts: hydratedApplication.paymentReceipts.map((receipt) => ({
