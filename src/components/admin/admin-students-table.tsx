@@ -60,6 +60,33 @@ function DocumentsState({ row }: { row: AdminApplicationRow }) {
   return <OperationalChip tone="success">لا توجد نواقص</OperationalChip>;
 }
 
+const columnDropdownFilters: Record<string, Array<{ value: string; label: string }>> = {
+  status: [
+    { value: "NEW", label: "جديد" },
+    { value: "INCOMPLETE", label: "توجد نواقص" },
+    { value: "UNDER_REVIEW", label: "قيد المراجعة" },
+    { value: "WAITING_PAYMENT", label: "بانتظار السداد" },
+    { value: "COMPLETED", label: "مكتمل" },
+  ],
+  completion: [
+    { value: "__complete__", label: "مكتمل 100%" },
+    { value: "__incomplete__", label: "أقل من 100%" },
+  ],
+  documents: [
+    { value: "__documents_review__", label: "بانتظار مراجعة" },
+    { value: "__documents_missing__", label: "ناقصة / إعادة رفع" },
+    { value: "__documents_clear__", label: "لا توجد نواقص" },
+  ],
+  financial: [
+    { value: "__payment_remaining__", label: "يوجد متبقي" },
+    { value: "__payment_clear__", label: "لا يوجد متبقي" },
+  ],
+  messages: [
+    { value: "__messages_unread__", label: "غير مقروءة" },
+    { value: "__messages_clear__", label: "لا توجد رسائل" },
+  ],
+};
+
 export function AdminStudentsTable({
   rows,
   filters,
@@ -84,6 +111,18 @@ export function AdminStudentsTable({
     if (activeFilters.length > 0) {
       nextRows = nextRows.filter((row) =>
         activeFilters.every(([key, value]) => {
+          if (value === "__complete__") return row.completionPercent >= 100;
+          if (value === "__incomplete__") return row.completionPercent < 100;
+          if (value === "__documents_review__") return row.documentsNeedingReviewCount > 0;
+          if (value === "__documents_missing__") return row.missingDocumentsCount + row.reuploadCount > 0;
+          if (value === "__documents_clear__") {
+            return row.documentsNeedingReviewCount + row.reuploadCount + row.missingDocumentsCount === 0;
+          }
+          if (value === "__payment_remaining__") return row.remainingAmountSar > 0;
+          if (value === "__payment_clear__") return row.remainingAmountSar <= 0;
+          if (value === "__messages_unread__") return row.unreadMessagesCount > 0;
+          if (value === "__messages_clear__") return row.unreadMessagesCount === 0;
+
           const cellValue =
             key === "student"
               ? `${row.studentName} ${row.parentMobileNumber} ${row.city}`
@@ -151,6 +190,8 @@ export function AdminStudentsTable({
   }
 
   function renderColumnControl(key: string, label: string) {
+    const dropdownOptions = columnDropdownFilters[key] ?? [];
+
     return (
       <div>
         <button
@@ -174,6 +215,26 @@ export function AdminStudentsTable({
           placeholder="تصفية"
           className="mt-2 block w-24 rounded-lg border border-black/10 bg-white px-2 py-1 text-xs font-medium outline-none"
         />
+        {dropdownOptions.length > 0 ? (
+          <select
+            value={columnFilters[key] ?? ""}
+            onChange={(event) =>
+              setColumnFilters((current) => ({
+                ...current,
+                [key]: event.target.value,
+              }))
+            }
+            className="mt-1 block w-24 rounded-lg border border-black/10 bg-white px-2 py-1 text-xs font-medium outline-none"
+            aria-label={`تصفية ${label}`}
+          >
+            <option value="">كل الخيارات</option>
+            {dropdownOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        ) : null}
       </div>
     );
   }

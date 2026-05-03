@@ -439,7 +439,7 @@ export default async function AdminApplicationWorkspacePage({
                   </div>
                   <div className="mt-1 text-xl font-extrabold text-ink">
                     {viewModel.payments.balanceDifferenceSar < 0
-                      ? `${Math.abs(viewModel.payments.balanceDifferenceSar)} ر.س`
+                      ? `${Math.abs(viewModel.payments.balanceDifferenceSar)} ر.س زيادة مدفوعة`
                       : `${viewModel.overview.paymentSummary.remainingAmountSar} ر.س`}
                   </div>
                 </div>
@@ -744,7 +744,7 @@ export default async function AdminApplicationWorkspacePage({
               </div>
               <div className="mt-2 text-3xl font-extrabold text-ink">
                 {viewModel.payments.balanceDifferenceSar < 0
-                  ? `${Math.abs(viewModel.payments.balanceDifferenceSar)} ر.س`
+                  ? `${Math.abs(viewModel.payments.balanceDifferenceSar)} ر.س زيادة مدفوعة`
                   : `${viewModel.payments.remainingAmountSar} ر.س`}
               </div>
             </div>

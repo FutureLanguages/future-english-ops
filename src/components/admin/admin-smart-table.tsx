@@ -14,6 +14,28 @@ const groupLabels = {
   other: "مؤشرات إضافية",
 } as const;
 
+const statusFilterOptions = [
+  { value: "NEW", label: "جديد" },
+  { value: "INCOMPLETE", label: "توجد نواقص" },
+  { value: "UNDER_REVIEW", label: "قيد المراجعة" },
+  { value: "WAITING_PAYMENT", label: "بانتظار السداد" },
+  { value: "COMPLETED", label: "مكتمل" },
+];
+
+const documentFilterOptions = [
+  { value: "APPROVED", label: "مقبول" },
+  { value: "MISSING", label: "مفقود" },
+  { value: "UPLOADED", label: "مرفوع" },
+  { value: "UNDER_REVIEW", label: "قيد المراجعة" },
+  { value: "REJECTED", label: "مرفوض" },
+  { value: "REUPLOAD_REQUESTED", label: "إعادة رفع" },
+];
+
+const booleanFilterOptions = [
+  { value: "__yes__", label: "نعم" },
+  { value: "__no__", label: "لا" },
+];
+
 export function AdminSmartTable({
   rows,
   columns,
@@ -111,6 +133,25 @@ export function AdminSmartTable({
     return typeof value === "number" ? value : String(value ?? "");
   }
 
+  function getColumnDropdownOptions(column: AdminReportColumn) {
+    if (column.documentCode) return documentFilterOptions;
+    if (column.key === "status") return statusFilterOptions;
+    if (column.key.startsWith("health:")) return booleanFilterOptions;
+    if (column.key === "remainingSar") {
+      return [
+        { value: "__remaining__", label: "يوجد متبقي" },
+        { value: "__paid__", label: "لا يوجد متبقي" },
+      ];
+    }
+    if (column.key === "unreadMessagesCount") {
+      return [
+        { value: "__unread__", label: "يوجد غير مقروء" },
+        { value: "__read__", label: "لا يوجد غير مقروء" },
+      ];
+    }
+    return [];
+  }
+
   function toggleSort(columnKey: string) {
     setSortConfig((current) => {
       if (current?.key !== columnKey) {
@@ -204,6 +245,13 @@ export function AdminSmartTable({
           if (!column) {
             return true;
           }
+
+          if (value === "__yes__") return getCellPlainText(row, column) === "نعم";
+          if (value === "__no__") return getCellPlainText(row, column) === "لا";
+          if (value === "__remaining__") return row.remainingSar > 0;
+          if (value === "__paid__") return row.remainingSar <= 0;
+          if (value === "__unread__") return row.unreadMessagesCount > 0;
+          if (value === "__read__") return row.unreadMessagesCount === 0;
 
           return String(getCellPlainText(row, column)).toLowerCase().includes(value);
         }),
@@ -359,6 +407,26 @@ export function AdminSmartTable({
                       placeholder="تصفية"
                       className="mt-2 block w-28 rounded-lg border border-black/10 bg-white px-2 py-1 text-xs font-medium outline-none"
                     />
+                    {getColumnDropdownOptions(column).length > 0 ? (
+                      <select
+                        value={columnFilters[column.key] ?? ""}
+                        onChange={(event) =>
+                          setColumnFilters((current) => ({
+                            ...current,
+                            [column.key]: event.target.value,
+                          }))
+                        }
+                        className="mt-1 block w-28 rounded-lg border border-black/10 bg-white px-2 py-1 text-xs font-medium outline-none"
+                        aria-label={`تصفية ${column.label}`}
+                      >
+                        <option value="">كل الخيارات</option>
+                        {getColumnDropdownOptions(column).map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
                   </th>
                 ))}
               </tr>

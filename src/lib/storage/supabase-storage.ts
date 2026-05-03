@@ -36,15 +36,65 @@ export function getSupabaseStorageConfig(): SupabaseStorageConfig {
   };
 }
 
-function storageObjectUrl(config: SupabaseStorageConfig, storageKey: string) {
-  const encodedKey = storageKey
+function normalizeStorageKey(storageKey: string) {
+  return storageKey
     .replaceAll("\\", "/")
-    .replace(/^\/+/g, "")
+    .replace(/^\/+/g, "");
+}
+
+function encodeStorageKey(storageKey: string) {
+  const encodedKey = storageKey
     .split("/")
     .map(encodeURIComponent)
     .join("/");
 
-  return `${config.url}/storage/v1/object/${encodeURIComponent(config.bucket)}/${encodedKey}`;
+  return encodedKey;
+}
+
+function storageObjectUrl(config: SupabaseStorageConfig, storageKey: string) {
+  return `${config.url}/storage/v1/object/${encodeURIComponent(config.bucket)}/${encodeStorageKey(
+    normalizeStorageKey(storageKey),
+  )}`;
+}
+
+function authenticatedStorageObjectUrl(config: SupabaseStorageConfig, storageKey: string) {
+  return `${config.url}/storage/v1/object/authenticated/${encodeURIComponent(config.bucket)}/${encodeStorageKey(
+    normalizeStorageKey(storageKey),
+  )}`;
+}
+
+async function fetchStorageObject(config: SupabaseStorageConfig, storageKey: string, authenticated: boolean) {
+  return fetch((authenticated ? authenticatedStorageObjectUrl : storageObjectUrl)(config, storageKey), {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${config.serviceRoleKey}`,
+      apikey: config.serviceRoleKey,
+    },
+  });
+}
+
+function legacyStorageKeyCandidates(storageKey: string) {
+  const normalized = normalizeStorageKey(storageKey);
+  const parts = normalized.split("/");
+
+  if (parts[0] !== "applications" || parts.length < 4) {
+    return [normalized];
+  }
+
+  const applicationId = parts[1];
+  const section = parts[2];
+  const filename = parts.slice(3).join("/");
+  const candidates = [normalized];
+
+  if (section === "documents") {
+    candidates.push(`uploads/${applicationId}/${filename}`);
+  }
+
+  if (section === "receipts") {
+    candidates.push(`uploads/${applicationId}/receipts/${filename}`);
+  }
+
+  return candidates;
 }
 
 export async function uploadObjectToSupabaseStorage(params: {
@@ -72,17 +122,29 @@ export async function uploadObjectToSupabaseStorage(params: {
 
 export async function downloadObjectFromSupabaseStorage(storageKey: string) {
   const config = getSupabaseStorageConfig();
-  const response = await fetch(storageObjectUrl(config, storageKey), {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${config.serviceRoleKey}`,
-      apikey: config.serviceRoleKey,
-    },
-  });
+  let lastResponse: Response | null = null;
 
-  if (!response.ok) {
-    throw new SupabaseStorageError(`supabase_storage_download_failed:${response.status}`, response.status);
+  for (const candidate of legacyStorageKeyCandidates(storageKey)) {
+    const authenticatedResponse = await fetchStorageObject(config, candidate, true);
+    if (authenticatedResponse.ok) {
+      return Buffer.from(await authenticatedResponse.arrayBuffer());
+    }
+
+    lastResponse = authenticatedResponse;
+
+    const directResponse = await fetchStorageObject(config, candidate, false);
+    if (directResponse.ok) {
+      return Buffer.from(await directResponse.arrayBuffer());
+    }
+
+    lastResponse = directResponse;
+
+    if (authenticatedResponse.status !== 404 || directResponse.status !== 404) {
+      break;
+    }
   }
 
-  return Buffer.from(await response.arrayBuffer());
+  const status = lastResponse?.status ?? 500;
+
+  throw new SupabaseStorageError(`supabase_storage_download_failed:${status}`, status);
 }
