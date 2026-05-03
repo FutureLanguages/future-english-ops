@@ -2,6 +2,7 @@ import { ApplicationNoteType, ApplicationStatus, MessageThreadType, UserRole, ty
 import { prisma } from "@/lib/db/prisma";
 import { formatThreadMessages, getUnreadNotesCount, getUnreadThreadNotesCount } from "@/features/messages/server/thread";
 import { getSmallFinancialAdjustmentThresholdSar } from "@/features/payments/server/small-difference";
+import { smallFinancialDifferenceFeeTitle } from "@/features/payments/constants";
 import type { DocumentRequirementRecord } from "@/types/application";
 import type { AdminApplicationWorkspaceViewModel, AdminWorkspaceDocumentGroup } from "@/types/admin";
 import { buildAdminApplicationDerivedData } from "./load-admin-applications";
@@ -87,10 +88,14 @@ function summarizeFees(
   });
 
   const totalFeesSar = normalized
+    .filter((fee) => fee.title !== smallFinancialDifferenceFeeTitle)
     .filter((fee) => fee.amountSar > 0)
     .reduce((sum, fee) => sum + fee.amountSar, 0);
   const discountSar = Math.abs(
-    normalized.filter((fee) => fee.amountSar < 0).reduce((sum, fee) => sum + fee.amountSar, 0),
+    normalized
+      .filter((fee) => fee.title !== smallFinancialDifferenceFeeTitle)
+      .filter((fee) => fee.amountSar < 0)
+      .reduce((sum, fee) => sum + fee.amountSar, 0),
   );
 
   return {

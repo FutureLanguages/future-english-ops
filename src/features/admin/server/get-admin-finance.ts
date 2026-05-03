@@ -15,6 +15,7 @@ export async function getAdminFinanceViewModel(params: {
       : "all";
   const sort = params.sort === "lowest_remaining" ? "lowest_remaining" : "highest_remaining";
   const status = params.status ?? "";
+  const smallDifferenceThresholdSar = await getSmallFinancialAdjustmentThresholdSar();
 
   const { records } = await loadAdminReportRecords({
     status,
@@ -57,7 +58,7 @@ export async function getAdminFinanceViewModel(params: {
       totalDiscountSar,
       totalPaidSar,
       totalRemainingSar,
-      smallDifferenceThresholdSar: await getSmallFinancialAdjustmentThresholdSar(),
+      smallDifferenceThresholdSar,
       fullyPaidStudentsCount: sortedRows.filter((row) => row.remainingSar <= 0).length,
       studentsWithRemainingCount: sortedRows.filter((row) => row.remainingSar > 0).length,
       highestRemainingStudent: highestRemainingStudent
@@ -75,6 +76,10 @@ export async function getAdminFinanceViewModel(params: {
       totalDiscountSar: row.totalDiscountSar,
       totalPaidSar: row.totalPaidSar,
       remainingSar: row.remainingSar,
+      balanceDifferenceSar: row.balanceDifferenceSar,
+      settlementEligible:
+        Math.abs(row.balanceDifferenceSar) > 0 &&
+        Math.abs(row.balanceDifferenceSar) <= smallDifferenceThresholdSar,
     })),
   };
 }

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import type { DocumentRequirementRecord } from "@/types/application";
 import { buildAdminApplicationDerivedData } from "./load-admin-applications";
 import { resolveParentMobileDisplay } from "./parent-display";
+import { smallFinancialDifferenceFeeTitle } from "@/features/payments/constants";
 
 export type AdminReportRecord = {
   applicationId: string;
@@ -16,6 +17,7 @@ export type AdminReportRecord = {
   totalDiscountSar: number;
   totalPaidSar: number;
   remainingSar: number;
+  balanceDifferenceSar: number;
   documentsCompletedCount: number;
   unreadMessagesCount: number;
   receiptsCount: number;
@@ -38,10 +40,13 @@ function toNumber(value: { toNumber(): number } | number) {
 
 function summarizeFees(
   fees: Array<{
+    title: string;
     amount: { toNumber(): number } | number;
   }>,
 ) {
-  const amounts = fees.map((fee) => toNumber(fee.amount));
+  const amounts = fees
+    .filter((fee) => fee.title !== smallFinancialDifferenceFeeTitle)
+    .map((fee) => toNumber(fee.amount));
   const totalFeesSar = amounts.filter((amount) => amount > 0).reduce((sum, amount) => sum + amount, 0);
   const totalDiscountSar = Math.abs(
     amounts.filter((amount) => amount < 0).reduce((sum, amount) => sum + amount, 0),
@@ -141,6 +146,7 @@ export async function loadAdminReportRecords(filters: AdminReportFilters = {}) {
       totalDiscountSar: feeSummary.totalDiscountSar,
       totalPaidSar: derived.paymentSummary.paidAmountSar,
       remainingSar: derived.paymentSummary.remainingAmountSar,
+      balanceDifferenceSar: Number((derived.paymentSummary.paidAmountSar - derived.paymentSummary.totalCostSar).toFixed(2)),
       documentsCompletedCount,
       unreadMessagesCount: getUnreadNotesCount({
         role: "ADMIN",

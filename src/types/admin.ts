@@ -413,5 +413,7 @@ export type AdminFinanceViewModel = {
     totalDiscountSar: number;
     totalPaidSar: number;
     remainingSar: number;
+    balanceDifferenceSar: number;
+    settlementEligible: boolean;
   }>;
 };

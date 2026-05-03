@@ -132,6 +132,7 @@ export default async function AdminFinancePage({
                   <th className="px-3 py-2 text-right text-sm font-bold text-ink">إجمالي الخصم</th>
                   <th className="px-3 py-2 text-right text-sm font-bold text-ink">المدفوع</th>
                   <th className="px-3 py-2 text-right text-sm font-bold text-ink">المتبقي</th>
+                  <th className="px-3 py-2 text-right text-sm font-bold text-ink">الفروقات المالية</th>
                   <th className="px-3 py-2 text-right text-sm font-bold text-ink">فتح الملف</th>
                 </tr>
               </thead>
@@ -150,6 +151,21 @@ export default async function AdminFinancePage({
                     <td className={`px-3 py-3 text-sm font-bold text-ink ${row.remainingSar > 0 ? "bg-clay/25" : "bg-mist/80"}`}>
                       {row.remainingSar} ر.س
                     </td>
+                    <td className="px-3 py-3 text-sm text-ink">
+                      {row.settlementEligible ? (
+                        <span className="rounded-full bg-clay/20 px-3 py-1 text-xs font-bold text-ink">
+                          {row.balanceDifferenceSar > 0
+                            ? `${row.balanceDifferenceSar} ر.س زيادة قابلة للتسوية`
+                            : `${Math.abs(row.balanceDifferenceSar)} ر.س متبقٍ قابل للتسوية`}
+                        </span>
+                      ) : row.balanceDifferenceSar > 0 ? (
+                        <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink">
+                          {row.balanceDifferenceSar} ر.س زيادة
+                        </span>
+                      ) : (
+                        <span className="text-xs text-ink/45">لا توجد فروقات صغيرة</span>
+                      )}
+                    </td>
                     <td className="rounded-l-2xl px-3 py-3 text-sm">
                       <Link href={`/admin/students/${row.applicationId}`} className="font-semibold text-pine">
                         عرض الطلب
@@ -158,7 +174,7 @@ export default async function AdminFinancePage({
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={7} className="rounded-2xl bg-sand px-4 py-6 text-center text-sm text-ink/55">
+                    <td colSpan={8} className="rounded-2xl bg-sand px-4 py-6 text-center text-sm text-ink/55">
                       لا توجد نتائج مالية مطابقة للفلاتر الحالية.
                     </td>
                   </tr>

@@ -38,6 +38,12 @@ function formatMoney(amount: number) {
   return `${amount} ر.س`;
 }
 
+function calculateDifference(fees: FeeItem[], payments: PaymentItem[]) {
+  const netAfterDiscount = fees.reduce((sum, fee) => sum + fee.amountSar, 0);
+  const paid = payments.reduce((sum, payment) => sum + payment.amountSar, 0);
+  return Number((paid - netAfterDiscount).toFixed(2));
+}
+
 export function AdminPaymentControls({
   applicationId,
   fees,
@@ -86,6 +92,24 @@ export function AdminPaymentControls({
   function finishAction(actionKey: string) {
     inFlightActions.current.delete(actionKey);
     setPendingActions((current) => current.filter((item) => item !== actionKey));
+  }
+
+  function refreshFinanceFrame() {
+    router.refresh();
+  }
+
+  function updateFees(nextFees: FeeItem[]) {
+    setFeeItems(nextFees);
+    setCurrentBalanceDifferenceSar(calculateDifference(nextFees, paymentItems));
+    setSettlementState(null);
+    refreshFinanceFrame();
+  }
+
+  function updatePayments(nextPayments: PaymentItem[]) {
+    setPaymentItems(nextPayments);
+    setCurrentBalanceDifferenceSar(calculateDifference(feeItems, nextPayments));
+    setSettlementState(null);
+    refreshFinanceFrame();
   }
 
   function showError(error?: string) {
@@ -354,7 +378,7 @@ export function AdminPaymentControls({
               "تمت إضافة الرسوم بنجاح.",
               (payload) => {
                 if (payload.fee) {
-                  setFeeItems((current) => [payload.fee!, ...current]);
+                  updateFees([payload.fee!, ...feeItems]);
                 }
               },
             );
@@ -421,7 +445,7 @@ export function AdminPaymentControls({
               "تم تحديث الخصم بنجاح.",
               (payload) => {
                 if (payload.fee) {
-                  setFeeItems((current) => [payload.fee!, ...current]);
+                  updateFees([payload.fee!, ...feeItems]);
                 }
               },
             );
@@ -512,9 +536,7 @@ export function AdminPaymentControls({
                         "تم تحديث البند المالي بنجاح.",
                         (payload) => {
                           if (payload.fee) {
-                            setFeeItems((current) =>
-                              current.map((item) => (item.id === payload.fee!.id ? payload.fee! : item)),
-                            );
+                            updateFees(feeItems.map((item) => (item.id === payload.fee!.id ? payload.fee! : item)));
                           }
                           setEditingFeeId(null);
                         },
@@ -582,7 +604,7 @@ export function AdminPaymentControls({
                           `/api/admin/applications/${applicationId}/fees/${fee.id}`,
                           "تم حذف البند المالي بنجاح.",
                           (payload) => {
-                            setFeeItems((current) => current.filter((item) => item.id !== (payload.feeId ?? fee.id)));
+                            updateFees(feeItems.filter((item) => item.id !== (payload.feeId ?? fee.id)));
                             setEditingFeeId(null);
                           },
                         )
@@ -625,7 +647,7 @@ export function AdminPaymentControls({
               "تمت إضافة الدفعة بنجاح.",
               (payload) => {
                 if (payload.payment) {
-                  setPaymentItems((current) => [payload.payment!, ...current]);
+                  updatePayments([payload.payment!, ...paymentItems]);
                 }
               },
             );
@@ -727,8 +749,8 @@ export function AdminPaymentControls({
                         "تم تحديث الدفعة الرسمية بنجاح.",
                         (payload) => {
                           if (payload.payment) {
-                            setPaymentItems((current) =>
-                              current.map((item) =>
+                            updatePayments(
+                              paymentItems.map((item) =>
                                 item.id === payload.payment!.id ? payload.payment! : item,
                               ),
                             );
@@ -820,9 +842,7 @@ export function AdminPaymentControls({
                           `/api/admin/applications/${applicationId}/payments/${payment.id}`,
                           "تم حذف الدفعة الرسمية بنجاح.",
                           (payload) => {
-                            setPaymentItems((current) =>
-                              current.filter((item) => item.id !== (payload.paymentId ?? payment.id)),
-                            );
+                            updatePayments(paymentItems.filter((item) => item.id !== (payload.paymentId ?? payment.id)));
                             setEditingPaymentId(null);
                           },
                         )
