@@ -50,6 +50,11 @@ export async function PortalShell({
   const dashboardHref = navItems.find((item) => item.key === "dashboard")?.href ?? "/portal/dashboard";
   const messagesHref = navItems.find((item) => item.key === "messages")?.href ?? "/portal/messages";
   const agreementHref = navItems.find((item) => item.key === "agreements")?.href ?? "/portal/agreements";
+  const notificationsHref =
+    navItems.find((item) => item.key === "notifications")?.href ??
+    (dashboardHref.includes("?")
+      ? `/portal/notifications${dashboardHref.slice(dashboardHref.indexOf("?"))}`
+      : "/portal/notifications");
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -77,7 +82,7 @@ export async function PortalShell({
               <NotificationBell
                 unreadCount={notificationSummary.unreadCount}
                 notifications={notificationSummary.notifications}
-                fullPageHref="/portal/notifications"
+                fullPageHref={notificationsHref}
               />
               <Link
                 href={dashboardHref}

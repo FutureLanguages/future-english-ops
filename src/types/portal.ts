@@ -12,9 +12,11 @@ export type PortalNavItem = {
 export type PortalActionView = {
   id: string;
   label: string;
-  section: "student_info" | "parent_info" | "documents" | "payments" | "info";
+  description?: string;
+  section: "student_info" | "parent_info" | "documents" | "payments" | "agreements" | "messages" | "info";
   href?: string;
   tone: "critical" | "warning" | "neutral";
+  priority?: number;
 };
 
 export type PortalSectionCard = {
@@ -39,10 +41,28 @@ export type PortalDevUserOption = {
   label: string;
 };
 
-export type PortalDashboardViewModel = {
+export type PortalFinanceSnapshot = {
+  totalCostSar: number;
+  paidAmountSar: number;
+  remainingAmountSar: number;
+  isPaymentComplete: boolean;
+};
+
+export type PortalSectionHealthSummary = Array<{
+  id: string;
+  title: string;
+  statusLabel: string;
+  detailLabel: string;
+  tone: "success" | "warning" | "neutral";
+  href?: string;
+}>;
+
+export type PortalDashboardBaseViewModel = {
   role: "STUDENT" | "PARENT";
   mobileNumber: string;
   status: ApplicationStatus;
+  statusLabel: string;
+  statusContext: string;
   overallCompletion: {
     percent: number;
     label: string;
@@ -51,6 +71,8 @@ export type PortalDashboardViewModel = {
   studentName: string;
   completionPercent: number;
   latestAdminNote: string | null;
+  currentStage: string;
+  stageLabel: string;
   nextStep: {
     title: string;
     description: string;
@@ -76,14 +98,10 @@ export type PortalDashboardViewModel = {
     };
   };
   actions: PortalActionView[];
+  topActions: PortalActionView[];
+  remainingActionsCount: number;
   cards: PortalSectionCard[];
-  sectionSummaries: Array<{
-    id: string;
-    title: string;
-    statusLabel: string;
-    tone: "success" | "warning" | "neutral";
-    href?: string;
-  }>;
+  sectionSummaries: PortalSectionHealthSummary;
   navItems: PortalNavItem[];
   applicationOptions: Array<{
     id: string;
@@ -92,3 +110,34 @@ export type PortalDashboardViewModel = {
   selectedApplicationId: string;
   activeUserLabel: string;
 };
+
+export type StudentDashboardViewModel = PortalDashboardBaseViewModel & {
+  role: "STUDENT";
+  dashboardKind: "student";
+  heroPrimaryAction: {
+    label: string;
+    href?: string;
+  };
+  financeSnapshot?: PortalFinanceSnapshot | null;
+};
+
+export type ParentReassuranceState =
+  | "ALL_GOOD"
+  | "ACTION_REQUIRED"
+  | "WAITING"
+  | "NEEDS_ATTENTION";
+
+export type ParentDashboardViewModel = PortalDashboardBaseViewModel & {
+  role: "PARENT";
+  dashboardKind: "parent";
+  reassuranceState: ParentReassuranceState;
+  hasPendingActions: boolean;
+  requiredIntervention: PortalActionView | null;
+  heroPrimaryAction: {
+    label: string;
+    href?: string;
+  };
+  financeSnapshot: PortalFinanceSnapshot;
+};
+
+export type PortalDashboardViewModel = StudentDashboardViewModel | ParentDashboardViewModel;

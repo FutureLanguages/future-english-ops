@@ -2,52 +2,8 @@ import { UserRole } from "@prisma/client";
 import type { ApplicationUser } from "@/types/application";
 import type { PortalActionView, PortalNavItem } from "@/types/portal";
 import { loadPortalApplicationData } from "./load-portal-application";
+import { buildPortalRequiredActions } from "./get-portal-dashboard";
 import { buildPortalNavItems } from "./nav";
-
-function withApplicationId(href: string | undefined, applicationId: string) {
-  if (!href) {
-    return undefined;
-  }
-
-  return `${href}?applicationId=${applicationId}`;
-}
-
-function mapActions(params: {
-  canSeePayments: boolean;
-  actions: Array<{
-    id: string;
-    label: string;
-    section: "student_info" | "parent_info" | "documents" | "payments";
-    kind: "missing_profile" | "missing_document" | "reupload_document" | "payment";
-    priority: number;
-  }>;
-}): PortalActionView[] {
-  return params.actions.map((action) => {
-    if (action.kind === "payment" && !params.canSeePayments) {
-      return {
-        id: action.id,
-        label: "هناك إجراء مطلوب من ولي الأمر",
-        section: "info",
-        tone: "neutral",
-      };
-    }
-
-    return {
-      id: action.id,
-      label: action.label,
-      section: action.section,
-      href:
-        action.section === "documents"
-          ? "/portal/documents"
-          : action.section === "student_info" || action.section === "parent_info"
-            ? "/portal/profile"
-            : action.section === "payments"
-              ? "/portal/payments"
-              : undefined,
-      tone: action.priority === 1 ? "critical" : action.priority === 2 ? "warning" : "neutral",
-    };
-  });
-}
 
 export async function getPortalActionsViewModel(params: {
   user: ApplicationUser;
@@ -96,12 +52,6 @@ export async function getPortalActionsViewModel(params: {
       label: application.studentProfile?.fullNameAr ?? "طلب بدون اسم",
     })),
     selectedApplicationId: data.applicationRecord.id,
-    actions: mapActions({
-      canSeePayments: data.canSeePayments,
-      actions: data.requiredActions,
-    }).map((action) => ({
-      ...action,
-      href: withApplicationId(action.href, data.applicationRecord.id),
-    })),
+    actions: buildPortalRequiredActions(data),
   };
 }

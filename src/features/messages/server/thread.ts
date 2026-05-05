@@ -65,6 +65,23 @@ export function canAccessThread(params: {
   return params.role === UserRole.PARENT || params.role === UserRole.ADMIN;
 }
 
+export function getVisiblePortalThreadTypes(role: UserRole) {
+  return role === UserRole.PARENT
+    ? [MessageThreadType.STUDENT, MessageThreadType.PARENT]
+    : [MessageThreadType.STUDENT];
+}
+
+export function filterVisiblePortalThreadNotes<T extends NoteRecord>(params: {
+  role: UserRole;
+  notes: T[];
+}) {
+  const visibleThreadTypes = new Set(getVisiblePortalThreadTypes(params.role));
+
+  return params.notes.filter((note) =>
+    visibleThreadTypes.has(note.threadType ?? MessageThreadType.STUDENT),
+  );
+}
+
 export function getSenderDisplayName(note: NoteRecord) {
   const role = note.senderRole ?? note.senderUser?.role ?? UserRole.ADMIN;
   const roleLabel =

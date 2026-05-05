@@ -1,4 +1,4 @@
-import { ApplicationNoteType, UserRole, type Prisma } from "@prisma/client";
+import { ApplicationNoteType, MessageThreadType, UserRole, type Prisma } from "@prisma/client";
 import {
   buildApplicationContext,
   getProfileCompleteness,
@@ -11,7 +11,11 @@ import {
 } from "@/features/documents/services";
 import { getPaymentSummary } from "@/features/payments/services";
 import { prisma } from "@/lib/db/prisma";
-import { formatThreadMessages, getUnreadNotesCount } from "@/features/messages/server/thread";
+import {
+  filterVisiblePortalThreadNotes,
+  formatThreadMessages,
+  getUnreadThreadNotesCount,
+} from "@/features/messages/server/thread";
 import type {
   ApplicationDocumentRecord,
   ApplicationRecord,
@@ -315,14 +319,40 @@ export async function loadPortalApplicationData(params: {
       (note) => note.noteType === ApplicationNoteType.NOTE && note.senderUser.role === UserRole.ADMIN,
     )?.body ?? null;
 
-  const unreadMessagesCount = getUnreadNotesCount({
+  const messageNotes = selectedApplication.notes.filter(
+    (note) => note.noteType === ApplicationNoteType.MESSAGE,
+  );
+  const visibleMessageNotes = filterVisiblePortalThreadNotes({
     role: params.user.role,
-    notes: selectedApplication.notes,
-    lastViewedAt:
-      params.user.role === UserRole.STUDENT
-        ? selectedApplication.studentLastViewedNotesAt
-        : selectedApplication.parentLastViewedNotesAt,
+    notes: messageNotes,
   });
+
+  const unreadMessagesCount =
+    params.user.role === UserRole.STUDENT
+      ? getUnreadThreadNotesCount({
+          role: params.user.role,
+          threadType: MessageThreadType.STUDENT,
+          notes: visibleMessageNotes,
+          lastViewedAt:
+            selectedApplication.studentLastViewedStudentThreadAt ??
+            selectedApplication.studentLastViewedNotesAt,
+        })
+      : getUnreadThreadNotesCount({
+          role: params.user.role,
+          threadType: MessageThreadType.STUDENT,
+          notes: visibleMessageNotes,
+          lastViewedAt:
+            selectedApplication.parentLastViewedStudentThreadAt ??
+            selectedApplication.parentLastViewedNotesAt,
+        }) +
+        getUnreadThreadNotesCount({
+          role: params.user.role,
+          threadType: MessageThreadType.PARENT,
+          notes: visibleMessageNotes,
+          lastViewedAt:
+            selectedApplication.parentLastViewedParentThreadAt ??
+            selectedApplication.parentLastViewedNotesAt,
+        });
 
   const documentsCompletionPercent = computeDocumentsCompletionPercent(checklist);
   const agreementsCompletionPercent = computeAgreementsCompletionPercent(selectedApplication.agreements);
@@ -353,9 +383,7 @@ export async function loadPortalApplicationData(params: {
     requiredActions,
     latestAdminNote,
     unreadMessagesCount,
-    threadMessages: formatThreadMessages(
-      selectedApplication.notes.filter((note) => note.noteType === ApplicationNoteType.MESSAGE),
-    ),
+    threadMessages: formatThreadMessages(visibleMessageNotes),
     canSeePayments: canViewPayments(params.user, applicationRecord),
     documentsCompletionPercent,
     agreementsCompletionPercent,

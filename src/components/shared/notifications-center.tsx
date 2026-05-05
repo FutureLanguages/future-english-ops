@@ -47,6 +47,20 @@ function formatTime(value: string) {
   }).format(new Date(value));
 }
 
+function buildFilterHref(basePath: string, filter: string) {
+  const [path, query = ""] = basePath.split("?");
+  const params = new URLSearchParams(query);
+
+  if (filter === "all") {
+    params.delete("type");
+  } else {
+    params.set("type", filter);
+  }
+
+  const serialized = params.toString();
+  return serialized ? `${path}?${serialized}` : path;
+}
+
 export function NotificationsCenter({
   notifications,
   activeFilter,
@@ -156,7 +170,7 @@ export function NotificationsCenter({
           {typeFilters.map((filter) => (
             <Link
               key={filter.key}
-              href={filter.key === "all" ? basePath : `${basePath}?type=${filter.key}`}
+              href={buildFilterHref(basePath, filter.key)}
               className={clsx(
                 "rounded-full px-4 py-2 text-sm font-semibold transition",
                 activeFilter === filter.key

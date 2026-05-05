@@ -1,6 +1,7 @@
 import { MessageThreadType, UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getPortalSession } from "@/features/auth/server/portal-session";
+import { canAccessThread } from "@/features/messages/server/thread";
 import { prisma } from "@/lib/db/prisma";
 
 export async function POST(request: Request) {
@@ -16,6 +17,10 @@ export async function POST(request: Request) {
 
   if (!applicationId) {
     return NextResponse.json({ error: "application_not_found" }, { status: 400 });
+  }
+
+  if (!canAccessThread({ role: user.role, threadType })) {
+    return NextResponse.json({ error: "thread_not_allowed" }, { status: 403 });
   }
 
   const application = await prisma.application.findUnique({

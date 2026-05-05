@@ -1,7 +1,7 @@
 import { ApplicationNoteType, MessageThreadType, UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getPortalSession } from "@/features/auth/server/portal-session";
-import { formatThreadMessages } from "@/features/messages/server/thread";
+import { canAccessThread, formatThreadMessages } from "@/features/messages/server/thread";
 import { notifyMessageSent } from "@/features/notifications/server/notifications";
 import { prisma } from "@/lib/db/prisma";
 
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_message" }, { status: 400 });
   }
 
-  if (user.role === UserRole.STUDENT && threadType !== MessageThreadType.STUDENT) {
+  if (!canAccessThread({ role: user.role, threadType })) {
     return NextResponse.json({ error: "thread_not_allowed" }, { status: 403 });
   }
 
