@@ -21,10 +21,18 @@ export type PortalMessagesViewModel = {
   applicationOptions: Array<{ id: string; label: string }>;
   selectedApplicationId: string;
   activeThreadType: "STUDENT" | "PARENT";
+  summary: {
+    unreadTotal: number;
+    attentionLabel: string;
+    latestActivityAt: Date | null;
+  };
   threads: Array<{
     type: "STUDENT" | "PARENT";
     label: string;
     unreadCount: number;
+    needsAttention: boolean;
+    latestPreview: string;
+    latestSenderLabel: string | null;
     messages: Array<{
     id: string;
     body: string;
@@ -103,6 +111,71 @@ export async function getPortalMessagesViewModel(params: {
     data.user.role === UserRole.PARENT
       ? [MessageThreadType.STUDENT, MessageThreadType.PARENT]
       : [MessageThreadType.STUDENT];
+  const threadViews = visibleThreadTypes.map((threadType) => {
+    const messages = formatThreadMessages(notes, threadType).map((message) => ({
+      ...message,
+      isCurrentUser: message.senderRole === data.user.role,
+      seen: isSeenByOtherSide({
+        message,
+        currentRole: data.user.role,
+        threadType,
+        selectedApplication,
+      }),
+      read:
+        message.senderRole === data.user.role
+          ? true
+          : Boolean(
+              (
+                data.user.role === UserRole.STUDENT
+                  ? selectedApplication?.studentLastViewedStudentThreadAt ?? selectedApplication?.studentLastViewedNotesAt
+                  : threadType === MessageThreadType.PARENT
+                    ? selectedApplication?.parentLastViewedParentThreadAt ?? selectedApplication?.parentLastViewedNotesAt
+                    : selectedApplication?.parentLastViewedStudentThreadAt ?? selectedApplication?.parentLastViewedNotesAt
+              ) && message.createdAt <= (
+                data.user.role === UserRole.STUDENT
+                  ? selectedApplication?.studentLastViewedStudentThreadAt ?? selectedApplication?.studentLastViewedNotesAt
+                  : threadType === MessageThreadType.PARENT
+                    ? selectedApplication?.parentLastViewedParentThreadAt ?? selectedApplication?.parentLastViewedNotesAt
+                    : selectedApplication?.parentLastViewedStudentThreadAt ?? selectedApplication?.parentLastViewedNotesAt
+              )!
+            ),
+    }));
+    const latestMessage = messages[messages.length - 1] ?? null;
+    const unreadCount = getUnreadThreadNotesCount({
+      role: data.user.role,
+      threadType,
+      notes,
+      lastViewedAt:
+        data.user.role === UserRole.STUDENT
+          ? selectedApplication?.studentLastViewedStudentThreadAt ?? selectedApplication?.studentLastViewedNotesAt
+          : threadType === MessageThreadType.PARENT
+            ? selectedApplication?.parentLastViewedParentThreadAt ?? selectedApplication?.parentLastViewedNotesAt
+            : selectedApplication?.parentLastViewedStudentThreadAt ?? selectedApplication?.parentLastViewedNotesAt,
+    });
+
+    return {
+      type: threadType,
+      label: threadType === MessageThreadType.STUDENT ? "محادثة الطالب" : "محادثة ولي الأمر",
+      unreadCount,
+      needsAttention: unreadCount > 0,
+      latestPreview: latestMessage?.body.slice(0, 90) ?? "لا توجد رسائل بعد.",
+      latestSenderLabel: latestMessage?.senderLabel ?? null,
+      lastActivityAt: latestMessage?.createdAt ?? null,
+      messages,
+    };
+  }).sort((left, right) => {
+    if (left.unreadCount !== right.unreadCount) {
+      return right.unreadCount - left.unreadCount;
+    }
+
+    return (right.lastActivityAt?.getTime() ?? 0) - (left.lastActivityAt?.getTime() ?? 0);
+  });
+  const unreadTotal = threadViews.reduce((total, thread) => total + thread.unreadCount, 0);
+  const latestActivityAt =
+    threadViews
+      .map((thread) => thread.lastActivityAt)
+      .filter((date): date is Date => Boolean(date))
+      .sort((left, right) => right.getTime() - left.getTime())[0] ?? null;
 
   return {
     role: data.user.role as "STUDENT" | "PARENT",
@@ -127,54 +200,14 @@ export async function getPortalMessagesViewModel(params: {
     })),
     selectedApplicationId: data.applicationRecord.id,
     activeThreadType: requestedThread,
-    threads: visibleThreadTypes.map((threadType) => ({
-      type: threadType,
-      label: threadType === MessageThreadType.STUDENT ? "محادثة الطالب" : "محادثة ولي الأمر",
-      unreadCount: getUnreadThreadNotesCount({
-        role: data.user.role,
-        threadType,
-        notes,
-        lastViewedAt:
-          data.user.role === UserRole.STUDENT
-            ? selectedApplication?.studentLastViewedStudentThreadAt ?? selectedApplication?.studentLastViewedNotesAt
-            : threadType === MessageThreadType.PARENT
-              ? selectedApplication?.parentLastViewedParentThreadAt ?? selectedApplication?.parentLastViewedNotesAt
-              : selectedApplication?.parentLastViewedStudentThreadAt ?? selectedApplication?.parentLastViewedNotesAt,
-      }),
-      lastActivityAt:
-        notes
-          .filter((note) => (note.threadType ?? MessageThreadType.STUDENT) === threadType)
-          .filter((note) => note.noteType === "MESSAGE")
-          .map((note) => note.createdAt)
-          .sort((left, right) => right.getTime() - left.getTime())[0] ?? null,
-      messages: formatThreadMessages(notes, threadType).map((message) => ({
-        ...message,
-        isCurrentUser: message.senderRole === data.user.role,
-        seen: isSeenByOtherSide({
-          message,
-          currentRole: data.user.role,
-          threadType,
-          selectedApplication,
-        }),
-        read:
-          message.senderRole === data.user.role
-            ? true
-            : Boolean(
-                (
-                  data.user.role === UserRole.STUDENT
-                    ? selectedApplication?.studentLastViewedStudentThreadAt ?? selectedApplication?.studentLastViewedNotesAt
-                    : threadType === MessageThreadType.PARENT
-                      ? selectedApplication?.parentLastViewedParentThreadAt ?? selectedApplication?.parentLastViewedNotesAt
-                      : selectedApplication?.parentLastViewedStudentThreadAt ?? selectedApplication?.parentLastViewedNotesAt
-                ) && message.createdAt <= (
-                  data.user.role === UserRole.STUDENT
-                    ? selectedApplication?.studentLastViewedStudentThreadAt ?? selectedApplication?.studentLastViewedNotesAt
-                    : threadType === MessageThreadType.PARENT
-                      ? selectedApplication?.parentLastViewedParentThreadAt ?? selectedApplication?.parentLastViewedNotesAt
-                      : selectedApplication?.parentLastViewedStudentThreadAt ?? selectedApplication?.parentLastViewedNotesAt
-                )!
-              ),
-      })),
-    })),
+    summary: {
+      unreadTotal,
+      attentionLabel:
+        unreadTotal > 0
+          ? `توجد ${unreadTotal} رسائل غير مقروءة تحتاج انتباهك.`
+          : "لا توجد رسائل غير مقروءة حالياً.",
+      latestActivityAt,
+    },
+    threads: threadViews,
   };
 }

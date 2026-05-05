@@ -42,6 +42,23 @@ export function PaymentReceiptCard({
     if (code === "agreement_required") return "يجب الموافقة على الميثاق قبل استكمال البيانات.";
     return "تعذر تنفيذ عملية السداد المطلوبة حالياً.";
   }
+  const orderedReceipts = receipts.slice().sort((left, right) => {
+    const priority = {
+      REJECTED: 1,
+      REUPLOAD_REQUESTED: 2,
+      UPLOADED: 3,
+      UNDER_REVIEW: 4,
+      APPROVED: 5,
+    } as const;
+    const leftPriority = priority[left.status];
+    const rightPriority = priority[right.status];
+
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+  });
 
   return (
     <section className="rounded-panel bg-white p-5 shadow-soft">
@@ -101,7 +118,7 @@ export function PaymentReceiptCard({
 
       <div className="mt-5 space-y-3">
         {receipts.length > 0 ? (
-          receipts.map((receipt) => (
+          orderedReceipts.map((receipt) => (
             <article key={receipt.id} className="rounded-2xl border border-black/5 bg-sand px-4 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -114,6 +131,15 @@ export function PaymentReceiptCard({
                     }).format(receipt.createdAt)}
                   </div>
                   <div className="mt-1 text-xs text-ink/55">{receipt.statusLabel}</div>
+                  {receipt.status === "REJECTED" || receipt.status === "REUPLOAD_REQUESTED" ? (
+                    <div className="mt-2 inline-flex rounded-full bg-[#ffe8e8] px-3 py-1 text-xs font-bold text-[#a03232]">
+                      يحتاج إجراء
+                    </div>
+                  ) : receipt.status === "UPLOADED" || receipt.status === "UNDER_REVIEW" ? (
+                    <div className="mt-2 inline-flex rounded-full bg-mist px-3 py-1 text-xs font-bold text-pine">
+                      لدى الإدارة للمراجعة
+                    </div>
+                  ) : null}
                 </div>
                 <DocumentStatusBadge status={receipt.status} />
               </div>

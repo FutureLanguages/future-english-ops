@@ -17,6 +17,16 @@ type PortalDocumentsViewModel = {
   navItems: PortalNavItem[];
   applicationOptions: Array<{ id: string; label: string }>;
   selectedApplicationId: string;
+  summary: {
+    total: number;
+    approved: number;
+    pendingReview: number;
+    reuploadRequired: number;
+    missing: number;
+    needsAction: number;
+    roleHeading: string;
+    roleDescription: string;
+  };
   groups: Array<{
     id: string;
     title: string;
@@ -43,6 +53,15 @@ const groupLabels = {
   STUDENT: "مستندات الطالب",
   PARENT: "مستندات ولي الأمر",
   GUARDIAN: "مستندات الوصاية",
+} as const;
+
+const documentStatusPriority = {
+  REJECTED: 1,
+  REUPLOAD_REQUESTED: 2,
+  MISSING: 3,
+  UPLOADED: 4,
+  UNDER_REVIEW: 5,
+  APPROVED: 6,
 } as const;
 
 export async function getPortalDocumentsViewModel(params: {
@@ -116,8 +135,32 @@ export async function getPortalDocumentsViewModel(params: {
             : data.applicationRecord.guardianDocumentsLocked)
           ? "هذا القسم مقفل"
           : "القسم متاح للتعديل",
-      items: grouped[groupKey],
+      items: grouped[groupKey].slice().sort((left, right) => {
+        const leftPriority = documentStatusPriority[left.status];
+        const rightPriority = documentStatusPriority[right.status];
+
+        if (leftPriority !== rightPriority) {
+          return leftPriority - rightPriority;
+        }
+
+        return left.titleAr.localeCompare(right.titleAr, "ar");
+      }),
     }));
+  const allItems = groups.flatMap((group) => group.items);
+  const missing = allItems.filter((item) => item.status === "MISSING").length;
+  const reuploadRequired = allItems.filter(
+    (item) => item.status === "REJECTED" || item.status === "REUPLOAD_REQUESTED",
+  ).length;
+  const pendingReview = allItems.filter(
+    (item) => item.status === "UPLOADED" || item.status === "UNDER_REVIEW",
+  ).length;
+  const approved = allItems.filter((item) => item.status === "APPROVED").length;
+  const needsAction = allItems.filter(
+    (item) =>
+      item.status === "MISSING" ||
+      item.status === "REJECTED" ||
+      item.status === "REUPLOAD_REQUESTED",
+  ).length;
 
   return {
     role: data.user.role as "STUDENT" | "PARENT",
@@ -141,6 +184,19 @@ export async function getPortalDocumentsViewModel(params: {
       label: application.studentProfile?.fullNameAr ?? "طلب بدون اسم",
     })),
     selectedApplicationId: data.applicationRecord.id,
+    summary: {
+      total: allItems.length,
+      approved,
+      pendingReview,
+      reuploadRequired,
+      missing,
+      needsAction,
+      roleHeading: data.user.role === "STUDENT" ? "مستندات رحلتك" : "متابعة مستندات الطلب",
+      roleDescription:
+        data.user.role === "STUDENT"
+          ? "ابدأ بالمستندات التي تحتاج رفعاً أو إعادة رفع، والبقية تظهر بوضوح حسب حالة المراجعة."
+          : "هذه نظرة سريعة على ما اكتمل وما ينتظر الإدارة وما يحتاج تدخلاً منكم.",
+    },
     groups,
   };
 }

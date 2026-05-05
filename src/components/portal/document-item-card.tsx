@@ -26,6 +26,8 @@ type PortalDocumentItem = {
 
 export function DocumentItemCard({ item, isDev }: { item: PortalDocumentItem; isDev?: boolean }) {
   const canShowUploadForm = item.canUpload && item.actionLabel && item.status !== "APPROVED";
+  const isProblem = item.status === "REJECTED" || item.status === "REUPLOAD_REQUESTED";
+  const isMissing = item.status === "MISSING";
   const router = useRouter();
   const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -40,7 +42,15 @@ export function DocumentItemCard({ item, isDev }: { item: PortalDocumentItem; is
   }
 
   return (
-    <article className="rounded-panel bg-white p-4 shadow-soft">
+    <article
+      className={`rounded-panel border p-4 shadow-soft ${
+        isProblem
+          ? "border-[#a03232]/20 bg-[#fff8f5]"
+          : isMissing
+            ? "border-[#7a5a03]/15 bg-[#fffdf4]"
+            : "border-black/5 bg-white"
+      }`}
+    >
       <AutoDismissToast message={toast?.message ?? ""} tone={toast?.tone ?? "success"} />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -48,6 +58,11 @@ export function DocumentItemCard({ item, isDev }: { item: PortalDocumentItem; is
           <p className="mt-1 text-sm leading-6 text-ink/60">
             {item.descriptionAr ?? "لا يوجد وصف إضافي لهذا المستند."}
           </p>
+          {canShowUploadForm ? (
+            <div className="mt-2 inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold text-pine">
+              الإجراء المطلوب: {item.actionLabel}
+            </div>
+          ) : null}
         </div>
         <DocumentStatusBadge status={item.status} />
       </div>

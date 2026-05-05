@@ -57,7 +57,11 @@ export default async function PortalMessagesPage({
 
         <PortalPageHeader
           title="الرسائل"
-          description="صفحة مستقلة للتواصل مع الإدارة حول الطلب. الرسائل هنا فقط لتسهيل المتابعة بدون تشتيت."
+          description={
+            viewModel.role === "PARENT"
+              ? "متابعة هادئة لمحادثات الطلب المتاحة لولي الأمر، مع إبراز غير المقروء أولاً."
+              : "محادثتك مع الإدارة حول الطلب، مع إبراز آخر ما يحتاج انتباهك."
+          }
           aside={<DashboardStatusBadge status={viewModel.status} />}
         />
 
@@ -66,6 +70,18 @@ export default async function PortalMessagesPage({
           selectedApplicationId={viewModel.selectedApplicationId}
           basePath="/portal/messages"
         />
+
+        <section className="rounded-panel bg-white p-5 shadow-soft">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-pine">ملخص الرسائل</div>
+              <h2 className="mt-1 text-xl font-bold text-ink">{viewModel.summary.attentionLabel}</h2>
+            </div>
+            <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink/60">
+              المحادثات المتاحة: {viewModel.threads.length}
+            </span>
+          </div>
+        </section>
 
         <MessageThreadsPanel
           applicationId={viewModel.selectedApplicationId}

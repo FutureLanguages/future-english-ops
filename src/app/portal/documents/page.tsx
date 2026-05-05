@@ -87,8 +87,8 @@ export default async function PortalDocumentsPage({
           </section>
         ) : null}
         <PortalPageHeader
-          title="المستندات"
-          description="هذه الصفحة مخصصة للمستندات فقط: رفع، إعادة رفع، عرض، تحميل، وملاحظات الإدارة."
+          title={viewModel.summary.roleHeading}
+          description={viewModel.summary.roleDescription}
           aside={<DashboardStatusBadge status={viewModel.status} />}
         />
 
@@ -98,18 +98,49 @@ export default async function PortalDocumentsPage({
           basePath="/portal/documents"
         />
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {viewModel.groups.map((group) => (
-            <div key={`${group.id}-summary`} className="rounded-panel bg-white p-4 shadow-soft">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-bold text-ink">{group.title}</h3>
-                <LockStateIndicator locked={group.locked} label={group.lockLabel} subtle />
-              </div>
-              <p className="mt-2 text-sm text-ink/60">
-                {group.items.length} مستند في هذا القسم، ويمكنك فتحه بالأسفل لمراجعة الحالة والإجراءات.
-              </p>
+        <section className="rounded-panel bg-white p-5 shadow-soft">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-pine">ملخص المستندات</div>
+              <h2 className="mt-1 text-xl font-bold text-ink">
+                {viewModel.summary.needsAction > 0
+                  ? `تحتاج إجراء: ${viewModel.summary.needsAction}`
+                  : "لا توجد مستندات تتطلب إجراء من هذا الحساب"}
+              </h2>
             </div>
-          ))}
+            <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink/60">
+              الإجمالي: {viewModel.summary.total}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <DocumentSummaryItem label="معتمدة" value={viewModel.summary.approved} tone="success" />
+            <DocumentSummaryItem label="بانتظار المراجعة" value={viewModel.summary.pendingReview} tone="neutral" />
+            <DocumentSummaryItem label="إعادة رفع / مرفوضة" value={viewModel.summary.reuploadRequired} tone="danger" />
+            <DocumentSummaryItem label="ناقصة" value={viewModel.summary.missing} tone="warning" />
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          {viewModel.groups.map((group) => {
+            const groupNeedsAction = group.items.filter(
+              (item) =>
+                (item.status === "MISSING" || item.status === "REJECTED" || item.status === "REUPLOAD_REQUESTED"),
+            ).length;
+
+            return (
+              <div key={`${group.id}-summary`} className="rounded-panel bg-white p-4 shadow-soft">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-base font-bold text-ink">{group.title}</h3>
+                  <LockStateIndicator locked={group.locked} label={group.lockLabel} subtle />
+                </div>
+                <p className="mt-2 text-sm text-ink/60">
+                  {groupNeedsAction > 0
+                    ? `يوجد ${groupNeedsAction} مستند يحتاج إجراء في هذا القسم.`
+                    : `${group.items.length} مستند، ولا يوجد إجراء مباشر مطلوب هنا حالياً.`}
+                </p>
+              </div>
+            );
+          })}
         </section>
 
         {viewModel.groups.map((group) => (
@@ -134,5 +165,31 @@ export default async function PortalDocumentsPage({
         ))}
       </div>
     </PortalShell>
+  );
+}
+
+function DocumentSummaryItem({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "success" | "neutral" | "warning" | "danger";
+}) {
+  const toneClass =
+    tone === "success"
+      ? "bg-[#e9f7ee] text-[#1b7a43]"
+      : tone === "danger"
+        ? "bg-[#ffe8e8] text-[#a03232]"
+        : tone === "warning"
+          ? "bg-[#fff8e1] text-[#7a5a03]"
+          : "bg-mist text-pine";
+
+  return (
+    <div className={`rounded-2xl px-4 py-3 ${toneClass}`}>
+      <div className="text-xs font-semibold opacity-80">{label}</div>
+      <div className="mt-1 text-xl font-black">{value}</div>
+    </div>
   );
 }

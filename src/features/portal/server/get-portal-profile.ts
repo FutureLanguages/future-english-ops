@@ -37,6 +37,13 @@ export type PortalProfileViewModel = {
   navItems: PortalNavItem[];
   applicationOptions: Array<{ id: string; label: string }>;
   selectedApplicationId: string;
+  summary: {
+    title: string;
+    description: string;
+    missingStudentFieldsCount: number;
+    missingParentFieldsCount: number;
+    editableSectionsCount: number;
+  };
   sections: ProfileSectionView[];
   studentEditor: {
     canEdit: boolean;
@@ -371,6 +378,16 @@ export async function getPortalProfileViewModel(params: {
     });
   }
 
+  const orderedSections =
+    data.user.role === UserRole.PARENT
+      ? sections.slice().sort((left, right) => {
+          if (left.id === "student") return 1;
+          if (right.id === "student") return -1;
+          return 0;
+        })
+      : sections;
+  const editableSectionsCount = orderedSections.filter((section) => section.statusTone === "editable").length;
+
   return {
     role: data.user.role as "STUDENT" | "PARENT",
     mobileNumber: data.user.mobileNumber,
@@ -393,7 +410,17 @@ export async function getPortalProfileViewModel(params: {
       label: application.studentProfile?.fullNameAr ?? "طلب بدون اسم",
     })),
     selectedApplicationId: data.applicationRecord.id,
-    sections,
+    summary: {
+      title: data.user.role === UserRole.STUDENT ? "ملفك الدراسي والشخصي" : "بيانات الأسرة والمتابعة",
+      description:
+        data.user.role === UserRole.STUDENT
+          ? "ابدأ ببياناتك الأساسية، ثم راجع بيانات الأسرة التي تؤثر على اكتمال الطلب."
+          : "رتبنا بيانات ولي الأمر والأسرة أولاً، مع إبقاء بيانات الطالب واضحة للمراجعة عند الحاجة.",
+      missingStudentFieldsCount: data.profile.missingStudentFields.length,
+      missingParentFieldsCount: data.profile.missingParentFields.length,
+      editableSectionsCount,
+    },
+    sections: orderedSections,
     studentEditor: {
       canEdit: studentCanEdit,
       applicationId: data.applicationRecord.id,

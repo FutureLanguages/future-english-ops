@@ -17,6 +17,11 @@ type NotificationItem = {
   isRead: boolean;
   link: string | null;
   createdAt: string;
+  importance?: "critical" | "actionable" | "informational";
+  groupLabel?: string;
+  actionLabel?: string;
+  isActionable?: boolean;
+  priority?: number;
 };
 
 const typeFilters = [
@@ -75,6 +80,11 @@ export function NotificationsCenter({
   const [toast, setToast] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const unreadCount = useMemo(() => items.filter((item) => !item.isRead).length, [items]);
+  const priorityCounts = useMemo(() => ({
+    critical: items.filter((item) => item.importance === "critical" && !item.isRead).length,
+    actionable: items.filter((item) => item.importance === "actionable" && !item.isRead).length,
+    informational: items.filter((item) => (item.importance ?? "informational") === "informational" && !item.isRead).length,
+  }), [items]);
 
   function markAllAsRead() {
     if (isPending || unreadCount === 0) {
@@ -182,6 +192,12 @@ export function NotificationsCenter({
             </Link>
           ))}
         </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <NotificationSummary label="مهمة" value={priorityCounts.critical} tone="critical" />
+          <NotificationSummary label="قابلة للمتابعة" value={priorityCounts.actionable} tone="actionable" />
+          <NotificationSummary label="معلومات" value={priorityCounts.informational} tone="informational" />
+        </div>
       </section>
 
       <section className="space-y-3">
@@ -217,6 +233,22 @@ export function NotificationsCenter({
                             جديد
                           </span>
                         ) : null}
+                        <span
+                          className={clsx(
+                            "rounded-full px-3 py-1 text-xs font-bold",
+                            notification.importance === "critical"
+                              ? "bg-[#ffe8e8] text-[#a03232]"
+                              : notification.importance === "actionable"
+                                ? "bg-[#fff8e1] text-[#7a5a03]"
+                                : "bg-white text-ink/55",
+                          )}
+                        >
+                          {notification.importance === "critical"
+                            ? "مهم"
+                            : notification.importance === "actionable"
+                              ? "قابل للمتابعة"
+                              : "معلومة"}
+                        </span>
                       </div>
                       <h3 className="mt-3 text-base font-bold leading-7 text-ink">{notification.title}</h3>
                       {notification.description ? (
@@ -234,8 +266,17 @@ export function NotificationsCenter({
                     <div className="text-xs text-ink/45">{formatTime(notification.createdAt)}</div>
                   </div>
                 </button>
-                {!notification.isRead ? (
-                  <div className="mt-3">
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {notification.link ? (
+                    <button
+                      type="button"
+                      onClick={() => openNotification(notification)}
+                      className="rounded-full bg-pine px-3 py-1.5 text-xs font-semibold text-white"
+                    >
+                      {notification.actionLabel ?? "فتح"}
+                    </button>
+                  ) : null}
+                  {!notification.isRead ? (
                     <button
                       type="button"
                       onClick={() => markSingleAsRead(notification)}
@@ -243,8 +284,8 @@ export function NotificationsCenter({
                     >
                       تمت قراءته
                     </button>
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
               </article>
             );
           })
@@ -257,6 +298,30 @@ export function NotificationsCenter({
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function NotificationSummary({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "critical" | "actionable" | "informational";
+}) {
+  const className =
+    tone === "critical"
+      ? "bg-[#ffe8e8] text-[#a03232]"
+      : tone === "actionable"
+        ? "bg-[#fff8e1] text-[#7a5a03]"
+        : "bg-sand text-ink";
+
+  return (
+    <div className={`rounded-2xl px-4 py-3 ${className}`}>
+      <div className="text-xs font-semibold opacity-80">{label}</div>
+      <div className="mt-1 text-lg font-black">{value}</div>
     </div>
   );
 }

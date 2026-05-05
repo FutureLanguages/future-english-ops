@@ -19,6 +19,19 @@ export async function getPortalAgreementsViewModel(params: {
   );
   const agreements = selectedApplication?.agreements ?? [];
   const status = summarizeAgreementStatus(agreements, data.user.role);
+  const acceptedCount = agreements.filter((agreement) => {
+    const studentAccepted = !agreement.requiresStudentAcceptance || agreement.studentAccepted;
+    const parentAccepted = !agreement.requiresParentAcceptance || agreement.parentAccepted;
+
+    return studentAccepted && parentAccepted;
+  }).length;
+  const pendingForCurrentRole = agreements.filter((agreement) => !isAgreementAcceptedByRole(agreement, data.user.role)).length;
+  const pendingStudent = agreements.filter(
+    (agreement) => agreement.requiresStudentAcceptance && !agreement.studentAccepted,
+  ).length;
+  const pendingParent = agreements.filter(
+    (agreement) => agreement.requiresParentAcceptance && !agreement.parentAccepted,
+  ).length;
 
   return {
     role: data.user.role as "STUDENT" | "PARENT",
@@ -43,17 +56,48 @@ export async function getPortalAgreementsViewModel(params: {
     })),
     selectedApplicationId: data.applicationRecord.id,
     status,
-    agreements: agreements.map((agreement) => ({
-      id: agreement.id,
-      title: agreement.title,
-      assignedAt: agreement.assignedAt,
-      accepted: isAgreementAcceptedByRole(agreement, data.user.role),
-      studentAccepted: agreement.studentAccepted,
-      parentAccepted: agreement.parentAccepted,
-      requiresStudentAcceptance: agreement.requiresStudentAcceptance,
-      requiresParentAcceptance: agreement.requiresParentAcceptance,
-      cancellationRequestedAt: agreement.cancellationRequestedAt,
-    })),
+    summary: {
+      total: agreements.length,
+      acceptedCount,
+      pendingForCurrentRole,
+      pendingStudent,
+      pendingParent,
+      stateLabel:
+        agreements.length === 0
+          ? "لا يوجد ميثاق مسند"
+          : pendingForCurrentRole > 0
+            ? `بانتظار موافقتك: ${pendingForCurrentRole}`
+            : acceptedCount === agreements.length
+              ? "كل المواثيق مكتملة"
+              : "بانتظار الطرف الآخر",
+    },
+    agreements: agreements
+      .map((agreement) => {
+        const accepted = isAgreementAcceptedByRole(agreement, data.user.role);
+        const studentPending = agreement.requiresStudentAcceptance && !agreement.studentAccepted;
+        const parentPending = agreement.requiresParentAcceptance && !agreement.parentAccepted;
+
+        return {
+          id: agreement.id,
+          title: agreement.title,
+          assignedAt: agreement.assignedAt,
+          accepted,
+          studentAccepted: agreement.studentAccepted,
+          parentAccepted: agreement.parentAccepted,
+          requiresStudentAcceptance: agreement.requiresStudentAcceptance,
+          requiresParentAcceptance: agreement.requiresParentAcceptance,
+          cancellationRequestedAt: agreement.cancellationRequestedAt,
+          actionOwnerLabel:
+            studentPending && parentPending
+              ? "بانتظار الطالب وولي الأمر"
+              : studentPending
+                ? "بانتظار الطالب"
+                : parentPending
+                  ? "بانتظار ولي الأمر"
+                  : "مكتمل من الأطراف المطلوبة",
+        };
+      })
+      .sort((left, right) => Number(left.accepted) - Number(right.accepted)),
   };
 }
 

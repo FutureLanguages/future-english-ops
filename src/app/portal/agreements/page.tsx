@@ -59,7 +59,11 @@ export default async function PortalAgreementsPage({
 
         <PortalPageHeader
           title="الميثاق"
-          description="راجع المواثيق المسندة لهذا الطلب. القبول منفصل للطالب وولي الأمر ولا يمكن التراجع عنه بعد الحفظ."
+          description={
+            viewModel.role === "PARENT"
+              ? "راجع ما يحتاج موافقة ولي الأمر وما ينتظر الطالب، بدون خلط بين مسؤوليات الأطراف."
+              : "راجع المواثيق المطلوبة منك وتأكد من حالة توقيعك بوضوح."
+          }
           aside={<DashboardStatusBadge status={viewModel.applicationStatus} />}
         />
 
@@ -69,15 +73,26 @@ export default async function PortalAgreementsPage({
           basePath="/portal/agreements"
         />
 
-        <section
-          className={`rounded-panel p-4 shadow-soft ${
-            viewModel.status.isAccepted ? "bg-mist text-pine" : "bg-clay/25 text-ink"
-          }`}
-        >
-          <div className="text-sm font-bold">{viewModel.status.label}</div>
-          <p className="mt-1 text-sm">
-            المقبول: {viewModel.status.accepted} من {viewModel.status.total}
-          </p>
+        <section className="rounded-panel bg-white p-5 shadow-soft">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-pine">ملخص الميثاق</div>
+              <h2 className="mt-1 text-xl font-bold text-ink">{viewModel.summary.stateLabel}</h2>
+              <p className="mt-1 text-sm text-ink/60">{viewModel.status.label}</p>
+            </div>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-bold ${
+                viewModel.status.isAccepted ? "bg-[#e9f7ee] text-[#1b7a43]" : "bg-[#fff8e1] text-[#7a5a03]"
+              }`}
+            >
+              المقبول: {viewModel.summary.acceptedCount} من {viewModel.summary.total}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <AgreementSummaryItem label="بانتظار الطالب" value={viewModel.summary.pendingStudent} />
+            <AgreementSummaryItem label="بانتظار ولي الأمر" value={viewModel.summary.pendingParent} />
+            <AgreementSummaryItem label="بانتظار هذا الحساب" value={viewModel.summary.pendingForCurrentRole} />
+          </div>
         </section>
 
         <section className="grid gap-4">
@@ -127,6 +142,9 @@ export default async function PortalAgreementsPage({
                       >
                         {agreement.studentAccepted && (!agreement.requiresParentAcceptance || agreement.parentAccepted) ? "الميثاق مكتمل" : "بانتظار الإكمال"}
                       </span>
+                      <span className="rounded-full bg-white px-3 py-1 text-ink/60">
+                        {agreement.actionOwnerLabel}
+                      </span>
                     </div>
                     {agreement.cancellationRequestedAt ? (
                       <div className="mt-3 rounded-2xl bg-[#fff1ea] px-3 py-2 text-sm font-semibold text-[#9f4a1f]">
@@ -135,7 +153,7 @@ export default async function PortalAgreementsPage({
                     ) : null}
                   </div>
                   <span className="rounded-full bg-pine px-4 py-2 text-center text-sm font-semibold text-white">
-                    فتح الميثاق
+                    {agreement.accepted ? "عرض الميثاق" : "فتح واعتماد"}
                   </span>
                 </div>
               </Link>
@@ -148,5 +166,14 @@ export default async function PortalAgreementsPage({
         </section>
       </div>
     </PortalShell>
+  );
+}
+
+function AgreementSummaryItem({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl bg-sand px-4 py-3">
+      <div className="text-xs font-semibold text-ink/55">{label}</div>
+      <div className="mt-1 text-lg font-black text-ink">{value}</div>
+    </div>
   );
 }

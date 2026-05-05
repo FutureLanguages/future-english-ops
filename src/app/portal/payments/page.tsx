@@ -131,10 +131,14 @@ export default async function PortalPaymentsPage({
         />
 
         <PaymentSummaryCard
+          role={viewModel.role}
           totalCostSar={viewModel.summary.totalCostSar}
           paidAmountSar={viewModel.summary.paidAmountSar}
           remainingAmountSar={viewModel.summary.remainingAmountSar}
           isPaymentComplete={viewModel.summary.isPaymentComplete}
+          stateLabel={viewModel.summary.stateLabel}
+          stateDescription={viewModel.summary.stateDescription}
+          receiptSummary={viewModel.receiptSummary}
         />
 
         <section className="grid gap-4 md:grid-cols-3">
@@ -153,7 +157,11 @@ export default async function PortalPaymentsPage({
           <div className="rounded-panel bg-white p-4 shadow-soft">
             <div className="text-sm font-semibold text-pine">الإيصالات المرفوعة</div>
             <p className="mt-2 text-sm text-ink/65">
-              الإيصالات المرفوعة للمراجعة، ويمكن أن يكون لديك أكثر من إيصال في نفس الطلب.
+              {viewModel.receiptSummary.rejectedOrReupload > 0
+                ? `يوجد ${viewModel.receiptSummary.rejectedOrReupload} إيصال يحتاج تصحيحاً.`
+                : viewModel.receiptSummary.pendingReview > 0
+                  ? `يوجد ${viewModel.receiptSummary.pendingReview} إيصال بانتظار المراجعة.`
+                  : "الإيصالات المرفوعة للمراجعة، ويمكن أن يكون لديك أكثر من إيصال في نفس الطلب."}
             </p>
           </div>
         </section>

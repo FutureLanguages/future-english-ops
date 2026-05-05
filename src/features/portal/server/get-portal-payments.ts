@@ -25,6 +25,15 @@ export type PortalPaymentsViewModel = {
     paidAmountSar: number;
     remainingAmountSar: number;
     isPaymentComplete: boolean;
+    stateLabel: string;
+    stateDescription: string;
+  };
+  receiptSummary: {
+    total: number;
+    pendingReview: number;
+    approved: number;
+    rejectedOrReupload: number;
+    latestStatusLabel: string;
   };
   latestPaymentNote: string | null;
   applicationId: string;
@@ -91,6 +100,26 @@ export async function getPortalPaymentsViewModel(params: {
 
   const selectedApplication =
     data.applications.find((application) => application.id === data.applicationRecord.id) ?? null;
+  const receipts = selectedApplication?.paymentReceipts ?? [];
+  const pendingReview = receipts.filter(
+    (receipt) => receipt.status === "UPLOADED" || receipt.status === "UNDER_REVIEW",
+  ).length;
+  const approved = receipts.filter((receipt) => receipt.status === "APPROVED").length;
+  const rejectedOrReupload = receipts.filter(
+    (receipt) => receipt.status === "REJECTED" || receipt.status === "REUPLOAD_REQUESTED",
+  ).length;
+  const stateLabel = data.paymentSummary.isPaymentComplete
+    ? "السداد مكتمل"
+    : data.paymentSummary.remainingAmountSar > 0
+      ? `المتبقي ${data.paymentSummary.remainingAmountSar} ر.س`
+      : "بانتظار مراجعة السداد";
+  const stateDescription = data.paymentSummary.isPaymentComplete
+    ? "لا يوجد مبلغ متبقٍ حسب البيانات المالية الحالية."
+    : rejectedOrReupload > 0
+      ? "يوجد إيصال يحتاج تصحيحاً قبل اعتماده."
+      : pendingReview > 0
+        ? "يوجد إيصال مرفوع وينتظر مراجعة الإدارة."
+        : "يمكن رفع إيصال جديد أو متابعة المبلغ المتبقي حسب تعليمات الإدارة.";
 
   return {
     role: data.user.role as "STUDENT" | "PARENT",
@@ -120,12 +149,21 @@ export async function getPortalPaymentsViewModel(params: {
       paidAmountSar: data.paymentSummary.paidAmountSar,
       remainingAmountSar: data.paymentSummary.remainingAmountSar,
       isPaymentComplete: data.paymentSummary.isPaymentComplete,
+      stateLabel,
+      stateDescription,
+    },
+    receiptSummary: {
+      total: receipts.length,
+      pendingReview,
+      approved,
+      rejectedOrReupload,
+      latestStatusLabel: receipts[0]?.status ? mapReceiptStatus(receipts[0].status) : "لم يتم رفع إيصال بعد",
     },
     latestPaymentNote,
     applicationId: data.applicationRecord.id,
     canUploadReceipt: canUploadPaymentReceipt(data.user, data.applicationRecord),
     receipts:
-      selectedApplication?.paymentReceipts.map((receipt) => ({
+      receipts.map((receipt) => ({
         id: receipt.id,
         status: receipt.status as "UPLOADED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "REUPLOAD_REQUESTED",
         statusLabel: mapReceiptStatus(receipt.status),

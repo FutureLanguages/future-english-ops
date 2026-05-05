@@ -90,8 +90,8 @@ export default async function PortalProfilePage({
           </section>
         ) : null}
         <PortalPageHeader
-          title="الملف"
-          description="صفحة مستقلة لبيانات الطالب والأسرة. كل قسم هنا مخصص للمراجعة أو التعديل فقط."
+          title={viewModel.summary.title}
+          description={viewModel.summary.description}
           aside={<DashboardStatusBadge status={viewModel.status} />}
         />
 
@@ -100,6 +100,20 @@ export default async function PortalProfilePage({
           selectedApplicationId={viewModel.selectedApplicationId}
           basePath="/portal/profile"
         />
+
+        <section className="rounded-panel bg-white p-5 shadow-soft">
+          <div className="text-sm font-semibold text-pine">ملخص الملف</div>
+          <h2 className="mt-1 text-xl font-bold text-ink">
+            {viewModel.summary.missingStudentFieldsCount + viewModel.summary.missingParentFieldsCount > 0
+              ? "توجد بيانات تحتاج استكمال"
+              : "لا توجد حقول مطلوبة ناقصة حالياً"}
+          </h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <ProfileSummaryItem label="نواقص بيانات الطالب" value={viewModel.summary.missingStudentFieldsCount} />
+            <ProfileSummaryItem label="نواقص بيانات الأسرة" value={viewModel.summary.missingParentFieldsCount} />
+            <ProfileSummaryItem label="أقسام قابلة للتعديل" value={viewModel.summary.editableSectionsCount} />
+          </div>
+        </section>
 
         <div className="grid gap-4">
           {viewModel.sections.map((section) => (
@@ -120,39 +134,17 @@ export default async function PortalProfilePage({
           ))}
         </div>
 
-        {viewModel.studentEditor.canEdit ? (
-          <section className="rounded-panel bg-white p-5 shadow-soft">
-            <div className="mb-4">
-              <h3 className="text-lg font-bold text-ink">تعديل بيانات الطالب</h3>
-              <p className="mt-1 text-sm leading-6 text-ink/65">
-                حدّث بيانات الطالب هنا. الحقول المطلوبة ظاهرة داخل القسم أعلاه، ويمكنك حفظ التغييرات مباشرة.
-              </p>
-            </div>
-            <PortalStudentProfileForm
-              applicationId={viewModel.studentEditor.applicationId}
-              values={viewModel.studentEditor.values}
-            />
-          </section>
-        ) : null}
-
-        {viewModel.parentEditors.map((editor) => (
-              <section key={editor.id} className="rounded-panel bg-white p-5 shadow-soft">
-                <div className="mb-4">
-                  <h3 className="text-lg font-bold text-ink">{editor.title}</h3>
-                  <p className="mt-1 text-sm leading-6 text-ink/65">
-                    يمكنك إدخال البيانات الكاملة هنا. عند إدخال رقم الجوال سيتم ربط الطلب
-                    بحساب ولي الأمر الموجود أو إنشاء حساب جديد تلقائيًا عند الحاجة.
-                  </p>
-                </div>
-                {editor.canEdit ? (
-                  <PortalParentProfileForm editor={editor} />
-                ) : (
-                  <div className="mt-3 rounded-2xl bg-mist px-4 py-3 text-sm text-ink/65">
-                    هذا القسم ظاهر لك للمراجعة فقط، ولا يمكن تعديل بياناته من هذا الحساب حالياً.
-                  </div>
-                )}
-              </section>
-            ))}
+        {viewModel.role === "PARENT" ? (
+          <>
+            <ParentEditorSections viewModel={viewModel} />
+            <StudentEditorSection viewModel={viewModel} />
+          </>
+        ) : (
+          <>
+            <StudentEditorSection viewModel={viewModel} />
+            <ParentEditorSections viewModel={viewModel} />
+          </>
+        )}
 
         {viewModel.healthEditor.visible ? (
           <section className="rounded-panel bg-white p-5 shadow-soft">
@@ -182,5 +174,65 @@ export default async function PortalProfilePage({
         </section>
       </div>
     </PortalShell>
+  );
+}
+
+function StudentEditorSection({ viewModel }: { viewModel: NonNullable<Awaited<ReturnType<typeof getPortalProfileViewModel>>> }) {
+  if (!viewModel.studentEditor.canEdit) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-panel bg-white p-5 shadow-soft">
+      <div className="mb-4">
+        <h3 className="text-lg font-bold text-ink">
+          {viewModel.role === "STUDENT" ? "تعديل بياناتك" : "تعديل بيانات الطالب"}
+        </h3>
+        <p className="mt-1 text-sm leading-6 text-ink/65">
+          {viewModel.role === "STUDENT"
+            ? "حدّث بياناتك الأساسية أولاً لأنها تؤثر مباشرة على اكتمال الملف."
+            : "بيانات الطالب متاحة هنا عند الحاجة، مع الحفاظ على ترتيب ولي الأمر أولاً في هذه الصفحة."}
+        </p>
+      </div>
+      <PortalStudentProfileForm
+        applicationId={viewModel.studentEditor.applicationId}
+        values={viewModel.studentEditor.values}
+      />
+    </section>
+  );
+}
+
+function ParentEditorSections({ viewModel }: { viewModel: NonNullable<Awaited<ReturnType<typeof getPortalProfileViewModel>>> }) {
+  return (
+    <>
+      {viewModel.parentEditors.map((editor) => (
+        <section key={editor.id} className="rounded-panel bg-white p-5 shadow-soft">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-ink">{editor.title}</h3>
+            <p className="mt-1 text-sm leading-6 text-ink/65">
+              {viewModel.role === "PARENT"
+                ? "هذه بيانات ولي الأمر والأسرة المرتبطة بالمتابعة، ويمكن تحديثها هنا عند السماح بالتعديل."
+                : "راجع بيانات ولي الأمر والأسرة، وحدّثها فقط إذا كانت متاحة لهذا الحساب."}
+            </p>
+          </div>
+          {editor.canEdit ? (
+            <PortalParentProfileForm editor={editor} />
+          ) : (
+            <div className="mt-3 rounded-2xl bg-mist px-4 py-3 text-sm text-ink/65">
+              هذا القسم ظاهر لك للمراجعة فقط، ولا يمكن تعديل بياناته من هذا الحساب حالياً.
+            </div>
+          )}
+        </section>
+      ))}
+    </>
+  );
+}
+
+function ProfileSummaryItem({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl bg-sand px-4 py-3">
+      <div className="text-xs font-semibold text-ink/55">{label}</div>
+      <div className="mt-1 text-lg font-black text-ink">{value}</div>
+    </div>
   );
 }

@@ -5,6 +5,7 @@ import {
   type Prisma,
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { deriveNotificationPresentation } from "./presentation";
 
 type NotificationClient = Prisma.TransactionClient | typeof prisma;
 
@@ -94,10 +95,19 @@ export async function getUserNotifications(params: {
     },
   });
 
-  return notifications.map((notification) => ({
-    ...notification,
-    createdAt: notification.createdAt.toISOString(),
-  }));
+  return notifications
+    .map((notification) => ({
+      ...notification,
+      ...deriveNotificationPresentation(notification),
+      createdAt: notification.createdAt.toISOString(),
+    }))
+    .sort((left, right) => {
+      if (left.priority !== right.priority) {
+        return left.priority - right.priority;
+      }
+
+      return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    });
 }
 
 export async function createNotificationsForUsers(params: {

@@ -20,6 +20,9 @@ type ThreadView = {
   type: "STUDENT" | "PARENT";
   label: string;
   unreadCount: number;
+  needsAttention?: boolean;
+  latestPreview?: string;
+  latestSenderLabel?: string | null;
   lastActivityAt: Date | string | null;
   messages: MessageView[];
 };
@@ -183,16 +186,24 @@ export function MessageThreadsPanel({
             key={thread.type}
             type="button"
             onClick={() => setActiveThread(thread.type)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`rounded-2xl px-4 py-3 text-right text-sm font-semibold ${
               activeThread === thread.type
                 ? "bg-pine text-white"
                 : "border border-black/10 bg-white text-ink hover:bg-sand"
             }`}
           >
-            {thread.label}
-            {thread.unreadCount > 0 ? (
-              <span className="mr-2 rounded-full bg-clay px-2 py-0.5 text-[10px] text-ink">
-                {thread.unreadCount}
+            <span className="flex items-center gap-2">
+              {thread.label}
+              {thread.unreadCount > 0 ? (
+                <span className="rounded-full bg-clay px-2 py-0.5 text-[10px] text-ink">
+                  {thread.unreadCount}
+                </span>
+              ) : null}
+            </span>
+            {thread.latestPreview ? (
+              <span className={`mt-1 block max-w-64 truncate text-xs ${activeThread === thread.type ? "text-white/70" : "text-ink/45"}`}>
+                {thread.latestSenderLabel ? `${thread.latestSenderLabel}: ` : ""}
+                {thread.latestPreview}
               </span>
             ) : null}
           </button>
@@ -210,6 +221,11 @@ export function MessageThreadsPanel({
               {currentThread.unreadCount > 0 ? (
                 <span className="rounded-full bg-clay/35 px-3 py-1 text-xs font-semibold text-ink">
                   غير مقروء: {currentThread.unreadCount}
+                </span>
+              ) : null}
+              {currentThread.needsAttention ? (
+                <span className="rounded-full bg-[#fff8e1] px-3 py-1 text-xs font-semibold text-[#7a5a03]">
+                  يحتاج انتباه
                 </span>
               ) : null}
               <span className="rounded-full bg-mist px-3 py-1 text-xs font-semibold text-pine">
