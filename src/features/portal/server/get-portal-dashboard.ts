@@ -7,6 +7,7 @@ import type {
   PortalDashboardBaseViewModel,
   PortalDashboardViewModel,
   PortalFinanceSnapshot,
+  PortalProgramConfigView,
   PortalSectionCard,
   PortalSectionHealthSummary,
   StudentDashboardViewModel,
@@ -14,6 +15,7 @@ import type {
 import { derivePortalStageStatus } from "./derive-portal-stage-status";
 import { loadPortalApplicationData } from "./load-portal-application";
 import { buildPortalNavItems, resolveAgreementHref } from "./nav";
+import { portalModeLabels, resolvePortalSurfaces } from "./portal-config";
 
 type PortalApplicationData = NonNullable<Awaited<ReturnType<typeof loadPortalApplicationData>>>;
 type SelectedApplication = PortalApplicationData["applications"][number];
@@ -42,6 +44,27 @@ function getFinanceSnapshot(data: PortalApplicationData): PortalFinanceSnapshot 
     paidAmountSar: data.paymentSummary.paidAmountSar,
     remainingAmountSar: data.paymentSummary.remainingAmountSar,
     isPaymentComplete: data.paymentSummary.isPaymentComplete,
+  };
+}
+
+function getProgramConfigView(data: PortalApplicationData): PortalProgramConfigView {
+  const selectedApplication = getSelectedApplication(data);
+  const resolution = resolvePortalSurfaces({
+    mode: selectedApplication?.portalConfig?.mode,
+    overrides: selectedApplication?.portalConfig ?? null,
+  });
+
+  return {
+    mode: resolution.mode,
+    modeLabel: portalModeLabels[resolution.mode],
+    surfaces: resolution.surfaces,
+    items: resolution.items.map((item) => ({
+      key: item.key,
+      label: item.label,
+      enabled: item.enabled,
+      renderable: item.renderable,
+      supportLabel: item.supportLabel,
+    })),
   };
 }
 
@@ -504,6 +527,7 @@ function buildBaseDashboardViewModel(data: PortalApplicationData): PortalDashboa
     stageLabel: stage.currentStageLabel,
     stage,
     statusBehavior,
+    program: getProgramConfigView(data),
     nextStep: buildNextStep({
       actions,
       role: data.user.role,

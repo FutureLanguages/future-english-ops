@@ -70,7 +70,24 @@ model Application {
   parentProfiles       ParentProfile[]
   studentHealthProfile StudentHealthProfile?
   studentProfile       StudentProfile?
+  portalConfig         ApplicationPortalConfig?
   financialDifferenceSettlements FinancialDifferenceSettlement[]
+}
+
+model ApplicationPortalConfig {
+  id                  String      @id @default(cuid())
+  applicationId       String      @unique
+  mode                PortalMode  @default(GENERAL_STUDY)
+  showCountdown       Boolean?
+  showTripDetails     Boolean?
+  showFlightInfo      Boolean?
+  showSupervisorInfo  Boolean?
+  showProgramEvents   Boolean?
+  showEnrollmentCard  Boolean?
+  showPaymentSchedule Boolean?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  application         Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 }
 
 model AgreementTemplate {
@@ -348,6 +365,11 @@ enum ApplicationStatus {
   UNDER_REVIEW
   WAITING_PAYMENT
   COMPLETED
+}
+
+enum PortalMode {
+  GENERAL_STUDY
+  SUMMER_PROGRAM
 }
 
 enum ParentType {

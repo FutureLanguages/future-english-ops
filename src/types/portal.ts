@@ -1,4 +1,4 @@
-import type { ApplicationStatus } from "@prisma/client";
+import type { ApplicationStatus, PortalMode } from "@prisma/client";
 
 export type PortalNavItem = {
   key: string;
@@ -104,6 +104,28 @@ export type PortalStatusBehavior = {
   parentHeroDescription: string;
 };
 
+export type PortalProgramSurfaceItem = {
+  key:
+    | "showCountdown"
+    | "showTripDetails"
+    | "showFlightInfo"
+    | "showSupervisorInfo"
+    | "showProgramEvents"
+    | "showEnrollmentCard"
+    | "showPaymentSchedule";
+  label: string;
+  enabled: boolean;
+  renderable: boolean;
+  supportLabel: string;
+};
+
+export type PortalProgramConfigView = {
+  mode: PortalMode;
+  modeLabel: string;
+  surfaces: Record<PortalProgramSurfaceItem["key"], boolean>;
+  items: PortalProgramSurfaceItem[];
+};
+
 export type PortalDashboardBaseViewModel = {
   role: "STUDENT" | "PARENT";
   mobileNumber: string;
@@ -122,6 +144,7 @@ export type PortalDashboardBaseViewModel = {
   stageLabel: string;
   stage: PortalStageModel;
   statusBehavior: PortalStatusBehavior;
+  program: PortalProgramConfigView;
   nextStep: {
     title: string;
     description: string;

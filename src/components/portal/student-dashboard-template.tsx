@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ApplicationSwitcher } from "@/components/portal/application-switcher";
 import { CompletionRing } from "@/components/portal/completion-ring";
 import { DashboardStatusBadge } from "@/components/portal/dashboard-status";
+import { EnrollmentSurfaceCard } from "@/components/portal/enrollment-surface-card";
 import { RequiredActionsList } from "@/components/portal/required-actions-list";
 import type { PortalStageItem, StudentDashboardViewModel } from "@/types/portal";
 
@@ -58,6 +59,13 @@ export function StudentDashboardTemplate({ viewModel }: { viewModel: StudentDash
         options={viewModel.applicationOptions}
         selectedApplicationId={viewModel.selectedApplicationId}
         basePath="/portal/dashboard"
+      />
+
+      <EnrollmentSurfaceCard
+        program={viewModel.program}
+        stageLabel={viewModel.stageLabel}
+        statusLabel={viewModel.statusBehavior.label}
+        studentName={viewModel.studentName}
       />
 
       <StageTimeline

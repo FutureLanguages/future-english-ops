@@ -414,6 +414,7 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
       { id: "finance", label: "المالية", href: `/admin/students/${hydratedApplication.id}?tab=finance` },
       { id: "messages", label: "الرسائل", href: `/admin/students/${hydratedApplication.id}?tab=messages` },
       { id: "agreements", label: "الميثاق", href: `/admin/students/${hydratedApplication.id}?tab=agreements` },
+      { id: "portal-config", label: "إعدادات البوابة", href: `/admin/students/${hydratedApplication.id}/portal-config` },
       { id: "settings", label: "الإعدادات", href: `/admin/students/${hydratedApplication.id}?tab=settings` },
     ],
     application: derived.row,

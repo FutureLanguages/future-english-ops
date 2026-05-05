@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ApplicationSwitcher } from "@/components/portal/application-switcher";
+import { EnrollmentSurfaceCard } from "@/components/portal/enrollment-surface-card";
 import { RequiredActionsList } from "@/components/portal/required-actions-list";
 import type { ParentDashboardViewModel, ParentReassuranceState } from "@/types/portal";
 
@@ -72,6 +73,13 @@ export function ParentDashboardTemplate({ viewModel }: { viewModel: ParentDashbo
         options={viewModel.applicationOptions}
         selectedApplicationId={viewModel.selectedApplicationId}
         basePath="/portal/dashboard"
+      />
+
+      <EnrollmentSurfaceCard
+        program={viewModel.program}
+        stageLabel={viewModel.stageLabel}
+        statusLabel={viewModel.statusLabel}
+        studentName={viewModel.studentName}
       />
 
       {canShowActions && viewModel.requiredIntervention ? (
