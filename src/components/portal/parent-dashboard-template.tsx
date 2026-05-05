@@ -29,6 +29,7 @@ const reassuranceCopy: Record<ParentReassuranceState, { title: string; descripti
 export function ParentDashboardTemplate({ viewModel }: { viewModel: ParentDashboardViewModel }) {
   const actionsHref = `/portal/actions?applicationId=${viewModel.selectedApplicationId}`;
   const reassurance = reassuranceCopy[viewModel.reassuranceState];
+  const canShowActions = !viewModel.statusBehavior.suppressActionFraming;
   const secondaryActions = viewModel.requiredIntervention
     ? viewModel.topActions.filter((action) => action.id !== viewModel.requiredIntervention?.id)
     : viewModel.topActions;
@@ -43,15 +44,20 @@ export function ParentDashboardTemplate({ viewModel }: { viewModel: ParentDashbo
             </span>
             <div>
               <p className="text-sm font-semibold text-pine">متابعة ولي الأمر</p>
-              <h2 className="mt-1 text-2xl font-bold text-ink">{reassurance.title}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-ink/65">{reassurance.description}</p>
+              <h2 className="mt-1 text-2xl font-bold text-ink">{viewModel.statusBehavior.parentHeroTitle}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-ink/65">
+                {viewModel.statusBehavior.parentHeroDescription}
+              </p>
             </div>
             <div className="rounded-2xl bg-sand px-4 py-3 text-sm leading-6 text-ink/70">
               الطلب الخاص بـ <span className="font-bold text-ink">{viewModel.studentName}</span> في مرحلة{" "}
               <span className="font-bold text-ink">{viewModel.stageLabel}</span>.
+              <span className="mt-1 block text-xs font-semibold text-ink/50">
+                تقدم المرحلة: {viewModel.stage.progressPercent}%
+              </span>
             </div>
           </div>
-          {viewModel.heroPrimaryAction.href ? (
+          {canShowActions && viewModel.heroPrimaryAction.href ? (
             <Link
               href={viewModel.heroPrimaryAction.href}
               className="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-bold text-white transition hover:bg-pine/90"
@@ -68,7 +74,7 @@ export function ParentDashboardTemplate({ viewModel }: { viewModel: ParentDashbo
         basePath="/portal/dashboard"
       />
 
-      {viewModel.requiredIntervention ? (
+      {canShowActions && viewModel.requiredIntervention ? (
         <section className="rounded-panel bg-white p-5 shadow-soft">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -118,9 +124,11 @@ export function ParentDashboardTemplate({ viewModel }: { viewModel: ParentDashbo
             <div className="text-sm font-semibold text-pine">ملخص هادئ للحالة</div>
             <h3 className="mt-1 text-lg font-bold text-ink">الأقسام الأساسية</h3>
           </div>
-          <Link href={actionsHref} className="text-sm font-bold text-pine">
-            كل الإجراءات
-          </Link>
+          {canShowActions && viewModel.actions.length > 0 ? (
+            <Link href={actionsHref} className="text-sm font-bold text-pine">
+              كل الإجراءات
+            </Link>
+          ) : null}
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {viewModel.sectionSummaries.map((section) => (
@@ -134,7 +142,7 @@ export function ParentDashboardTemplate({ viewModel }: { viewModel: ParentDashbo
         </div>
       </section>
 
-      {secondaryActions.length > 0 ? (
+      {canShowActions && secondaryActions.length > 0 ? (
         <section className="rounded-panel bg-white p-5 shadow-soft">
           <div className="text-sm font-semibold text-pine">إجراءات أخرى</div>
           <div className="mt-4">

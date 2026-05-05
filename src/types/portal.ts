@@ -57,6 +57,53 @@ export type PortalSectionHealthSummary = Array<{
   href?: string;
 }>;
 
+export type PortalStageId =
+  | "registration"
+  | "profile"
+  | "documents"
+  | "agreement"
+  | "payment"
+  | "closure";
+
+export type PortalStageStatus = "completed" | "current" | "upcoming";
+
+export type PortalStageItem = {
+  id: PortalStageId;
+  label: string;
+  index: number;
+  status: PortalStageStatus;
+};
+
+export type PortalStageModel = {
+  currentStageId: PortalStageId;
+  currentStageIndex: number;
+  currentStageLabel: string;
+  progressPercent: number;
+  timelineActive: boolean;
+  stages: PortalStageItem[];
+};
+
+export type PortalStatusBehaviorCode =
+  | "DRAFT"
+  | "IN_PROGRESS"
+  | "REVIEWING"
+  | "PENDING_PAYMENT"
+  | "READY"
+  | "COMPLETED"
+  | "CANCELLED";
+
+export type PortalStatusBehavior = {
+  code: PortalStatusBehaviorCode;
+  label: string;
+  tone: "neutral" | "active" | "waiting" | "success" | "warning" | "danger";
+  isTerminal: boolean;
+  suppressActionFraming: boolean;
+  studentHeroTitle: string;
+  studentHeroDescription: string;
+  parentHeroTitle: string;
+  parentHeroDescription: string;
+};
+
 export type PortalDashboardBaseViewModel = {
   role: "STUDENT" | "PARENT";
   mobileNumber: string;
@@ -73,6 +120,8 @@ export type PortalDashboardBaseViewModel = {
   latestAdminNote: string | null;
   currentStage: string;
   stageLabel: string;
+  stage: PortalStageModel;
+  statusBehavior: PortalStatusBehavior;
   nextStep: {
     title: string;
     description: string;

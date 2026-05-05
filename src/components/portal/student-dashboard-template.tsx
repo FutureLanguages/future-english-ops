@@ -3,22 +3,28 @@ import { ApplicationSwitcher } from "@/components/portal/application-switcher";
 import { CompletionRing } from "@/components/portal/completion-ring";
 import { DashboardStatusBadge } from "@/components/portal/dashboard-status";
 import { RequiredActionsList } from "@/components/portal/required-actions-list";
-import type { StudentDashboardViewModel } from "@/types/portal";
+import type { PortalStageItem, StudentDashboardViewModel } from "@/types/portal";
 
 export function StudentDashboardTemplate({ viewModel }: { viewModel: StudentDashboardViewModel }) {
   const actionsHref = `/portal/actions?applicationId=${viewModel.selectedApplicationId}`;
+  const canShowActions = !viewModel.statusBehavior.suppressActionFraming;
 
   return (
     <div className="space-y-5">
       <section className="rounded-panel bg-white p-5 shadow-soft">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-4">
-            <DashboardStatusBadge status={viewModel.status} />
+            <div className="flex flex-wrap items-center gap-2">
+              <DashboardStatusBadge status={viewModel.status} />
+              <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusToneClass(viewModel.statusBehavior.tone)}`}>
+                {viewModel.statusBehavior.label}
+              </span>
+            </div>
             <div>
               <p className="text-sm font-semibold text-pine">رحلة الطالب</p>
-              <h2 className="mt-1 text-2xl font-bold text-ink">خطوتك التالية واضحة هنا</h2>
+              <h2 className="mt-1 text-2xl font-bold text-ink">{viewModel.statusBehavior.studentHeroTitle}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-ink/65">
-                {viewModel.statusContext}
+                {viewModel.statusBehavior.studentHeroDescription}
               </p>
             </div>
             <div className="rounded-2xl bg-sand px-4 py-3">
@@ -26,7 +32,7 @@ export function StudentDashboardTemplate({ viewModel }: { viewModel: StudentDash
               <div className="mt-1 text-lg font-bold text-ink">{viewModel.stageLabel}</div>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              {viewModel.heroPrimaryAction.href ? (
+              {canShowActions && viewModel.heroPrimaryAction.href ? (
                 <Link
                   href={viewModel.heroPrimaryAction.href}
                   className="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-bold text-white transition hover:bg-pine/90"
@@ -34,12 +40,14 @@ export function StudentDashboardTemplate({ viewModel }: { viewModel: StudentDash
                   {viewModel.heroPrimaryAction.label}
                 </Link>
               ) : null}
-              <Link
-                href={actionsHref}
-                className="inline-flex items-center justify-center rounded-2xl bg-mist px-5 py-3 text-sm font-bold text-pine transition hover:bg-sand"
-              >
-                عرض كل الإجراءات
-              </Link>
+              {canShowActions && viewModel.actions.length > 0 ? (
+                <Link
+                  href={actionsHref}
+                  className="inline-flex items-center justify-center rounded-2xl bg-mist px-5 py-3 text-sm font-bold text-pine transition hover:bg-sand"
+                >
+                  عرض كل الإجراءات
+                </Link>
+              ) : null}
             </div>
           </div>
           <CompletionRing percent={viewModel.completionPercent} />
@@ -52,10 +60,16 @@ export function StudentDashboardTemplate({ viewModel }: { viewModel: StudentDash
         basePath="/portal/dashboard"
       />
 
+      <StageTimeline
+        stages={viewModel.stage.stages}
+        progressPercent={viewModel.stage.progressPercent}
+        timelineActive={viewModel.stage.timelineActive}
+      />
+
       <section className="grid gap-4 md:grid-cols-2">
         <div className="rounded-panel bg-white p-5 shadow-soft">
-          <div className="text-sm font-semibold text-pine">ملخص التقدم</div>
-          <h3 className="mt-1 text-lg font-bold text-ink">البيانات والمستندات والميثاق</h3>
+          <div className="text-sm font-semibold text-pine">ملخص المرحلة</div>
+          <h3 className="mt-1 text-lg font-bold text-ink">{viewModel.stage.currentStageLabel}</h3>
           <p className="mt-2 text-sm leading-6 text-ink/65">
             {viewModel.progressIndicators.profileDocumentsAgreements.detailLabel}
           </p>
@@ -70,16 +84,26 @@ export function StudentDashboardTemplate({ viewModel }: { viewModel: StudentDash
         </div>
 
         <div className="rounded-panel bg-white p-5 shadow-soft">
-          <div className="text-sm font-semibold text-pine">الأهم الآن</div>
-          <h3 className="mt-1 text-lg font-bold text-ink">إجراءات تساعد طلبك على التقدم</h3>
-          <div className="mt-4">
-            <RequiredActionsList actions={viewModel.topActions} />
-          </div>
-          {viewModel.remainingActionsCount > 0 ? (
-            <Link href={actionsHref} className="mt-3 inline-flex text-sm font-bold text-pine">
-              وهناك {viewModel.remainingActionsCount} إجراءات أخرى
-            </Link>
-          ) : null}
+          {canShowActions ? (
+            <>
+              <div className="text-sm font-semibold text-pine">الأهم الآن</div>
+              <h3 className="mt-1 text-lg font-bold text-ink">إجراءات تساعد طلبك على التقدم</h3>
+              <div className="mt-4">
+                <RequiredActionsList actions={viewModel.topActions} />
+              </div>
+              {viewModel.remainingActionsCount > 0 ? (
+                <Link href={actionsHref} className="mt-3 inline-flex text-sm font-bold text-pine">
+                  وهناك {viewModel.remainingActionsCount} إجراءات أخرى
+                </Link>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <div className="text-sm font-semibold text-pine">حالة نهائية</div>
+              <h3 className="mt-1 text-lg font-bold text-ink">{viewModel.statusBehavior.label}</h3>
+              <p className="mt-2 text-sm leading-7 text-ink/65">{viewModel.statusBehavior.studentHeroDescription}</p>
+            </>
+          )}
         </div>
       </section>
 
@@ -130,6 +154,68 @@ export function StudentDashboardTemplate({ viewModel }: { viewModel: StudentDash
       ) : null}
     </div>
   );
+}
+
+function StageTimeline({
+  stages,
+  progressPercent,
+  timelineActive,
+}: {
+  stages: PortalStageItem[];
+  progressPercent: number;
+  timelineActive: boolean;
+}) {
+  return (
+    <section className="rounded-panel bg-white p-4 shadow-soft sm:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-pine">مسار الطلب</div>
+          <h3 className="mt-1 text-lg font-bold text-ink">المراحل الموحدة</h3>
+        </div>
+        <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink/65">
+          {timelineActive ? `${progressPercent}%` : "غير نشط"}
+        </span>
+      </div>
+      <div className="mt-4 overflow-x-auto pb-1">
+        <div className="flex min-w-max items-start gap-2 sm:min-w-0 sm:grid sm:grid-cols-6">
+          {stages.map((stage) => (
+            <StageStep key={stage.id} stage={stage} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StageStep({ stage }: { stage: PortalStageItem }) {
+  const isCompleted = stage.status === "completed";
+  const isCurrent = stage.status === "current";
+
+  return (
+    <div
+      className={`min-w-28 rounded-2xl border px-3 py-3 text-center sm:min-w-0 ${
+        isCurrent
+          ? "border-pine bg-pine text-white"
+          : isCompleted
+            ? "border-[#d7ebdf] bg-[#e9f7ee] text-[#1b7a43]"
+            : "border-black/5 bg-sand text-ink/55"
+      }`}
+    >
+      <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-xs font-black text-ink">
+        {isCompleted ? "✓" : stage.index + 1}
+      </div>
+      <div className="mt-2 text-xs font-bold leading-5">{stage.label}</div>
+    </div>
+  );
+}
+
+function statusToneClass(tone: StudentDashboardViewModel["statusBehavior"]["tone"]) {
+  if (tone === "success") return "bg-[#e9f7ee] text-[#1b7a43]";
+  if (tone === "warning") return "bg-[#fff8e1] text-[#7a5a03]";
+  if (tone === "danger") return "bg-[#ffe8e8] text-[#a03232]";
+  if (tone === "waiting") return "bg-mist text-pine";
+  if (tone === "active") return "bg-clay/35 text-ink";
+  return "bg-sand text-ink/65";
 }
 
 function FinanceItem({ label, value }: { label: string; value: string }) {

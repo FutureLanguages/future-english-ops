@@ -11,6 +11,7 @@ import type {
   PortalSectionHealthSummary,
   StudentDashboardViewModel,
 } from "@/types/portal";
+import { derivePortalStageStatus } from "./derive-portal-stage-status";
 import { loadPortalApplicationData } from "./load-portal-application";
 import { buildPortalNavItems, resolveAgreementHref } from "./nav";
 
@@ -26,22 +27,6 @@ function withApplicationId(href: string | undefined, applicationId: string) {
     ? `${href}&applicationId=${applicationId}`
     : `${href}?applicationId=${applicationId}`;
 }
-
-const statusLabels: Record<ApplicationStatus, string> = {
-  NEW: "طلب جديد",
-  INCOMPLETE: "بانتظار الاستكمال",
-  UNDER_REVIEW: "قيد المراجعة",
-  WAITING_PAYMENT: "بانتظار الدفع",
-  COMPLETED: "مكتمل",
-};
-
-const statusContexts: Record<ApplicationStatus, string> = {
-  NEW: "تم إنشاء الطلب، والخطوة الأهم الآن هي استكمال البيانات والمستندات المطلوبة.",
-  INCOMPLETE: "هناك بيانات أو مستندات تحتاج استكمال قبل انتقال الطلب للمتابعة التالية.",
-  UNDER_REVIEW: "الطلب لدى الإدارة حالياً للمراجعة، وسنظهر أي إجراء جديد فور وجوده.",
-  WAITING_PAYMENT: "الطلب يحتاج متابعة مالية حتى يكتمل المسار.",
-  COMPLETED: "الطلب مكتمل حالياً ولا توجد خطوات رئيسية متوقفة.",
-};
 
 function getCurrentAgreements(data: PortalApplicationData) {
   return data.applications.find((application) => application.id === data.applicationRecord.id)?.agreements ?? [];
@@ -235,18 +220,42 @@ export function buildPortalRequiredActions(data: PortalApplicationData): PortalA
   });
 }
 
-function buildNextStep(actions: PortalActionView[], role: UserRole) {
+function buildNextStep(params: {
+  actions: PortalActionView[];
+  role: UserRole;
+  statusBehavior: ReturnType<typeof derivePortalStageStatus>["statusBehavior"];
+}) {
+  if (params.statusBehavior.isTerminal) {
+    return {
+      title: params.statusBehavior.label,
+      description:
+        params.role === UserRole.STUDENT
+          ? params.statusBehavior.studentHeroDescription
+          : params.statusBehavior.parentHeroDescription,
+    };
+  }
+
+  if (params.statusBehavior.suppressActionFraming && params.actions.length === 0) {
+    return {
+      title: params.statusBehavior.label,
+      description:
+        params.role === UserRole.STUDENT
+          ? params.statusBehavior.studentHeroDescription
+          : params.statusBehavior.parentHeroDescription,
+    };
+  }
+
+  const actions = params.actions;
+  const role = params.role;
   const firstAction = actions[0];
 
   if (!firstAction) {
     return {
-      title: role === UserRole.STUDENT ? "رحلتك تسير بشكل جيد" : "لا يوجد تدخل مطلوب حالياً",
+      title: role === UserRole.STUDENT ? params.statusBehavior.studentHeroTitle : params.statusBehavior.parentHeroTitle,
       description:
         role === UserRole.STUDENT
-          ? "لا توجد مهام عاجلة الآن. استمر في متابعة حالة الطلب والرسائل عند وصولها."
-          : "كل ما يحتاج متابعة مباشرة من ولي الأمر واضح حالياً، وسنظهر أي إجراء جديد هنا.",
-      href: "/portal/dashboard",
-      ctaLabel: role === UserRole.STUDENT ? "متابعة الرحلة" : "مراجعة الحالة",
+          ? params.statusBehavior.studentHeroDescription
+          : params.statusBehavior.parentHeroDescription,
     };
   }
 
@@ -453,13 +462,33 @@ function buildBaseDashboardViewModel(data: PortalApplicationData): PortalDashboa
   const currentAgreements = getCurrentAgreements(data);
   const actions = buildPortalRequiredActions(data);
   const cards = buildCards({ data, actions, currentAgreements });
+  const checklistSummary = countChecklistStatuses(data.rawChecklist);
+  const profileComplete =
+    data.profile.missingStudentFields.length === 0 &&
+    data.profile.missingParentFields.length === 0;
+  const documentsComplete = checklistSummary.missing === 0 && checklistSummary.reupload === 0;
+  const agreementsComplete =
+    currentAgreements.length > 0 &&
+    currentAgreements.every((agreement) => {
+      const studentAccepted = !agreement.requiresStudentAcceptance || agreement.studentAccepted;
+      const parentAccepted = !agreement.requiresParentAcceptance || agreement.parentAccepted;
+      return studentAccepted && parentAccepted;
+    });
+  const { stage, statusBehavior } = derivePortalStageStatus({
+    applicationStatus: data.applicationRecord.status,
+    profileComplete,
+    documentsComplete,
+    agreementsComplete,
+    paymentComplete: data.paymentSummary.isPaymentComplete,
+  });
+  const topActions = statusBehavior.suppressActionFraming ? [] : actions.slice(0, 3);
 
   return {
     role: data.user.role as "STUDENT" | "PARENT",
     mobileNumber: data.user.mobileNumber,
     status: data.applicationRecord.status,
-    statusLabel: statusLabels[data.applicationRecord.status],
-    statusContext: statusContexts[data.applicationRecord.status],
+    statusLabel: statusBehavior.label,
+    statusContext: statusBehavior.studentHeroDescription,
     overallCompletion: {
       percent: data.overallCompletionPercent,
       label:
@@ -471,13 +500,19 @@ function buildBaseDashboardViewModel(data: PortalApplicationData): PortalDashboa
     studentName: data.applicationRecord.studentProfile?.fullNameAr ?? "طالب بدون اسم",
     completionPercent: data.overallCompletionPercent,
     latestAdminNote: data.latestAdminNote,
-    currentStage: data.applicationRecord.status,
-    stageLabel: statusLabels[data.applicationRecord.status],
-    nextStep: buildNextStep(actions, data.user.role),
+    currentStage: stage.currentStageId,
+    stageLabel: stage.currentStageLabel,
+    stage,
+    statusBehavior,
+    nextStep: buildNextStep({
+      actions,
+      role: data.user.role,
+      statusBehavior,
+    }),
     progressIndicators: buildProgressIndicators({ data, currentAgreements }),
     actions,
-    topActions: actions.slice(0, 3),
-    remainingActionsCount: Math.max(actions.length - 3, 0),
+    topActions,
+    remainingActionsCount: Math.max(actions.length - topActions.length, 0),
     cards,
     sectionSummaries: buildSectionSummaries(cards),
     navItems: buildPortalNavItems({
@@ -495,7 +530,17 @@ function buildBaseDashboardViewModel(data: PortalApplicationData): PortalDashboa
   };
 }
 
-function deriveParentReassuranceState(data: PortalApplicationData, actions: PortalActionView[]): ParentReassuranceState {
+function deriveParentReassuranceState(params: {
+  data: PortalApplicationData;
+  actions: PortalActionView[];
+  statusBehavior: ReturnType<typeof derivePortalStageStatus>["statusBehavior"];
+}): ParentReassuranceState {
+  const { data, actions, statusBehavior } = params;
+
+  if (statusBehavior.isTerminal || statusBehavior.code === "READY") {
+    return "ALL_GOOD";
+  }
+
   const selectedApplication = getSelectedApplication(data);
   const hasProblemDocument = data.rawChecklist.some(
     (document) =>
@@ -544,7 +589,7 @@ export async function getStudentDashboardViewModel(params: {
     dashboardKind: "student",
     heroPrimaryAction: {
       label: base.nextStep.ctaLabel ?? "متابعة الطلب",
-      href: base.nextStep.href,
+      href: base.statusBehavior.suppressActionFraming ? undefined : base.nextStep.href,
     },
     financeSnapshot: data.canSeePayments ? getFinanceSnapshot(data) : null,
   };
@@ -561,18 +606,24 @@ export async function getParentDashboardViewModel(params: {
   }
 
   const base = buildBaseDashboardViewModel(data);
-  const reassuranceState = deriveParentReassuranceState(data, base.actions);
+  const reassuranceState = deriveParentReassuranceState({
+    data,
+    actions: base.actions,
+    statusBehavior: base.statusBehavior,
+  });
 
   return {
     ...base,
     role: "PARENT",
     dashboardKind: "parent",
     reassuranceState,
-    hasPendingActions: base.actions.length > 0,
-    requiredIntervention: base.actions.find((action) => action.section !== "messages") ?? null,
+    hasPendingActions: base.statusBehavior.suppressActionFraming ? false : base.actions.length > 0,
+    requiredIntervention: base.statusBehavior.suppressActionFraming
+      ? null
+      : base.actions.find((action) => action.section !== "messages") ?? null,
     heroPrimaryAction: {
       label: base.nextStep.ctaLabel ?? "مراجعة الحالة",
-      href: base.nextStep.href,
+      href: base.statusBehavior.suppressActionFraming ? undefined : base.nextStep.href,
     },
     financeSnapshot: getFinanceSnapshot(data),
   };
