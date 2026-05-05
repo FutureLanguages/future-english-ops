@@ -187,6 +187,7 @@ export function buildPortalRequiredActions(data: PortalApplicationData): PortalA
         label: `إعادة رفع ${document.titleAr}`,
         description: "المستند يحتاج تعديل أو إعادة رفع قبل اعتماده.",
         section: "documents",
+        documentRequirementCode: document.code,
         priority: 30,
       });
     }
@@ -199,6 +200,7 @@ export function buildPortalRequiredActions(data: PortalApplicationData): PortalA
         label: `رفع ${document.titleAr}`,
         description: "هذا المستند مطلوب لاستكمال الطلب.",
         section: "documents",
+        documentRequirementCode: document.code,
         priority: 40,
       });
     }

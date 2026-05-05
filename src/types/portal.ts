@@ -14,6 +14,7 @@ export type PortalActionView = {
   label: string;
   description?: string;
   section: "student_info" | "parent_info" | "documents" | "payments" | "agreements" | "messages" | "info";
+  documentRequirementCode?: string;
   href?: string;
   tone: "critical" | "warning" | "neutral";
   priority?: number;

@@ -1,5 +1,6 @@
 import { loadPortalApplicationData } from "@/features/portal/server/load-portal-application";
 import { buildPortalNavItems } from "@/features/portal/server/nav";
+import { buildPortalRequiredActions } from "./get-portal-dashboard";
 import type { ApplicationUser } from "@/types/application";
 import type { PortalNavItem } from "@/types/portal";
 
@@ -32,6 +33,7 @@ type PortalDocumentsViewModel = {
     title: string;
     locked: boolean;
     lockLabel: string;
+    actionNeededCount: number;
     items: Array<{
       requirementId: string;
       requirementCode: string;
@@ -135,6 +137,7 @@ export async function getPortalDocumentsViewModel(params: {
             : data.applicationRecord.guardianDocumentsLocked)
           ? "هذا القسم مقفل"
           : "القسم متاح للتعديل",
+      actionNeededCount: 0,
       items: grouped[groupKey].slice().sort((left, right) => {
         const leftPriority = documentStatusPriority[left.status];
         const rightPriority = documentStatusPriority[right.status];
@@ -147,6 +150,16 @@ export async function getPortalDocumentsViewModel(params: {
       }),
     }));
   const allItems = groups.flatMap((group) => group.items);
+  const documentActions = buildPortalRequiredActions(data).filter((action) => action.section === "documents");
+  const actionCodes = new Set(
+    documentActions
+      .map((action) => action.documentRequirementCode)
+      .filter((code): code is string => Boolean(code)),
+  );
+  const groupsWithActionCounts = groups.map((group) => ({
+    ...group,
+    actionNeededCount: group.items.filter((item) => actionCodes.has(item.requirementCode)).length,
+  }));
   const missing = allItems.filter((item) => item.status === "MISSING").length;
   const reuploadRequired = allItems.filter(
     (item) => item.status === "REJECTED" || item.status === "REUPLOAD_REQUESTED",
@@ -155,12 +168,7 @@ export async function getPortalDocumentsViewModel(params: {
     (item) => item.status === "UPLOADED" || item.status === "UNDER_REVIEW",
   ).length;
   const approved = allItems.filter((item) => item.status === "APPROVED").length;
-  const needsAction = allItems.filter(
-    (item) =>
-      item.status === "MISSING" ||
-      item.status === "REJECTED" ||
-      item.status === "REUPLOAD_REQUESTED",
-  ).length;
+  const needsAction = documentActions.length;
 
   return {
     role: data.user.role as "STUDENT" | "PARENT",
@@ -197,6 +205,6 @@ export async function getPortalDocumentsViewModel(params: {
           ? "ابدأ بالمستندات التي تحتاج رفعاً أو إعادة رفع، والبقية تظهر بوضوح حسب حالة المراجعة."
           : "هذه نظرة سريعة على ما اكتمل وما ينتظر الإدارة وما يحتاج تدخلاً منكم.",
     },
-    groups,
+    groups: groupsWithActionCounts,
   };
 }

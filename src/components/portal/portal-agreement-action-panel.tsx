@@ -12,6 +12,7 @@ export function PortalAgreementActionPanel({
   role: "STUDENT" | "PARENT";
   agreement: {
     id: string;
+    applicationId: string;
     accepted: boolean;
     acceptedAt: Date | string | null;
     fullName: string | null;
@@ -98,7 +99,7 @@ export function PortalAgreementActionPanel({
                     }
 
                     setToast({ tone: "success", message: "تمت الموافقة على إلغاء الميثاق." });
-                    router.push("/portal/agreements");
+                    router.push(`/portal/agreements?applicationId=${agreement.applicationId}`);
                     router.refresh();
                   });
                 }}

@@ -121,26 +121,19 @@ export default async function PortalDocumentsPage({
         </section>
 
         <section className="grid gap-4 md:grid-cols-3">
-          {viewModel.groups.map((group) => {
-            const groupNeedsAction = group.items.filter(
-              (item) =>
-                (item.status === "MISSING" || item.status === "REJECTED" || item.status === "REUPLOAD_REQUESTED"),
-            ).length;
-
-            return (
-              <div key={`${group.id}-summary`} className="rounded-panel bg-white p-4 shadow-soft">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-base font-bold text-ink">{group.title}</h3>
-                  <LockStateIndicator locked={group.locked} label={group.lockLabel} subtle />
-                </div>
-                <p className="mt-2 text-sm text-ink/60">
-                  {groupNeedsAction > 0
-                    ? `يوجد ${groupNeedsAction} مستند يحتاج إجراء في هذا القسم.`
-                    : `${group.items.length} مستند، ولا يوجد إجراء مباشر مطلوب هنا حالياً.`}
-                </p>
+          {viewModel.groups.map((group) => (
+            <div key={`${group.id}-summary`} className="rounded-panel bg-white p-4 shadow-soft">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-bold text-ink">{group.title}</h3>
+                <LockStateIndicator locked={group.locked} label={group.lockLabel} subtle />
               </div>
-            );
-          })}
+              <p className="mt-2 text-sm text-ink/60">
+                {group.actionNeededCount > 0
+                  ? `يوجد ${group.actionNeededCount} مستند يحتاج إجراء في هذا القسم.`
+                  : `${group.items.length} مستند، ولا يوجد إجراء مباشر مطلوب هنا حالياً.`}
+              </p>
+            </div>
+          ))}
         </section>
 
         {viewModel.groups.map((group) => (

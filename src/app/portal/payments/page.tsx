@@ -56,11 +56,7 @@ export default async function PortalPaymentsPage({
             tone={viewModel.overallCompletion.tone}
           />
         }
-        navItems={[
-          { key: "dashboard", label: "الرئيسية", href: "/portal/dashboard" },
-          { key: "documents", label: "المستندات", href: "/portal/documents" },
-          { key: "profile", label: "الملف", href: "/portal/profile" },
-        ]}
+        navItems={viewModel.navItems}
         isDev={devSession.isDev}
         devUsers={devSession.availableUsers}
         currentUserId={session.id}
