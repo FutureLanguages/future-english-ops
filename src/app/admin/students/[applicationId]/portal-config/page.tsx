@@ -4,11 +4,10 @@ import { AdminEntityHeader } from "@/components/admin/admin-entity-header";
 import { getAdminNavItems } from "@/features/admin/server/nav";
 import { getAdminSession } from "@/features/auth/server/admin-session";
 import {
-  getOrCreateApplicationPortalConfig,
   getPortalModeOptions,
   getPortalSurfaceDefinitions,
   portalModeLabels,
-  resolvePortalSurfaces,
+  readApplicationPortalConfig,
 } from "@/features/portal/server/portal-config";
 import { prisma } from "@/lib/db/prisma";
 import { updatePortalConfigAction } from "./actions";
@@ -49,11 +48,7 @@ export default async function AdminPortalConfigPage({
     );
   }
 
-  const config = await getOrCreateApplicationPortalConfig(applicationId);
-  const resolution = resolvePortalSurfaces({
-    mode: config.mode,
-    overrides: config,
-  });
+  const { resolution } = await readApplicationPortalConfig(applicationId);
   const modeOptions = getPortalModeOptions();
   const definitions = getPortalSurfaceDefinitions();
   const feedback =
@@ -126,7 +121,7 @@ export default async function AdminPortalConfigPage({
                 <label
                   key={option.value}
                   className={`cursor-pointer rounded-2xl border px-4 py-4 transition ${
-                    config.mode === option.value
+                    resolution.mode === option.value
                       ? "border-pine bg-mist text-ink"
                       : "border-black/10 bg-white text-ink/70 hover:bg-sand"
                   }`}
@@ -135,7 +130,7 @@ export default async function AdminPortalConfigPage({
                     type="radio"
                     name="mode"
                     value={option.value}
-                    defaultChecked={config.mode === option.value}
+                    defaultChecked={resolution.mode === option.value}
                     className="ml-2"
                   />
                   <span className="font-bold">{option.label}</span>

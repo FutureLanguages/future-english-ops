@@ -62,11 +62,16 @@ export default async function PortalPaymentsPage({
         currentUserId={session.id}
       >
         <div className="rounded-panel bg-white p-6 shadow-soft">
-          <h2 className="text-lg font-bold text-ink">هذه الصفحة غير متاحة لهذا الحساب</h2>
+          <h2 className="text-lg font-bold text-ink">المدفوعات يتابعها ولي الأمر</h2>
           <p className="mt-2 text-sm leading-6 text-ink/65">
-            بيانات السداد تظهر لولي الأمر بشكل افتراضي، ويمكن إتاحتها للطالب فقط إذا فعّلها
-            المشرف لهذا الطلب.
+            هذه الصفحة تعمل بشكل طبيعي، لكن تفاصيل السداد مخفية عن حساب الطالب لهذا الطلب.
+            يمكن لولي الأمر متابعة المبالغ والإيصالات، وستظهر لك أي تعليمات عامة مطلوبة بدون
+            عرض بيانات مالية خاصة.
           </p>
+          <div className="mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-6 text-ink/65">
+            إذا ظهر لك إجراء مالي في قائمة المهام، فهذا يعني أن المتابعة مطلوبة من ولي الأمر
+            عبر حسابه، وليس أن هناك خطأ في حساب الطالب.
+          </div>
         </div>
       </PortalShell>
     );

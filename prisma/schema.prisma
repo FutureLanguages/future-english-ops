@@ -27,6 +27,7 @@ model User {
   notifications       Notification[]
   updatedParentNotes  ApplicationParentNote[] @relation("ApplicationParentNoteUpdater")
   financialDifferenceSettlements FinancialDifferenceSettlement[] @relation("FinancialDifferenceSettlementExecutor")
+  portalConfigAuditLogs          PortalConfigAuditLog[]          @relation("PortalConfigAuditExecutor")
 }
 
 model Application {
@@ -72,6 +73,7 @@ model Application {
   studentProfile       StudentProfile?
   portalConfig         ApplicationPortalConfig?
   financialDifferenceSettlements FinancialDifferenceSettlement[]
+  portalConfigAuditLogs            PortalConfigAuditLog[]
 }
 
 model ApplicationPortalConfig {
@@ -88,6 +90,23 @@ model ApplicationPortalConfig {
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
   application         Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+
+
+model PortalConfigAuditLog {
+  id             String      @id @default(cuid())
+  applicationId  String
+  executorUserId String
+  changedFields  String[]
+  oldValues      Json
+  newValues      Json
+  createdAt      DateTime    @default(now())
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  executorUser   User        @relation("PortalConfigAuditExecutor", fields: [executorUserId], references: [id])
+
+  @@index([applicationId, createdAt])
+  @@index([executorUserId, createdAt])
 }
 
 model AgreementTemplate {

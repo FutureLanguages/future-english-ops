@@ -11,7 +11,7 @@ import {
 import { prisma } from "@/lib/db/prisma";
 
 export async function updatePortalConfigAction(formData: FormData) {
-  await getAdminSession();
+  const session = await getAdminSession();
 
   const applicationId = String(formData.get("applicationId") ?? "").trim();
   const mode = parsePortalMode(formData.get("mode"));
@@ -32,6 +32,7 @@ export async function updatePortalConfigAction(formData: FormData) {
 
   await updateApplicationPortalConfig({
     applicationId,
+    executorUserId: session.id,
     mode,
     overrides,
   });

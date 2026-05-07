@@ -217,6 +217,15 @@ async function main() {
     data: documentRequirements,
   });
 
+  await prisma.adminSetting.upsert({
+    where: { key: "small_financial_difference_threshold_sar" },
+    update: { value: "30" },
+    create: {
+      key: "small_financial_difference_threshold_sar",
+      value: "30",
+    },
+  });
+
   const agreementTemplates = await Promise.all([
     prisma.agreementTemplate.create({
       data: {

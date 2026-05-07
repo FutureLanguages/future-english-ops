@@ -1,4 +1,4 @@
-import { PortalMode, type ApplicationPortalConfig } from "@prisma/client";
+import { PortalMode, type ApplicationPortalConfig, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
 export const portalSurfaceKeys = [
@@ -32,6 +32,8 @@ export type PortalSurfaceResolution = {
   overrides: PortalSurfaceOverrideMap;
   items: PortalSurfaceResolvedItem[];
 };
+
+type PortalConfigSnapshot = Record<"mode" | PortalSurfaceKey, PortalMode | boolean | null>;
 
 export const portalModeLabels: Record<PortalMode, string> = {
   GENERAL_STUDY: "دراسة عامة",
@@ -134,6 +136,25 @@ function toOverrides(config: Pick<ApplicationPortalConfig, PortalSurfaceKey> | n
   }, {} as PortalSurfaceOverrideMap);
 }
 
+function buildPortalConfigSnapshot(config: Pick<ApplicationPortalConfig, "mode" | PortalSurfaceKey> | null): PortalConfigSnapshot {
+  return portalSurfaceKeys.reduce(
+    (snapshot, key) => {
+      snapshot[key] = config?.[key] ?? null;
+      return snapshot;
+    },
+    {
+      mode: config?.mode ?? null,
+    } as PortalConfigSnapshot,
+  );
+}
+
+function pickChangedValues(snapshot: PortalConfigSnapshot, changedFields: Array<keyof PortalConfigSnapshot>) {
+  return changedFields.reduce((values, field) => {
+    values[field] = snapshot[field];
+    return values;
+  }, {} as Partial<PortalConfigSnapshot>);
+}
+
 export function resolvePortalSurfaces(params: {
   mode: PortalMode | string | null | undefined;
   overrides?: Partial<PortalSurfaceOverrideMap> | null;
@@ -191,33 +212,65 @@ export async function readApplicationPortalConfig(applicationId: string) {
   };
 }
 
-export async function getOrCreateApplicationPortalConfig(applicationId: string) {
-  return prisma.applicationPortalConfig.upsert({
-    where: { applicationId },
-    update: {},
-    create: {
-      applicationId,
-      mode: PortalMode.GENERAL_STUDY,
-    },
+export async function getOrCreateApplicationPortalConfig(params: {
+  applicationId: string;
+  executorUserId: string;
+}) {
+  const overrides = portalSurfaceKeys.reduce((resolvedOverrides, key) => {
+    resolvedOverrides[key] = null;
+    return resolvedOverrides;
+  }, {} as PortalSurfaceOverrideMap);
+
+  return updateApplicationPortalConfig({
+    applicationId: params.applicationId,
+    executorUserId: params.executorUserId,
+    mode: PortalMode.GENERAL_STUDY,
+    overrides,
   });
 }
 
 export async function updateApplicationPortalConfig(params: {
   applicationId: string;
+  executorUserId: string;
   mode: PortalMode;
   overrides: PortalSurfaceOverrideMap;
 }) {
-  return prisma.applicationPortalConfig.upsert({
-    where: { applicationId: params.applicationId },
-    update: {
-      mode: params.mode,
-      ...params.overrides,
-    },
-    create: {
-      applicationId: params.applicationId,
-      mode: params.mode,
-      ...params.overrides,
-    },
+  return prisma.$transaction(async (tx) => {
+    const existingConfig = await tx.applicationPortalConfig.findUnique({
+      where: { applicationId: params.applicationId },
+    });
+    const oldSnapshot = buildPortalConfigSnapshot(existingConfig);
+
+    const config = await tx.applicationPortalConfig.upsert({
+      where: { applicationId: params.applicationId },
+      update: {
+        mode: params.mode,
+        ...params.overrides,
+      },
+      create: {
+        applicationId: params.applicationId,
+        mode: params.mode,
+        ...params.overrides,
+      },
+    });
+    const newSnapshot = buildPortalConfigSnapshot(config);
+    const changedFields = (["mode", ...portalSurfaceKeys] as Array<keyof PortalConfigSnapshot>).filter(
+      (field) => oldSnapshot[field] !== newSnapshot[field],
+    );
+
+    if (changedFields.length > 0) {
+      await tx.portalConfigAuditLog.create({
+        data: {
+          applicationId: params.applicationId,
+          executorUserId: params.executorUserId,
+          changedFields: changedFields.map(String),
+          oldValues: pickChangedValues(oldSnapshot, changedFields) as Prisma.InputJsonValue,
+          newValues: pickChangedValues(newSnapshot, changedFields) as Prisma.InputJsonValue,
+        },
+      });
+    }
+
+    return config;
   });
 }
 

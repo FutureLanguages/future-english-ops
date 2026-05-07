@@ -245,6 +245,25 @@ export function buildPortalRequiredActions(data: PortalApplicationData): PortalA
   });
 }
 
+function applyReadyActionOverride(params: {
+  statusBehavior: ReturnType<typeof derivePortalStageStatus>["statusBehavior"];
+  actions: PortalActionView[];
+}) {
+  if (params.statusBehavior.code !== "READY" || params.actions.length === 0) {
+    return params.statusBehavior;
+  }
+
+  return {
+    ...params.statusBehavior,
+    tone: "warning" as const,
+    suppressActionFraming: false,
+    studentHeroTitle: "الطلب جاهز مع إجراء مطلوب",
+    studentHeroDescription: "الطلب قريب من الإغلاق، لكن يوجد إجراء واضح يجب التعامل معه قبل اعتبار الحالة مطمئنة بالكامل.",
+    parentHeroTitle: "الطلب جاهز لكن توجد متابعة",
+    parentHeroDescription: "الملف في مرحلة متقدمة، لكن توجد نقطة تحتاج متابعة قبل اعتباره بلا إجراءات مطلوبة.",
+  };
+}
+
 function buildNextStep(params: {
   actions: PortalActionView[];
   role: UserRole;
@@ -499,12 +518,16 @@ function buildBaseDashboardViewModel(data: PortalApplicationData): PortalDashboa
       const parentAccepted = !agreement.requiresParentAcceptance || agreement.parentAccepted;
       return studentAccepted && parentAccepted;
     });
-  const { stage, statusBehavior } = derivePortalStageStatus({
+  const { stage, statusBehavior: derivedStatusBehavior } = derivePortalStageStatus({
     applicationStatus: data.applicationRecord.status,
     profileComplete,
     documentsComplete,
     agreementsComplete,
     paymentComplete: data.paymentSummary.isPaymentComplete,
+  });
+  const statusBehavior = applyReadyActionOverride({
+    statusBehavior: derivedStatusBehavior,
+    actions,
   });
   const topActions = statusBehavior.suppressActionFraming ? [] : actions.slice(0, 3);
 
@@ -563,7 +586,7 @@ function deriveParentReassuranceState(params: {
 }): ParentReassuranceState {
   const { data, actions, statusBehavior } = params;
 
-  if (statusBehavior.isTerminal || statusBehavior.code === "READY") {
+  if (statusBehavior.isTerminal) {
     return "ALL_GOOD";
   }
 
@@ -592,6 +615,10 @@ function deriveParentReassuranceState(params: {
 
   if (hasUnderReviewItems || data.applicationRecord.status === ApplicationStatus.UNDER_REVIEW) {
     return "WAITING";
+  }
+
+  if (statusBehavior.code === "READY") {
+    return "ALL_GOOD";
   }
 
   return "ALL_GOOD";
