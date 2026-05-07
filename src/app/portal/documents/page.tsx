@@ -36,7 +36,10 @@ export default async function PortalDocumentsPage({
         activeMobileNumber={session.mobileNumber}
       >
         <div className="rounded-panel bg-white p-6 shadow-soft">
-          <h2 className="text-lg font-bold text-ink">لا توجد مستندات لعرضها</h2>
+          <h2 className="text-lg font-bold text-ink">لا توجد مستندات مرتبطة بهذا الطلب حالياً</h2>
+          <p className="mt-2 text-sm leading-6 text-ink/65">
+            عند إضافة متطلبات مستندات لهذا الطلب ستظهر هنا مع حالة الرفع والمراجعة.
+          </p>
         </div>
       </PortalShell>
     );
@@ -105,7 +108,7 @@ export default async function PortalDocumentsPage({
               <h2 className="mt-1 text-xl font-bold text-ink">
                 {viewModel.summary.needsAction > 0
                   ? `تحتاج إجراء: ${viewModel.summary.needsAction}`
-                  : "لا توجد مستندات تتطلب إجراء من هذا الحساب"}
+                  : "لا توجد مستندات تتطلب إجراء الآن"}
               </h2>
             </div>
             <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink/60">
@@ -130,7 +133,7 @@ export default async function PortalDocumentsPage({
               <p className="mt-2 text-sm text-ink/60">
                 {group.actionNeededCount > 0
                   ? `يوجد ${group.actionNeededCount} مستند يحتاج إجراء في هذا القسم.`
-                  : `${group.items.length} مستند، ولا يوجد إجراء مباشر مطلوب هنا حالياً.`}
+                  : `${group.items.length} مستند للمتابعة، ولا يوجد إجراء مطلوب من هذا الحساب حالياً.`}
               </p>
             </div>
           ))}

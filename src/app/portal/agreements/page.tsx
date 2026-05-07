@@ -153,14 +153,14 @@ export default async function PortalAgreementsPage({
                     ) : null}
                   </div>
                   <span className="rounded-full bg-pine px-4 py-2 text-center text-sm font-semibold text-white">
-                    {agreement.accepted ? "عرض الميثاق" : "فتح واعتماد"}
+                    {agreement.accepted ? "عرض الميثاق" : "فتح والموافقة"}
                   </span>
                 </div>
               </Link>
             ))
           ) : (
             <div className="rounded-panel bg-white p-5 text-sm text-ink/65 shadow-soft">
-              لا توجد مواثيق مسندة لهذا الطلب حالياً.
+              لا توجد مواثيق مسندة لهذا الطلب حالياً. عند إسناد ميثاق من الإدارة سيظهر هنا مع الطرف المطلوب منه الإجراء.
             </div>
           )}
         </section>

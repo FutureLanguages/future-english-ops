@@ -326,6 +326,7 @@ export default async function AdminApplicationWorkspacePage({
     { id: "finance", label: "المالية", href: `/admin/students/${applicationId}?tab=finance` },
     { id: "messages", label: "الرسائل", href: `/admin/students/${applicationId}?tab=messages` },
     { id: "agreements", label: "الميثاق", href: `/admin/students/${applicationId}?tab=agreements` },
+    { id: "portal-config", label: "إعدادات البوابة", href: `/admin/students/${applicationId}/portal-config` },
     { id: "settings", label: "الإعدادات", href: `/admin/students/${applicationId}?tab=settings` },
   ];
   const agreementPendingCount = viewModel.agreements.assigned.filter((agreement) => {
@@ -383,6 +384,12 @@ export default async function AdminApplicationWorkspacePage({
                 />
                 <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-sand p-2 text-xs font-bold text-ink/70">
                   <span className="px-2">{viewModel.studentSwitch.positionLabel}</span>
+                  <Link
+                    href={`/admin/students/${applicationId}/portal-config`}
+                    className="rounded-xl bg-pine px-3 py-2 text-white transition hover:bg-pine/90"
+                  >
+                    إعدادات البوابة
+                  </Link>
                   <AdminEntitySwitcher
                     currentId={applicationId}
                     buttonLabel="اختيار طالب"

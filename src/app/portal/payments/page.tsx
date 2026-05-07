@@ -183,7 +183,7 @@ export default async function PortalPaymentsPage({
                 ))
               ) : (
                 <div className="rounded-2xl bg-sand px-4 py-3 text-sm text-ink/65">
-                  لا توجد رسوم مسجلة حتى الآن.
+                  لا توجد رسوم مسجلة حتى الآن. عند تسجيل الرسوم من الإدارة ستظهر هنا بوضوح.
                 </div>
               )}
             </div>
@@ -210,7 +210,7 @@ export default async function PortalPaymentsPage({
                 ))
               ) : (
                 <div className="rounded-2xl bg-sand px-4 py-3 text-sm text-ink/65">
-                  لا توجد دفعات رسمية معتمدة حتى الآن.
+                  لا توجد دفعات رسمية معتمدة حتى الآن. ستظهر الدفعات هنا بعد اعتمادها من الإدارة.
                 </div>
               )}
             </div>

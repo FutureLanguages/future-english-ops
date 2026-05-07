@@ -39,7 +39,10 @@ export default async function PortalProfilePage({
         activeMobileNumber={session.mobileNumber}
       >
         <div className="rounded-panel bg-white p-6 shadow-soft">
-          <h2 className="text-lg font-bold text-ink">لا توجد بيانات ملف لعرضها</h2>
+          <h2 className="text-lg font-bold text-ink">لا توجد بيانات ملف مرتبطة بهذا الطلب حالياً</h2>
+          <p className="mt-2 text-sm leading-6 text-ink/65">
+            ستظهر بيانات الطالب وولي الأمر هنا بعد ربط الحساب بطلب صالح.
+          </p>
         </div>
       </PortalShell>
     );
