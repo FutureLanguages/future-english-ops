@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
 import { SignaturePadField } from "@/components/portal/signature-pad-field";
+import { BaseCard, BaseCardBody } from "@/components/ui/base-card";
+import { Button } from "@/components/ui/button";
 
 export function PortalAgreementActionPanel({
   agreement,
@@ -27,7 +29,8 @@ export function PortalAgreementActionPanel({
   const [isPending, startTransition] = useTransition();
 
   return (
-    <section className="rounded-panel bg-white p-5 shadow-soft">
+    <BaseCard variant="outlined">
+      <BaseCardBody>
       <AutoDismissToast message={toast?.message ?? ""} tone={toast?.tone ?? "success"} />
       <h2 className="text-lg font-bold text-ink">الإقرار والتوقيع</h2>
       <div className="mt-3 rounded-2xl bg-mist px-4 py-3 text-sm leading-7 text-ink">
@@ -81,7 +84,7 @@ export function PortalAgreementActionPanel({
           ) : null}
           {agreement.cancellationRequestedAt ? (
             <div className="flex flex-wrap gap-3">
-              <button
+              <Button
                 type="button"
                 disabled={isPending}
                 onClick={() => {
@@ -103,12 +106,12 @@ export function PortalAgreementActionPanel({
                     router.refresh();
                   });
                 }}
-                className="rounded-2xl bg-pine px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
               >
                 {isPending ? "جارٍ الحفظ..." : "أوافق على الإلغاء"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="secondary"
                 disabled={isPending}
                 onClick={() => {
                   startTransition(async () => {
@@ -128,10 +131,9 @@ export function PortalAgreementActionPanel({
                     router.refresh();
                   });
                 }}
-                className="rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-ink disabled:opacity-60"
               >
                 رفض طلب الإلغاء
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>
@@ -153,6 +155,7 @@ export function PortalAgreementActionPanel({
               }
 
               setToast({ tone: "success", message: "تم حفظ الموافقة على الميثاق بنجاح." });
+              router.push(`/portal/agreements?applicationId=${agreement.applicationId}`);
               router.refresh();
             });
           }}
@@ -171,15 +174,16 @@ export function PortalAgreementActionPanel({
             />
           </label>
           <SignaturePadField />
-          <button
+          <Button
             type="submit"
+            isLoading={isPending}
             disabled={isPending}
-            className="rounded-2xl bg-pine px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
           >
             {isPending ? "جارٍ الحفظ..." : "أوافق وألتزم"}
-          </button>
+          </Button>
         </form>
       )}
-    </section>
+      </BaseCardBody>
+    </BaseCard>
   );
 }

@@ -1,65 +1,89 @@
 import Link from "next/link";
 import { ApplicationSwitcher } from "@/components/portal/application-switcher";
-import { CompletionRing } from "@/components/portal/completion-ring";
-import { DashboardStatusBadge } from "@/components/portal/dashboard-status";
 import { EnrollmentSurfaceCard } from "@/components/portal/enrollment-surface-card";
-import { RequiredActionsList } from "@/components/portal/required-actions-list";
-import type { PortalStageItem, StudentDashboardViewModel } from "@/types/portal";
+import { ActionCard } from "@/components/ui/action-card";
+import { BaseCard, BaseCardBody, BaseCardFooter, BaseCardHeader } from "@/components/ui/base-card";
+import { Button } from "@/components/ui/button";
+import { HelperText } from "@/components/ui/helper-text";
+import { JourneyStrip } from "@/components/ui/journey-strip";
+import { SectionCard } from "@/components/ui/section-card";
+import { StatusBadge, type StatusBadgeProps } from "@/components/ui/status-badge";
+import type { PortalActionView, PortalSectionCard, StudentDashboardViewModel } from "@/types/portal";
+
+const sectionOrder = ["profile", "documents", "agreements", "payments"] as const;
 
 export function StudentDashboardTemplate({ viewModel }: { viewModel: StudentDashboardViewModel }) {
   const actionsHref = `/portal/actions?applicationId=${viewModel.selectedApplicationId}`;
-  const canShowActions = !viewModel.statusBehavior.suppressActionFraming;
+  const primaryAction = viewModel.actions[0];
+  const sectionCards = buildStudentSectionCards(viewModel);
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-panel bg-white p-5 shadow-soft">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-4">
+    <div className="space-y-6">
+      <section className="space-y-4">
+        <div className="flex flex-col gap-4 tablet:flex-row tablet:items-start tablet:justify-between">
+          <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
-              <DashboardStatusBadge status={viewModel.status} />
-              <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusToneClass(viewModel.statusBehavior.tone)}`}>
-                {viewModel.statusBehavior.label}
-              </span>
+              <StatusBadge label={viewModel.statusBehavior.label} variant={statusVariant(viewModel.statusBehavior.tone)} />
+              <StatusBadge label={viewModel.stageLabel} variant="info" />
             </div>
-            <div>
-              <p className="text-sm font-semibold text-pine">رحلة الطالب</p>
-              <h2 className="mt-1 text-2xl font-bold text-ink">{viewModel.statusBehavior.studentHeroTitle}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-ink/65">
-                {viewModel.statusBehavior.studentHeroDescription}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-sand px-4 py-3">
-              <div className="text-xs font-semibold text-ink/55">المرحلة الحالية</div>
-              <div className="mt-1 text-lg font-bold text-ink">{viewModel.stageLabel}</div>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              {canShowActions && viewModel.heroPrimaryAction.href ? (
-                <Link
-                  href={viewModel.heroPrimaryAction.href}
-                  className="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-bold text-white transition hover:bg-pine/90"
-                >
-                  {viewModel.heroPrimaryAction.label}
-                </Link>
-              ) : null}
-              {canShowActions && viewModel.actions.length > 0 ? (
-                <Link
-                  href={actionsHref}
-                  className="inline-flex items-center justify-center rounded-2xl bg-mist px-5 py-3 text-sm font-bold text-pine transition hover:bg-sand"
-                >
-                  عرض كل الإجراءات
-                </Link>
-              ) : null}
-            </div>
+            <h1 className="mt-4 text-h1 font-extrabold leading-9 text-text-primary">
+              {viewModel.statusBehavior.studentHeroTitle}
+            </h1>
+            <p className="mt-3 text-body leading-7 text-text-secondary">
+              {viewModel.statusBehavior.studentHeroDescription}
+            </p>
           </div>
-          <CompletionRing percent={viewModel.completionPercent} />
+          <BaseCard variant="outlined" className="w-full tablet:w-64">
+            <BaseCardBody className="space-y-2">
+              <div className="text-caption font-bold text-text-muted">اكتمال الملف</div>
+              <div dir="ltr" className="text-h1 font-black text-text-primary">{viewModel.completionPercent}%</div>
+              <HelperText>{viewModel.overallCompletion.label}</HelperText>
+            </BaseCardBody>
+          </BaseCard>
         </div>
+
+        <ApplicationSwitcher
+          options={viewModel.applicationOptions}
+          selectedApplicationId={viewModel.selectedApplicationId}
+          basePath="/portal/dashboard"
+        />
       </section>
 
-      <ApplicationSwitcher
-        options={viewModel.applicationOptions}
-        selectedApplicationId={viewModel.selectedApplicationId}
-        basePath="/portal/dashboard"
+      <JourneyStrip
+        title="مسار الطلب"
+        helperText="المراحل مأخوذة من مسار الطلب الحالي، وتوضح أين يقف الملف الآن."
+        stages={viewModel.stage.stages}
+        progressPercent={viewModel.stage.progressPercent}
+        timelineActive={viewModel.stage.timelineActive}
       />
+
+      <ActionCard
+        title={primaryAction ? primaryAction.label : "لا توجد إجراءات مطلوبة حالياً"}
+        description={
+          primaryAction?.description ??
+          "كل الإجراءات المطلوبة من حسابك مكتملة الآن. سنعرض هنا أي خطوة جديدة تحتاج تنفيذها فور ظهورها."
+        }
+        primaryAction={primaryAction?.href ? { label: actionCtaLabel(primaryAction), href: primaryAction.href } : undefined}
+        helperText={
+          viewModel.actions.length > 1
+            ? `يوجد ${viewModel.actions.length - 1} إجراء إضافي يمكنك مراجعته من صفحة الإجراءات.`
+            : viewModel.actions.length === 0
+              ? "سنخبرك هنا فور ظهور أي خطوة تحتاج إلى تنفيذها."
+              : undefined
+        }
+        badge={{
+          label: viewModel.actions.length > 0 ? "إجراء مطلوب" : "هادئ",
+          variant: viewModel.actions.length > 0 ? actionVariant(primaryAction?.tone) : "complete",
+        }}
+      />
+
+      {viewModel.actions.length > 1 ? (
+        <div className="flex justify-start">
+          <Button asChild variant="ghost" size="sm">
+            <Link href={actionsHref}>عرض كل الإجراءات</Link>
+          </Button>
+        </div>
+      ) : null}
 
       <EnrollmentSurfaceCard
         program={viewModel.program}
@@ -68,169 +92,139 @@ export function StudentDashboardTemplate({ viewModel }: { viewModel: StudentDash
         studentName={viewModel.studentName}
       />
 
-      <StageTimeline
-        stages={viewModel.stage.stages}
-        progressPercent={viewModel.stage.progressPercent}
-        timelineActive={viewModel.stage.timelineActive}
-      />
-
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-panel bg-white p-5 shadow-soft">
-          <div className="text-sm font-semibold text-pine">ملخص المرحلة</div>
-          <h3 className="mt-1 text-lg font-bold text-ink">{viewModel.stage.currentStageLabel}</h3>
-          <p className="mt-2 text-sm leading-6 text-ink/65">
-            {viewModel.progressIndicators.profileDocumentsAgreements.detailLabel}
-          </p>
-          <div className="mt-4 rounded-2xl bg-sand px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-semibold text-ink/65">نسبة الاكتمال</span>
-              <span className="text-xl font-bold text-ink">
-                {viewModel.progressIndicators.profileDocumentsAgreements.statusLabel}
-              </span>
-            </div>
-          </div>
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-h2 font-extrabold text-text-primary">الأقسام الأساسية</h2>
+          <HelperText>ادخل إلى القسم المناسب حسب الإجراء أو المعلومة التي تحتاجها.</HelperText>
         </div>
-
-        <div className="rounded-panel bg-white p-5 shadow-soft">
-          {canShowActions ? (
-            <>
-              <div className="text-sm font-semibold text-pine">الأهم الآن</div>
-              <h3 className="mt-1 text-lg font-bold text-ink">إجراءات تساعد طلبك على التقدم</h3>
-              <div className="mt-4">
-                <RequiredActionsList actions={viewModel.topActions} />
-              </div>
-              {viewModel.remainingActionsCount > 0 ? (
-                <Link href={actionsHref} className="mt-3 inline-flex text-sm font-bold text-pine">
-                  وهناك {viewModel.remainingActionsCount} إجراءات أخرى
-                </Link>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <div className="text-sm font-semibold text-pine">حالة نهائية</div>
-              <h3 className="mt-1 text-lg font-bold text-ink">{viewModel.statusBehavior.label}</h3>
-              <p className="mt-2 text-sm leading-7 text-ink/65">{viewModel.statusBehavior.studentHeroDescription}</p>
-            </>
-          )}
+        <div className="grid gap-4 tablet:grid-cols-2">
+          {sectionCards.map((card) => (
+            <SectionCard key={card.id} {...card} />
+          ))}
         </div>
       </section>
 
       {viewModel.financeSnapshot ? (
-        <section className="rounded-panel bg-white p-5 shadow-soft">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-sm font-semibold text-pine">لمحة مالية</div>
-              <h3 className="mt-1 text-lg font-bold text-ink">
-                {viewModel.financeSnapshot.remainingAmountSar > 0 ? "يوجد مبلغ متبقٍ" : "لا يوجد مبلغ متبقٍ حالياً"}
-              </h3>
-            </div>
-            <Link
-              href={`/portal/payments?applicationId=${viewModel.selectedApplicationId}`}
-              className="inline-flex items-center justify-center rounded-2xl bg-mist px-4 py-3 text-sm font-bold text-pine"
-            >
-              فتح المدفوعات
-            </Link>
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <FinanceItem label="إجمالي الرسوم" value={`${viewModel.financeSnapshot.totalCostSar} ر.س`} />
-            <FinanceItem label="المدفوع" value={`${viewModel.financeSnapshot.paidAmountSar} ر.س`} />
-            <FinanceItem label="المتبقي" value={`${viewModel.financeSnapshot.remainingAmountSar} ر.س`} />
-          </div>
-        </section>
-      ) : null}
-
-      <section className="rounded-panel bg-white p-5 shadow-soft">
-        <div className="text-sm font-semibold text-pine">صحة الأقسام</div>
-        <h3 className="mt-1 text-lg font-bold text-ink">أين تقف كل منطقة في الطلب؟</h3>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {viewModel.sectionSummaries.map((section) => (
-            <Link key={section.id} href={section.href ?? actionsHref} className="rounded-2xl bg-sand px-4 py-3 transition hover:bg-mist">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-bold text-ink">{section.title}</span>
-                <span className="text-xs font-semibold text-ink/60">{section.statusLabel}</span>
+        <BaseCard variant="outlined">
+          <BaseCardHeader>
+            <div className="flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between">
+              <div>
+                <h2 className="text-h2 font-extrabold text-text-primary">لمحة مالية</h2>
+                <HelperText>تظهر هذه اللمحة لأن المدفوعات مفعلة لهذا الحساب.</HelperText>
               </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+              <StatusBadge
+                label={viewModel.financeSnapshot.remainingAmountSar > 0 ? "متبقٍ مالي" : "مكتمل مالياً"}
+                variant={viewModel.financeSnapshot.remainingAmountSar > 0 ? "warning" : "complete"}
+              />
+            </div>
+          </BaseCardHeader>
+          <BaseCardBody>
+            <div className="grid gap-3 mobile:grid-cols-3">
+              <FinanceSummaryItem label="إجمالي الرسوم" value={`${viewModel.financeSnapshot.totalCostSar} ر.س`} />
+              <FinanceSummaryItem label="المدفوع" value={`${viewModel.financeSnapshot.paidAmountSar} ر.س`} />
+              <FinanceSummaryItem label="المتبقي" value={`${viewModel.financeSnapshot.remainingAmountSar} ر.س`} />
+            </div>
+          </BaseCardBody>
+          <BaseCardFooter>
+            <Button asChild variant="secondary" size="sm">
+              <Link href={`/portal/payments?applicationId=${viewModel.selectedApplicationId}`}>فتح المدفوعات</Link>
+            </Button>
+          </BaseCardFooter>
+        </BaseCard>
+      ) : null}
 
       {viewModel.latestAdminNote ? (
-        <section className="rounded-panel bg-white p-5 shadow-soft">
-          <div className="text-sm font-semibold text-pine">ملاحظة من الإدارة</div>
-          <p className="mt-2 text-sm leading-7 text-ink/70">{viewModel.latestAdminNote}</p>
-        </section>
+        <BaseCard variant="outlined">
+          <BaseCardBody>
+            <h2 className="text-h2 font-extrabold text-text-primary">ملاحظة من الإدارة</h2>
+            <p className="mt-2 text-body leading-7 text-text-secondary">{viewModel.latestAdminNote}</p>
+          </BaseCardBody>
+        </BaseCard>
       ) : null}
     </div>
   );
 }
 
-function StageTimeline({
-  stages,
-  progressPercent,
-  timelineActive,
-}: {
-  stages: PortalStageItem[];
-  progressPercent: number;
-  timelineActive: boolean;
-}) {
-  return (
-    <section className="rounded-panel bg-white p-4 shadow-soft sm:p-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-pine">مسار الطلب</div>
-          <h3 className="mt-1 text-lg font-bold text-ink">المراحل الموحدة</h3>
-        </div>
-        <span className="rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink/65">
-          {timelineActive ? `${progressPercent}%` : "غير نشط"}
-        </span>
-      </div>
-      <div className="mt-4 overflow-x-auto pb-1">
-        <div className="flex min-w-max items-start gap-2 sm:min-w-0 sm:grid sm:grid-cols-6">
-          {stages.map((stage) => (
-            <StageStep key={stage.id} stage={stage} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+function buildStudentSectionCards(viewModel: StudentDashboardViewModel) {
+  const cardsById = new Map(viewModel.cards.map((card) => [card.id, card]));
+
+  return sectionOrder.map((id) => {
+    const card = cardsById.get(id);
+
+    if (id === "payments" && !card) {
+      return {
+        id,
+        title: "المدفوعات",
+        description: "تفاصيل السداد يتابعها ولي الأمر لهذا الطلب، وستظهر لك التعليمات العامة فقط عند الحاجة.",
+        badge: { label: "لولي الأمر", variant: "waiting" as const },
+        meta: "لا تظهر بيانات مالية خاصة في حساب الطالب حالياً.",
+      };
+    }
+
+    return mapSectionCard(card, id);
+  });
 }
 
-function StageStep({ stage }: { stage: PortalStageItem }) {
-  const isCompleted = stage.status === "completed";
-  const isCurrent = stage.status === "current";
+function mapSectionCard(card: PortalSectionCard | undefined, fallbackId: string) {
+  if (!card) {
+    return {
+      id: fallbackId,
+      title: "قسم غير متاح حالياً",
+      description: "لا توجد بيانات كافية لعرض هذا القسم الآن.",
+      badge: { label: "غير متاح", variant: "waiting" as const },
+    };
+  }
 
-  return (
-    <div
-      className={`min-w-28 rounded-2xl border px-3 py-3 text-center sm:min-w-0 ${
-        isCurrent
-          ? "border-pine bg-pine text-white"
-          : isCompleted
-            ? "border-[#d7ebdf] bg-[#e9f7ee] text-[#1b7a43]"
-            : "border-black/5 bg-sand text-ink/55"
-      }`}
-    >
-      <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-xs font-black text-ink">
-        {isCompleted ? "✓" : stage.index + 1}
-      </div>
-      <div className="mt-2 text-xs font-bold leading-5">{stage.label}</div>
-    </div>
-  );
+  return {
+    id: card.id,
+    title: card.title,
+    description: card.description,
+    href: card.href,
+    ctaLabel: card.ctaLabel ?? "فتح القسم",
+    badge: {
+      label: card.statusLabel ?? "متابعة",
+      variant: sectionVariant(card.statusTone),
+    },
+    meta: card.stats.map((stat) => `${stat.label}: ${stat.value}`).join(" · "),
+    emphasized: card.statusTone === "warning",
+  };
 }
 
-function statusToneClass(tone: StudentDashboardViewModel["statusBehavior"]["tone"]) {
-  if (tone === "success") return "bg-[#e9f7ee] text-[#1b7a43]";
-  if (tone === "warning") return "bg-[#fff8e1] text-[#7a5a03]";
-  if (tone === "danger") return "bg-[#ffe8e8] text-[#a03232]";
-  if (tone === "waiting") return "bg-mist text-pine";
-  if (tone === "active") return "bg-clay/35 text-ink";
-  return "bg-sand text-ink/65";
+function actionCtaLabel(action: PortalActionView) {
+  if (action.section === "documents") return "فتح المستندات";
+  if (action.section === "payments") return "فتح المدفوعات";
+  if (action.section === "agreements") return "فتح الميثاق";
+  if (action.section === "messages") return "فتح الرسائل";
+  if (action.section === "student_info" || action.section === "parent_info") return "فتح البيانات";
+  return "متابعة الإجراء";
 }
 
-function FinanceItem({ label, value }: { label: string; value: string }) {
+function actionVariant(tone?: PortalActionView["tone"]): StatusBadgeProps["variant"] {
+  if (tone === "critical") return "error";
+  if (tone === "warning") return "warning";
+  return "action";
+}
+
+function statusVariant(tone: StudentDashboardViewModel["statusBehavior"]["tone"]): StatusBadgeProps["variant"] {
+  if (tone === "success") return "complete";
+  if (tone === "warning") return "warning";
+  if (tone === "danger") return "error";
+  if (tone === "waiting") return "waiting";
+  if (tone === "active") return "action";
+  return "info";
+}
+
+function sectionVariant(tone?: PortalSectionCard["statusTone"]): StatusBadgeProps["variant"] {
+  if (tone === "success") return "complete";
+  if (tone === "warning") return "warning";
+  return "info";
+}
+
+function FinanceSummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-sand px-4 py-3">
-      <div className="text-xs font-semibold text-ink/55">{label}</div>
-      <div className="mt-1 text-lg font-bold text-ink">{value}</div>
+    <div className="rounded-lg bg-bg-surface-alt px-4 py-3">
+      <div className="text-caption font-bold text-text-muted">{label}</div>
+      <div dir="ltr" className="mt-1 text-h3 font-extrabold text-text-primary">{value}</div>
     </div>
   );
 }

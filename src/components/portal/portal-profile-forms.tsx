@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
 import { SchoolStageSelect } from "@/components/shared/school-stage-select";
 import { ValidatedTextInput } from "@/components/portal/validated-text-input";
+import { Button } from "@/components/ui/button";
+import { TextInput } from "@/components/ui/text-input";
 
 function FieldLabel({ children }: { children: ReactNode }) {
   return <label className="mb-1 block text-sm font-semibold text-ink">{children}</label>;
@@ -117,16 +119,14 @@ export function PortalStudentProfileForm({
         }}
       >
         <input type="hidden" name="applicationId" value={applicationId} />
-        <div>
-          <FieldLabel>البريد الإلكتروني (اختياري)</FieldLabel>
-          <input
-            name="email"
-            type="email"
-            defaultValue={values.email}
-            placeholder="example@email.com"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
-          />
-        </div>
+        <TextInput
+          name="email"
+          type="email"
+          defaultValue={values.email}
+          label="البريد الإلكتروني (اختياري)"
+          placeholder="example@email.com"
+          helperText="نستخدمه عند الحاجة لإرسال تنبيهات مرتبطة بالطلب."
+        />
         <div>
           <FieldLabel>الاسم بالعربية</FieldLabel>
           <input
@@ -263,13 +263,13 @@ export function PortalStudentProfileForm({
           <DataAccuracyDisclaimer />
         </div>
         <div className="md:col-span-2">
-          <button
+          <Button
             type="submit"
+            isLoading={isPending}
             disabled={isPending}
-            className="rounded-2xl bg-pine px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? "جارٍ الحفظ..." : "حفظ بيانات الطالب"}
-          </button>
+          </Button>
         </div>
       </form>
     </>
@@ -382,13 +382,13 @@ export function PortalHealthBehaviorForm({
           </div>
         ) : null}
         {canEdit || canEditParentSupervisorNotes ? (
-          <button
+          <Button
             type="submit"
+            isLoading={isPending}
             disabled={isPending}
-            className="rounded-2xl bg-pine px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? "جارٍ الحفظ..." : "حفظ الحالة والملاحظات"}
-          </button>
+          </Button>
         ) : (
           <div className="rounded-2xl bg-mist px-4 py-3 text-sm text-ink/65">
             هذا القسم مقفل حالياً أو غير متاح للتعديل من هذا الحساب.
@@ -505,13 +505,13 @@ export function PortalParentProfileForm({
           <DataAccuracyDisclaimer />
         </div>
         <div className="md:col-span-2">
-          <button
+          <Button
             type="submit"
+            isLoading={isPending}
             disabled={isPending}
-            className="rounded-2xl bg-pine px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? "جارٍ الحفظ..." : "حفظ بيانات ولي الأمر"}
-          </button>
+          </Button>
         </div>
       </form>
     </>

@@ -1,6 +1,14 @@
 "use client";
 
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import {
+  cloneElement,
+  forwardRef,
+  isValidElement,
+  type ButtonHTMLAttributes,
+  type MouseEvent,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +45,7 @@ const buttonVariants = cva(
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants> & {
+    asChild?: boolean;
     isLoading?: boolean;
     loadingLabel?: string;
     startIcon?: ReactNode;
@@ -47,6 +56,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
       className,
+      asChild = false,
       children,
       disabled,
       endIcon,
@@ -62,6 +72,57 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const isDisabled = disabled || isLoading;
+    const child = asChild && isValidElement(children)
+      ? children as ReactElement<{
+          className?: string;
+          children?: ReactNode;
+          "aria-disabled"?: boolean;
+          "aria-busy"?: boolean;
+          onClick?: (event: MouseEvent<HTMLElement>) => void;
+          tabIndex?: number;
+        }>
+      : null;
+    const displayChildren = child ? child.props.children : children;
+    const handleChildClick = (event: MouseEvent<HTMLElement>) => {
+      if (isDisabled) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      child?.props.onClick?.(event);
+    };
+    const content = (
+      <>
+        <span className={cn("inline-flex items-center justify-center gap-2", isLoading && "opacity-0")}>
+          {startIcon ? <span className="shrink-0" aria-hidden="true">{startIcon}</span> : null}
+          <span>{displayChildren}</span>
+          {endIcon ? <span className="shrink-0" aria-hidden="true">{endIcon}</span> : null}
+        </span>
+        {isLoading ? (
+          <span className="absolute inline-flex items-center justify-center gap-2" role="status">
+            <span className="h-4 w-4 animate-spin rounded-full border-strong border-current border-t-transparent" aria-hidden="true" />
+            <span className="sr-only">{loadingLabel}</span>
+          </span>
+        ) : null}
+      </>
+    );
+
+    if (child) {
+      return cloneElement(child, {
+        className: cn(
+          buttonVariants({ variant, size, fullWidth }),
+          isDisabled && "pointer-events-none opacity-55",
+          child.props.className,
+          className,
+        ),
+        "aria-disabled": isDisabled || undefined,
+        "aria-busy": isLoading || undefined,
+        onClick: handleChildClick,
+        tabIndex: isDisabled ? -1 : child.props.tabIndex,
+        children: content,
+      });
+    }
 
     return (
       <button
@@ -72,17 +133,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(buttonVariants({ variant, size, fullWidth }), className)}
         {...props}
       >
-        <span className={cn("inline-flex items-center justify-center gap-2", isLoading && "opacity-0")}>
-          {startIcon ? <span className="shrink-0" aria-hidden="true">{startIcon}</span> : null}
-          <span>{children}</span>
-          {endIcon ? <span className="shrink-0" aria-hidden="true">{endIcon}</span> : null}
-        </span>
-        {isLoading ? (
-          <span className="absolute inline-flex items-center justify-center gap-2" role="status">
-            <span className="h-4 w-4 animate-spin rounded-full border-strong border-current border-t-transparent" aria-hidden="true" />
-            <span className="sr-only">{loadingLabel}</span>
-          </span>
-        ) : null}
+        {content}
       </button>
     );
   },
