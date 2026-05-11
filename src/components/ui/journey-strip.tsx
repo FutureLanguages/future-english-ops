@@ -1,6 +1,5 @@
 import type { PortalStageItem } from "@/types/portal";
 import { BaseCard, BaseCardBody } from "@/components/ui/base-card";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 
 export type JourneyStripProps = {
@@ -22,10 +21,14 @@ export function JourneyStrip({ helperText, progressPercent, stages, timelineActi
             <h2 className="text-h2 font-extrabold text-text-primary">{title}</h2>
             {helperText ? <p className="mt-2 text-helper leading-6 text-text-muted">{helperText}</p> : null}
           </div>
-          <StatusBadge
-            label={timelineActive ? `${progressPercent}%` : "غير نشط"}
-            variant={timelineActive ? "info" : "waiting"}
-          />
+          <span
+            className={cn(
+              "inline-flex w-fit items-center gap-1.5 rounded-badge px-3 py-1 text-caption font-bold leading-none",
+              timelineActive ? "bg-info-100 text-info-500" : "bg-secondary-100 text-pine",
+            )}
+          >
+            {timelineActive ? <span dir="ltr">{progressPercent}%</span> : "غير نشط"}
+          </span>
         </div>
         <div className="overflow-x-auto pb-1">
           <ol

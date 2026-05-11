@@ -49,6 +49,16 @@ export type PortalFinanceSnapshot = {
   isPaymentComplete: boolean;
 };
 
+export type PortalParentFinanceSnapshot = PortalFinanceSnapshot & {
+  originalTotalCostSar: number;
+  paymentsHref: string;
+  discount?: {
+    title: string;
+    discountType: "FIXED" | "PERCENTAGE";
+    amountSar: number;
+  };
+};
+
 export type PortalSectionHealthSummary = Array<{
   id: string;
   title: string;
@@ -203,14 +213,25 @@ export type ParentReassuranceState =
 export type ParentDashboardViewModel = PortalDashboardBaseViewModel & {
   role: "PARENT";
   dashboardKind: "parent";
+  reassurance: {
+    tone: "calm" | "action" | "review" | "warning";
+    title: string;
+    description: string;
+    primaryAction?: {
+      label: string;
+      href: string;
+    };
+    badgeLabel: string;
+  };
   reassuranceState: ParentReassuranceState;
   hasPendingActions: boolean;
+  progressPercent: number;
   requiredIntervention: PortalActionView | null;
   heroPrimaryAction: {
     label: string;
     href?: string;
   };
-  financeSnapshot: PortalFinanceSnapshot;
+  financeSnapshot: PortalParentFinanceSnapshot | null;
 };
 
 export type PortalDashboardViewModel = StudentDashboardViewModel | ParentDashboardViewModel;

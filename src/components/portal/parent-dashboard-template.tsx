@@ -1,184 +1,193 @@
 import Link from "next/link";
 import { ApplicationSwitcher } from "@/components/portal/application-switcher";
-import { EnrollmentSurfaceCard } from "@/components/portal/enrollment-surface-card";
-import { RequiredActionsList } from "@/components/portal/required-actions-list";
-import type { ParentDashboardViewModel, ParentReassuranceState } from "@/types/portal";
+import { BaseCard, BaseCardBody } from "@/components/ui/base-card";
+import { Button } from "@/components/ui/button";
+import { FinancialSummaryCard } from "@/components/ui/financial-summary-card";
+import { HelperText } from "@/components/ui/helper-text";
+import { JourneyStrip } from "@/components/ui/journey-strip";
+import { ReassuranceCard } from "@/components/ui/reassurance-card";
+import { SectionCard } from "@/components/ui/section-card";
+import { StatusBadge, type StatusBadgeProps } from "@/components/ui/status-badge";
+import type { ParentDashboardViewModel, PortalSectionCard } from "@/types/portal";
 
-const reassuranceCopy: Record<ParentReassuranceState, { title: string; description: string; tone: string }> = {
-  ALL_GOOD: {
-    title: "الأمور مستقرة حالياً",
-    description: "لا يوجد تدخل مطلوب من ولي الأمر الآن. سنعرض أي إجراء جديد هنا بوضوح.",
-    tone: "bg-[#e9f7ee] text-[#1b7a43]",
-  },
-  ACTION_REQUIRED: {
-    title: "يوجد إجراء مطلوب منكم",
-    description: "هناك خطوة مباشرة تساعد على تقدم الطلب. ابدأوا بالإجراء الظاهر أدناه.",
-    tone: "bg-[#fff8e1] text-[#7a5a03]",
-  },
-  WAITING: {
-    title: "الطلب قيد المتابعة",
-    description: "لا يوجد إجراء مطلوب منكم حالياً، والطلب لدى الإدارة أو تحت المراجعة.",
-    tone: "bg-mist text-pine",
-  },
-  NEEDS_ATTENTION: {
-    title: "يوجد أمر يحتاج انتباهكم",
-    description: "هناك مستند أو إيصال يحتاج تصحيحاً أو متابعة قبل اكتمال الطلب.",
-    tone: "bg-[#fff1ea] text-[#8d3a14]",
-  },
-};
+const sectionOrder = ["documents", "agreements", "payments", "profile"] as const;
 
 export function ParentDashboardTemplate({ viewModel }: { viewModel: ParentDashboardViewModel }) {
-  const actionsHref = `/portal/actions?applicationId=${viewModel.selectedApplicationId}`;
-  const reassurance = reassuranceCopy[viewModel.reassuranceState];
-  const canShowActions = !viewModel.statusBehavior.suppressActionFraming;
-  const secondaryActions = viewModel.requiredIntervention
-    ? viewModel.topActions.filter((action) => action.id !== viewModel.requiredIntervention?.id)
-    : viewModel.topActions;
+  const sectionCards = buildParentSectionCards(viewModel);
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-panel bg-white p-5 shadow-soft">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-3">
-            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${reassurance.tone}`}>
-              {viewModel.statusLabel}
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-pine">متابعة ولي الأمر</p>
-              <h2 className="mt-1 text-2xl font-bold text-ink">{viewModel.statusBehavior.parentHeroTitle}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-ink/65">
-                {viewModel.statusBehavior.parentHeroDescription}
-              </p>
+    <div className="space-y-6">
+      <section className="space-y-4">
+        <div className="flex flex-col gap-4 tablet:flex-row tablet:items-start tablet:justify-between">
+          <div className="max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge label={viewModel.statusBehavior.label} variant={statusVariant(viewModel.statusBehavior.tone)} />
+              <StatusBadge label={viewModel.stageLabel} variant="info" />
             </div>
-            <div className="rounded-2xl bg-sand px-4 py-3 text-sm leading-6 text-ink/70">
-              الطلب الخاص بـ <span className="font-bold text-ink">{viewModel.studentName}</span> في مرحلة{" "}
-              <span className="font-bold text-ink">{viewModel.stageLabel}</span>.
-              <span className="mt-1 block text-xs font-semibold text-ink/50">
-                تقدم المرحلة: {viewModel.stage.progressPercent}%
-              </span>
-            </div>
+            <h1 className="mt-4 text-h1 font-extrabold leading-9 text-text-primary">
+              طلب {viewModel.studentName}
+            </h1>
+            <p className="mt-3 text-body leading-7 text-text-secondary">
+              لوحة متابعة مختصرة تساعدك على معرفة ما إذا كان الطلب يسير بشكل طبيعي أو يحتاج تدخلاً منك.
+            </p>
           </div>
-          {canShowActions && viewModel.heroPrimaryAction.href ? (
-            <Link
-              href={viewModel.heroPrimaryAction.href}
-              className="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-bold text-white transition hover:bg-pine/90"
-            >
-              {viewModel.heroPrimaryAction.label}
-            </Link>
-          ) : null}
+          <BaseCard variant="outlined" className="w-full tablet:w-72">
+            <BaseCardBody className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-caption font-bold text-text-muted">تقدم الطلب</span>
+                <span dir="ltr" className="text-h2 font-black text-text-primary">{viewModel.progressPercent}%</span>
+              </div>
+              <HelperText>{viewModel.stageLabel}</HelperText>
+              <Button asChild variant="ghost" size="sm" fullWidth>
+                <Link href="#parent-journey">رحلة ابني</Link>
+              </Button>
+            </BaseCardBody>
+          </BaseCard>
         </div>
+
+        <ApplicationSwitcher
+          options={viewModel.applicationOptions}
+          selectedApplicationId={viewModel.selectedApplicationId}
+          basePath="/portal/dashboard"
+        />
       </section>
 
-      <ApplicationSwitcher
-        options={viewModel.applicationOptions}
-        selectedApplicationId={viewModel.selectedApplicationId}
-        basePath="/portal/dashboard"
+      <ReassuranceCard
+        tone={viewModel.reassurance.tone}
+        title={viewModel.reassurance.title}
+        description={viewModel.reassurance.description}
+        primaryAction={viewModel.reassurance.primaryAction}
+        badge={{ label: viewModel.reassurance.badgeLabel }}
       />
 
-      <EnrollmentSurfaceCard
-        program={viewModel.program}
-        stageLabel={viewModel.stageLabel}
-        statusLabel={viewModel.statusLabel}
-        studentName={viewModel.studentName}
-      />
-
-      {canShowActions && viewModel.requiredIntervention ? (
-        <section className="rounded-panel bg-white p-5 shadow-soft">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-sm font-semibold text-pine">التدخل المطلوب</div>
-              <h3 className="mt-1 text-lg font-bold text-ink">{viewModel.requiredIntervention.label}</h3>
-              {viewModel.requiredIntervention.description ? (
-                <p className="mt-2 text-sm leading-6 text-ink/65">{viewModel.requiredIntervention.description}</p>
-              ) : null}
-            </div>
-            <Link
-              href={viewModel.requiredIntervention.href ?? actionsHref}
-              className="inline-flex items-center justify-center rounded-2xl bg-pine px-4 py-3 text-sm font-bold text-white"
-            >
-              متابعة الآن
-            </Link>
-          </div>
-        </section>
+      {viewModel.financeSnapshot ? (
+        <FinancialSummaryCard
+          originalTotalCostSar={viewModel.financeSnapshot.originalTotalCostSar}
+          discount={viewModel.financeSnapshot.discount}
+          totalCostSar={viewModel.financeSnapshot.totalCostSar}
+          paidAmountSar={viewModel.financeSnapshot.paidAmountSar}
+          remainingAmountSar={viewModel.financeSnapshot.remainingAmountSar}
+          paymentsHref={viewModel.financeSnapshot.paymentsHref}
+        />
       ) : null}
 
-      <section className="rounded-panel bg-white p-5 shadow-soft">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-pine">الملخص المالي</div>
-            <h3 className="mt-1 text-lg font-bold text-ink">
-              {viewModel.financeSnapshot.remainingAmountSar > 0
-                ? `المتبقي ${viewModel.financeSnapshot.remainingAmountSar} ر.س`
-                : "لا يوجد مبلغ متبقٍ حالياً"}
-            </h3>
-          </div>
-          <Link
-            href={`/portal/payments?applicationId=${viewModel.selectedApplicationId}`}
-            className="inline-flex items-center justify-center rounded-2xl bg-mist px-4 py-3 text-sm font-bold text-pine"
-          >
-            فتح المدفوعات
-          </Link>
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <FinanceItem label="إجمالي الرسوم" value={`${viewModel.financeSnapshot.totalCostSar} ر.س`} />
-          <FinanceItem label="المدفوع" value={`${viewModel.financeSnapshot.paidAmountSar} ر.س`} />
-          <FinanceItem label="المتبقي" value={`${viewModel.financeSnapshot.remainingAmountSar} ر.س`} />
-        </div>
-      </section>
+      {viewModel.latestAdminNote ? (
+        <BaseCard variant="outlined">
+          <BaseCardBody>
+            <h2 className="text-h2 font-extrabold text-text-primary">آخر تحديث من الإدارة</h2>
+            <p className="mt-2 text-body leading-7 text-text-secondary">{viewModel.latestAdminNote}</p>
+          </BaseCardBody>
+        </BaseCard>
+      ) : null}
 
-      <section className="rounded-panel bg-white p-5 shadow-soft">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-pine">ملخص هادئ للحالة</div>
-            <h3 className="mt-1 text-lg font-bold text-ink">الأقسام الأساسية</h3>
-          </div>
-          {canShowActions && viewModel.actions.length > 0 ? (
-            <Link href={actionsHref} className="text-sm font-bold text-pine">
-              كل الإجراءات
-            </Link>
-          ) : null}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-h2 font-extrabold text-text-primary">متابعة الأقسام</h2>
+          <HelperText>مراجعة هادئة لأهم أقسام الطلب حسب ما يهم ولي الأمر.</HelperText>
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {viewModel.sectionSummaries.map((section) => (
-            <Link key={section.id} href={section.href ?? actionsHref} className="rounded-2xl bg-sand px-4 py-3 transition hover:bg-mist">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-bold text-ink">{section.title}</span>
-                <span className="text-xs font-semibold text-ink/60">{section.statusLabel}</span>
-              </div>
-            </Link>
+        <div className="grid gap-4 tablet:grid-cols-2">
+          {sectionCards.map((card) => (
+            <SectionCard key={card.id} {...card} />
           ))}
         </div>
       </section>
 
-      {canShowActions && secondaryActions.length > 0 ? (
-        <section className="rounded-panel bg-white p-5 shadow-soft">
-          <div className="text-sm font-semibold text-pine">إجراءات أخرى</div>
-          <div className="mt-4">
-            <RequiredActionsList actions={secondaryActions} />
-          </div>
-          {viewModel.remainingActionsCount > 0 ? (
-            <Link href={actionsHref} className="mt-3 inline-flex text-sm font-bold text-pine">
-              وهناك {viewModel.remainingActionsCount} إجراءات أخرى
-            </Link>
-          ) : null}
-        </section>
-      ) : null}
-
-      {viewModel.latestAdminNote ? (
-        <section className="rounded-panel bg-white p-5 shadow-soft">
-          <div className="text-sm font-semibold text-pine">ملاحظة من الإدارة</div>
-          <p className="mt-2 text-sm leading-7 text-ink/70">{viewModel.latestAdminNote}</p>
-        </section>
-      ) : null}
+      <section id="parent-journey" className="scroll-mt-24 space-y-4">
+        <div>
+          <h2 className="text-h2 font-extrabold text-text-primary">رحلة ابني التفصيلية</h2>
+          <HelperText>هذه الرحلة تعرض المراحل الحالية المتاحة من بيانات الطلب، وهي للمتابعة فقط وليست لوحة مهام.</HelperText>
+        </div>
+        <JourneyStrip
+          title="مراحل الطلب"
+          helperText="المؤشر هنا ثانوي لمساعدتك على فهم موقع الطلب الحالي."
+          stages={viewModel.stage.stages}
+          progressPercent={viewModel.stage.progressPercent}
+          timelineActive={viewModel.stage.timelineActive}
+        />
+      </section>
     </div>
   );
 }
 
-function FinanceItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-sand px-4 py-3">
-      <div className="text-xs font-semibold text-ink/55">{label}</div>
-      <div className="mt-1 text-lg font-bold text-ink">{value}</div>
-    </div>
-  );
+function buildParentSectionCards(viewModel: ParentDashboardViewModel) {
+  const cardsById = new Map(viewModel.cards.map((card) => [card.id, card]));
+
+  return sectionOrder.flatMap((id) => {
+    const card = cardsById.get(id);
+
+    if (id === "payments" && !card) {
+      return [];
+    }
+
+    return [mapParentSectionCard(card, id)];
+  });
+}
+
+function mapParentSectionCard(card: PortalSectionCard | undefined, fallbackId: string) {
+  if (!card) {
+    return {
+      id: fallbackId,
+      title: "قسم غير متاح حالياً",
+      description: "لا توجد بيانات كافية لعرض هذا القسم الآن.",
+      badge: { label: "غير متاح", variant: "waiting" as const },
+    };
+  }
+
+  return {
+    id: card.id,
+    title: parentSectionTitle(card),
+    description: parentSectionDescription(card),
+    href: card.href,
+    ctaLabel: parentCtaLabel(card),
+    badge: {
+      label: card.statusLabel ?? "متابعة",
+      variant: sectionVariant(card.statusTone),
+    },
+    meta: parentMetaLabel(card),
+    emphasized: card.statusTone === "warning",
+  };
+}
+
+function parentSectionTitle(card: PortalSectionCard) {
+  if (card.id === "documents") return "مستندات الطالب";
+  if (card.id === "agreements") return "الميثاق والموافقات";
+  if (card.id === "payments") return "المدفوعات";
+  if (card.id === "profile") return "بيانات الطالب والأسرة";
+  return card.title;
+}
+
+function parentSectionDescription(card: PortalSectionCard) {
+  if (card.id === "documents") return "راجع حالة المستندات وما إذا كان هناك ملف يحتاج إعادة رفع أو متابعة.";
+  if (card.id === "agreements") return "راجع الموافقات المطلوبة وتأكد من عدم وجود توقيع مطلوب من ولي الأمر.";
+  if (card.id === "payments") return "راجع حالة السداد بهدوء، وما إذا كان هناك مبلغ يحتاج متابعة.";
+  if (card.id === "profile") return "راجع بيانات الطالب والأسرة عند الحاجة، بدون الدخول في تفاصيل غير ضرورية.";
+  return card.description;
+}
+
+function parentCtaLabel(card: PortalSectionCard) {
+  if (card.statusTone === "warning") return "مراجعة الآن";
+  return "مراجعة";
+}
+
+function parentMetaLabel(card: PortalSectionCard) {
+  if (card.id === "documents") return card.statusTone === "warning" ? "توجد مستندات تحتاج مراجعة." : "المستندات لا تحتاج تدخلاً حالياً.";
+  if (card.id === "agreements") return card.statusTone === "warning" ? "توجد موافقة تحتاج متابعة." : "لا توجد موافقة مطلوبة حالياً.";
+  if (card.id === "payments") return card.statusTone === "warning" ? "توجد متابعة مالية مطلوبة." : "لا توجد متابعة مالية مطلوبة حالياً.";
+  if (card.id === "profile") return card.statusTone === "warning" ? "توجد بيانات تحتاج مراجعة." : "البيانات لا تحتاج تدخلاً حالياً.";
+  return undefined;
+}
+
+function statusVariant(tone: ParentDashboardViewModel["statusBehavior"]["tone"]): StatusBadgeProps["variant"] {
+  if (tone === "success") return "complete";
+  if (tone === "warning") return "warning";
+  if (tone === "danger") return "error";
+  if (tone === "waiting") return "waiting";
+  if (tone === "active") return "action";
+  return "waiting";
+}
+
+function sectionVariant(tone?: PortalSectionCard["statusTone"]): StatusBadgeProps["variant"] {
+  if (tone === "success") return "complete";
+  if (tone === "warning") return "warning";
+  return "waiting";
 }

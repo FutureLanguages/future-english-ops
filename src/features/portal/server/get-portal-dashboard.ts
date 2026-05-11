@@ -13,6 +13,7 @@ import type {
   StudentDashboardViewModel,
 } from "@/types/portal";
 import { derivePortalStageStatus } from "./derive-portal-stage-status";
+import { buildParentDashboardViewModel } from "./get-parent-dashboard";
 import { loadPortalApplicationData } from "./load-portal-application";
 import { buildPortalNavItems, resolveAgreementHref } from "./nav";
 import { portalModeLabels, resolvePortalSurfaces } from "./portal-config";
@@ -665,21 +666,11 @@ export async function getParentDashboardViewModel(params: {
     statusBehavior: base.statusBehavior,
   });
 
-  return {
-    ...base,
-    role: "PARENT",
-    dashboardKind: "parent",
+  return buildParentDashboardViewModel({
+    data,
+    base,
     reassuranceState,
-    hasPendingActions: base.statusBehavior.suppressActionFraming ? false : base.actions.length > 0,
-    requiredIntervention: base.statusBehavior.suppressActionFraming
-      ? null
-      : base.actions.find((action) => action.section !== "messages") ?? null,
-    heroPrimaryAction: {
-      label: base.nextStep.ctaLabel ?? "مراجعة الحالة",
-      href: base.statusBehavior.suppressActionFraming ? undefined : base.nextStep.href,
-    },
-    financeSnapshot: getFinanceSnapshot(data),
-  };
+  });
 }
 
 export async function getPortalDashboardViewModel(params: {
