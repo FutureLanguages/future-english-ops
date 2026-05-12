@@ -9,12 +9,17 @@ import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/ui/text-input";
 
 function FieldLabel({ children }: { children: ReactNode }) {
-  return <label className="mb-1 block text-sm font-semibold text-ink">{children}</label>;
+  return <label className="mb-1 block text-body font-bold text-text-primary">{children}</label>;
 }
+
+const fieldControlClassName =
+  "w-full rounded-input border border-border-subtle bg-bg-surface-alt px-4 py-3 text-body text-text-primary outline-none transition-[border-color,box-shadow,background-color] duration-default ease-default placeholder:text-text-muted focus-visible:border-border-focus focus-visible:ring-2 focus-visible:ring-border-focus/30 disabled:cursor-not-allowed disabled:opacity-70";
+
+const fieldGroupClassName = "rounded-lg border border-border-subtle bg-bg-surface-alt p-4";
 
 function DataAccuracyDisclaimer() {
   return (
-    <div className="rounded-2xl border border-black/10 bg-mist/50 px-4 py-3 text-xs leading-6 text-ink/65">
+    <div className="rounded-lg border border-border-subtle bg-bg-surface-alt px-4 py-3 text-helper leading-6 text-text-secondary">
       أقر بأن جميع البيانات المدخلة صحيحة ودقيقة، وأتحمل كامل المسؤولية عن أي خطأ أو نقص في هذه البيانات، ولا تتحمل مؤسسة مستقبل اللغات أو منسوبيها أي مسؤولية ناتجة عن ذلك.
     </div>
   );
@@ -75,7 +80,6 @@ export function PortalStudentProfileForm({
     passportNumber: string;
   };
 }) {
-  const router = useRouter();
   const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [nationalityMode, setNationalityMode] = useState(values.nationality === "سعودي" ? "saudi" : "other");
@@ -103,7 +107,7 @@ export function PortalStudentProfileForm({
     <>
       <AutoDismissToast message={toast?.message ?? ""} tone={toast?.tone ?? "success"} />
       <form
-        className="mt-4 grid gap-3 md:grid-cols-2"
+        className="mt-4 grid gap-3 tablet:grid-cols-2"
         onSubmit={(event) => {
           event.preventDefault();
           const form = event.currentTarget;
@@ -133,7 +137,7 @@ export function PortalStudentProfileForm({
             name="fullNameAr"
             defaultValue={values.fullNameAr}
             placeholder="أدخل الاسم بالعربية"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
         </div>
         <ValidatedTextInput
@@ -151,7 +155,7 @@ export function PortalStudentProfileForm({
             name="birthDate"
             type="date"
             defaultValue={values.birthDate}
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
         </div>
         <div>
@@ -159,7 +163,7 @@ export function PortalStudentProfileForm({
           <select
             name="gender"
             defaultValue={values.gender}
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           >
             <option value="">اختر الجنس</option>
             <option value="ذكر">ذكر</option>
@@ -172,7 +176,7 @@ export function PortalStudentProfileForm({
             name="nationalityMode"
             value={nationalityMode}
             onChange={(event) => setNationalityMode(event.target.value)}
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           >
             <option value="saudi">سعودي</option>
             <option value="other">أخرى</option>
@@ -187,9 +191,9 @@ export function PortalStudentProfileForm({
             placeholder={nationalityMode === "saudi" ? "أدخل رقم الهوية" : "أدخل رقم الإقامة"}
             inputMode="numeric"
             maxLength={10}
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
-          <p className="mt-1 text-xs font-semibold text-[#a03232]">أرقام فقط وبحد أقصى 10 خانات</p>
+          <p className="mt-1 text-caption font-bold text-error-600">أرقام فقط وبحد أقصى 10 خانات</p>
         </div>
         {nationalityMode === "other" ? (
           <div>
@@ -199,7 +203,7 @@ export function PortalStudentProfileForm({
               value={otherNationality}
               onChange={(event) => setOtherNationality(event.target.value)}
               placeholder="أدخل الجنسية"
-              className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+              className={fieldControlClassName}
             />
           </div>
         ) : (
@@ -211,7 +215,7 @@ export function PortalStudentProfileForm({
             name="city"
             defaultValue={values.city}
             placeholder="أدخل المدينة"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
         </div>
         <div>
@@ -220,7 +224,7 @@ export function PortalStudentProfileForm({
             name="schoolName"
             defaultValue={values.schoolName}
             placeholder="أدخل المدرسة"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
         </div>
         <div>
@@ -228,7 +232,7 @@ export function PortalStudentProfileForm({
           <select
             name="languageLevel"
             defaultValue={values.languageLevel}
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           >
             <option value="">اختر المستوى</option>
             <option value="مبتدئ">مبتدئ</option>
@@ -240,14 +244,14 @@ export function PortalStudentProfileForm({
           <FieldLabel>المرحلة الدراسية</FieldLabel>
           <SchoolStageSelect value={values.schoolStage} />
         </div>
-        <div className="md:col-span-2">
+        <div className="tablet:col-span-2">
           <FieldLabel>الهوايات</FieldLabel>
           <textarea
             name="hobbies"
             rows={2}
             defaultValue={values.hobbies}
             placeholder="اكتب الهوايات أو الاهتمامات"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
         </div>
         <ValidatedTextInput
@@ -259,10 +263,10 @@ export function PortalStudentProfileForm({
           helperText="يُكتب كما هو في الجواز وبالأحرف الإنجليزية"
           helperTone="alert"
         />
-        <div className="md:col-span-2">
+        <div className="tablet:col-span-2">
           <DataAccuracyDisclaimer />
         </div>
-        <div className="md:col-span-2">
+        <div className="tablet:col-span-2">
           <Button
             type="submit"
             isLoading={isPending}
@@ -301,7 +305,6 @@ export function PortalHealthBehaviorForm({
   values: Record<string, { hasIssue: boolean; details: string }>;
   parentSupervisorNotes: string;
 }) {
-  const router = useRouter();
   const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [healthState, setHealthState] = useState(
@@ -330,9 +333,9 @@ export function PortalHealthBehaviorForm({
         }}
       >
         <input type="hidden" name="applicationId" value={applicationId} />
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 tablet:grid-cols-2">
           {healthFields.map(([key, label]) => (
-            <div key={key} className="rounded-2xl border border-black/10 bg-sand p-4">
+            <div key={key} className={fieldGroupClassName}>
               <FieldLabel>{label}</FieldLabel>
               <select
                 name={`${key}HasIssue`}
@@ -344,7 +347,7 @@ export function PortalHealthBehaviorForm({
                   }))
                 }
                 disabled={!canEdit}
-                className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none disabled:opacity-70"
+                className={fieldControlClassName}
               >
                 <option value="no">لا</option>
                 <option value="yes">نعم</option>
@@ -356,7 +359,7 @@ export function PortalHealthBehaviorForm({
                   defaultValue={values[key]?.details ?? ""}
                   disabled={!canEdit}
                   placeholder="اذكر التفاصيل عند اختيار نعم"
-                  className="mt-3 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none disabled:opacity-70"
+                  className={`${fieldControlClassName} mt-3`}
                 />
               ) : null}
             </div>
@@ -371,12 +374,12 @@ export function PortalHealthBehaviorForm({
               defaultValue={parentSupervisorNotes}
               disabled={!canEditParentSupervisorNotes}
               placeholder="اكتب أي ملاحظات مهمة يحتاج المشرفون معرفتها"
-              className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none disabled:opacity-70"
+              className={fieldControlClassName}
             />
             {!canEditParentSupervisorNotes ? (
               <>
                 <input type="hidden" name="parentSupervisorNotes" value={parentSupervisorNotes} />
-                <p className="mt-2 text-xs text-ink/55">هذه الملاحظات يكتبها ولي الأمر وتظهر هنا للعرض فقط.</p>
+                <p className="mt-2 text-caption text-text-muted">هذه الملاحظات يكتبها ولي الأمر وتظهر هنا للعرض فقط.</p>
               </>
             ) : null}
           </div>
@@ -390,7 +393,7 @@ export function PortalHealthBehaviorForm({
             {isPending ? "جارٍ الحفظ..." : "حفظ الحالة والملاحظات"}
           </Button>
         ) : (
-          <div className="rounded-2xl bg-mist px-4 py-3 text-sm text-ink/65">
+          <div className="rounded-lg border border-border-subtle bg-bg-surface-alt px-4 py-3 text-body text-text-secondary">
             هذا القسم مقفل حالياً أو غير متاح للتعديل من هذا الحساب.
           </div>
         )}
@@ -424,7 +427,7 @@ export function PortalParentProfileForm({
     <>
       <AutoDismissToast message={toast?.message ?? ""} tone={toast?.tone ?? "success"} />
       <form
-        className="mt-4 grid gap-3 md:grid-cols-2"
+        className="mt-4 grid gap-3 tablet:grid-cols-2"
         onSubmit={(event) => {
           event.preventDefault();
           const form = event.currentTarget;
@@ -448,7 +451,7 @@ export function PortalParentProfileForm({
             name="fullName"
             defaultValue={editor.values.fullName}
             placeholder="أدخل الاسم"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
         </div>
         <div>
@@ -457,7 +460,7 @@ export function PortalParentProfileForm({
             name="mobileNumber"
             defaultValue={editor.values.mobileNumber}
             placeholder="أدخل رقم الجوال"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
         </div>
         <ValidatedTextInput
@@ -475,7 +478,7 @@ export function PortalParentProfileForm({
             name="nationalIdNumber"
             defaultValue={editor.values.nationalIdNumber}
             placeholder="أدخل رقم الهوية"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
         </div>
         <div>
@@ -484,27 +487,27 @@ export function PortalParentProfileForm({
             name="relationToStudent"
             defaultValue={editor.values.relationToStudent}
             placeholder="مثال: الأب"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
         </div>
-        <div className="md:col-span-2">
+        <div className="tablet:col-span-2">
           <FieldLabel>ملاحظة</FieldLabel>
           <textarea
             name="note"
             rows={3}
             defaultValue={editor.values.note}
             placeholder="ملاحظات إضافية"
-            className="w-full rounded-2xl border border-black/10 bg-sand px-4 py-3 text-sm outline-none"
+            className={fieldControlClassName}
           />
         </div>
-        <label className="flex items-center gap-2 text-sm font-semibold text-ink md:col-span-2">
+        <label className="flex items-center gap-2 text-body font-bold text-text-primary tablet:col-span-2">
           <input type="checkbox" name="isDeceased" defaultChecked={editor.values.isDeceased} />
           متوفي
         </label>
-        <div className="md:col-span-2">
+        <div className="tablet:col-span-2">
           <DataAccuracyDisclaimer />
         </div>
-        <div className="md:col-span-2">
+        <div className="tablet:col-span-2">
           <Button
             type="submit"
             isLoading={isPending}
