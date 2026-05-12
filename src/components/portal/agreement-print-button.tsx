@@ -1,13 +1,17 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 export function AgreementPrintButton() {
   return (
-    <button
+    <Button
       type="button"
       onClick={() => window.print()}
-      className="inline-flex rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-sand print:hidden"
+      variant="secondary"
+      size="sm"
+      className="print:hidden"
     >
       طباعة الميثاق
-    </button>
+    </Button>
   );
 }

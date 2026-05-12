@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { HelperText } from "@/components/ui/helper-text";
 
 export function SignaturePadField({ name = "signature" }: { name?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const signatureRef = useRef("");
   const [isDrawing, setIsDrawing] = useState(false);
   const [signature, setSignature] = useState("");
 
@@ -13,6 +16,15 @@ export function SignaturePadField({ name = "signature" }: { name?: string }) {
       return;
     }
 
+    function configureContext(context: CanvasRenderingContext2D) {
+      context.lineWidth = 2.4;
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      context.strokeStyle = getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-text-primary")
+        .trim() || "CanvasText";
+    }
+
     function resizeCanvas() {
       if (!canvas) {
         return;
@@ -20,15 +32,20 @@ export function SignaturePadField({ name = "signature" }: { name?: string }) {
 
       const rect = canvas.getBoundingClientRect();
       const ratio = window.devicePixelRatio || 1;
+      const previousSignature = signatureRef.current;
       canvas.width = Math.max(1, Math.floor(rect.width * ratio));
       canvas.height = Math.max(1, Math.floor(rect.height * ratio));
       const context = canvas.getContext("2d");
       if (context) {
         context.setTransform(ratio, 0, 0, ratio, 0, 0);
-        context.lineWidth = 2.4;
-        context.lineCap = "round";
-        context.lineJoin = "round";
-        context.strokeStyle = "#11212d";
+        configureContext(context);
+        if (previousSignature) {
+          const image = new Image();
+          image.onload = () => {
+            context.drawImage(image, 0, 0, rect.width, rect.height);
+          };
+          image.src = previousSignature;
+        }
       }
     }
 
@@ -85,7 +102,9 @@ export function SignaturePadField({ name = "signature" }: { name?: string }) {
     const canvas = canvasRef.current;
     setIsDrawing(false);
     if (canvas) {
-      setSignature(canvas.toDataURL("image/png"));
+      const dataUrl = canvas.toDataURL("image/png");
+      signatureRef.current = dataUrl;
+      setSignature(dataUrl);
     }
   }
 
@@ -98,20 +117,22 @@ export function SignaturePadField({ name = "signature" }: { name?: string }) {
 
     const rect = canvas.getBoundingClientRect();
     context.clearRect(0, 0, rect.width, rect.height);
+    signatureRef.current = "";
     setSignature("");
   }
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <label className="text-sm font-semibold text-ink">التوقيع</label>
-        <button
+        <label className="text-body font-bold text-text-primary">التوقيع</label>
+        <Button
           type="button"
           onClick={clearSignature}
-          className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-ink hover:bg-sand"
+          variant="secondary"
+          size="sm"
         >
           مسح التوقيع
-        </button>
+        </Button>
       </div>
       <canvas
         ref={canvasRef}
@@ -121,10 +142,10 @@ export function SignaturePadField({ name = "signature" }: { name?: string }) {
         onPointerMove={draw}
         onPointerUp={stopDrawing}
         onPointerLeave={stopDrawing}
-        className="h-44 w-full touch-none rounded-2xl border border-black/10 bg-sand"
+        className="h-44 w-full touch-none rounded-input border border-border-subtle bg-bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
       />
       <input type="hidden" name={name} value={signature} required />
-      <p className="text-xs text-ink/55">ارسم توقيعك داخل المساحة أعلاه باستخدام الماوس أو اللمس.</p>
+      <HelperText>ارسم توقيعك داخل المساحة أعلاه باستخدام الماوس أو اللمس.</HelperText>
     </div>
   );
 }

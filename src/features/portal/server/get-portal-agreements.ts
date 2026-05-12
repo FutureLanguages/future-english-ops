@@ -76,12 +76,23 @@ export async function getPortalAgreementsViewModel(params: {
         const accepted = isAgreementAcceptedByRole(agreement, data.user.role);
         const studentPending = agreement.requiresStudentAcceptance && !agreement.studentAccepted;
         const parentPending = agreement.requiresParentAcceptance && !agreement.parentAccepted;
+        const currentRoleNeedsApproval = !accepted;
+        const waitingOnOtherSide =
+          accepted && (
+            data.user.role === UserRole.STUDENT
+              ? parentPending
+              : studentPending
+          );
+        const fullyAccepted = !studentPending && !parentPending;
 
         return {
           id: agreement.id,
           title: agreement.title,
           assignedAt: agreement.assignedAt,
           accepted,
+          currentRoleNeedsApproval,
+          waitingOnOtherSide,
+          fullyAccepted,
           studentAccepted: agreement.studentAccepted,
           parentAccepted: agreement.parentAccepted,
           requiresStudentAcceptance: agreement.requiresStudentAcceptance,
@@ -143,6 +154,8 @@ export async function getPortalAgreementDetailViewModel(params: {
       content: agreement.contentSnapshot,
       acknowledgmentText: agreement.acknowledgmentSnapshot,
       accepted: isAgreementAcceptedByRole(agreement, data.user.role),
+      studentAccepted: agreement.studentAccepted,
+      parentAccepted: agreement.parentAccepted,
       requiresStudentAcceptance: agreement.requiresStudentAcceptance,
       requiresParentAcceptance: agreement.requiresParentAcceptance,
       acceptedAt: data.user.role === UserRole.STUDENT
