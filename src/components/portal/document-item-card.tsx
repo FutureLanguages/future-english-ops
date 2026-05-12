@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import type { DocumentCategory } from "@prisma/client";
 import { AutoDismissToast } from "@/components/shared/auto-dismiss-toast";
 import { FileActionLinks } from "@/components/shared/file-action-links";
-import { DocumentStatusBadge } from "@/components/portal/document-status-badge";
 import { FileUploadInput } from "@/components/portal/file-upload-input";
+import { BaseCard, BaseCardBody } from "@/components/ui/base-card";
+import { Button } from "@/components/ui/button";
+import { HelperText } from "@/components/ui/helper-text";
+import { StatusBadge, type StatusBadgeProps } from "@/components/ui/status-badge";
 import { MAX_UPLOAD_SIZE_LABEL } from "@/lib/storage/upload-limits";
+import { cn } from "@/lib/utils";
 
-type PortalDocumentItem = {
+export type PortalDocumentItem = {
   requirementId: string;
   requirementCode: string;
   applicationId: string;
@@ -24,10 +28,86 @@ type PortalDocumentItem = {
   category: DocumentCategory;
 };
 
+const documentToneByStatus: Record<PortalDocumentItem["status"], {
+  badge: StatusBadgeProps["variant"];
+  label: string;
+  cardClass: string;
+  helperTone: "calm" | "review" | "action" | "warning" | "error";
+}> = {
+  MISSING: {
+    badge: "warning",
+    label: "مطلوب",
+    cardClass: "border-warning-100 bg-warning-100/40",
+    helperTone: "warning",
+  },
+  REJECTED: {
+    badge: "error",
+    label: "مرفوض",
+    cardClass: "border-error-100 bg-error-100/40",
+    helperTone: "error",
+  },
+  REUPLOAD_REQUESTED: {
+    badge: "warning",
+    label: "إعادة رفع",
+    cardClass: "border-warning-100 bg-warning-100/40",
+    helperTone: "warning",
+  },
+  UPLOADED: {
+    badge: "waiting",
+    label: "بانتظار المراجعة",
+    cardClass: "border-secondary-100 bg-secondary-100/40",
+    helperTone: "review",
+  },
+  UNDER_REVIEW: {
+    badge: "waiting",
+    label: "قيد المراجعة",
+    cardClass: "border-secondary-100 bg-secondary-100/40",
+    helperTone: "review",
+  },
+  APPROVED: {
+    badge: "complete",
+    label: "معتمد",
+    cardClass: "border-success-100 bg-bg-surface",
+    helperTone: "calm",
+  },
+};
+
+function categoryLabel(category: DocumentCategory) {
+  if (category === "STUDENT") return "مستند الطالب";
+  if (category === "PARENT") return "مستند ولي الأمر";
+  return "مستند الوصاية";
+}
+
+function statusExplanation(item: PortalDocumentItem) {
+  if (item.status === "MISSING") {
+    return "هذا المستند ما زال مطلوبًا لاستكمال الطلب.";
+  }
+
+  if (item.status === "REJECTED") {
+    return "هذا المستند يحتاج إعادة رفع بعد ملاحظة الإدارة.";
+  }
+
+  if (item.status === "REUPLOAD_REQUESTED") {
+    return "يرجى رفع نسخة محدثة من هذا المستند حسب توجيه الإدارة.";
+  }
+
+  if (item.status === "UPLOADED") {
+    return "تم رفع هذا المستند وهو الآن بانتظار مراجعة الإدارة.";
+  }
+
+  if (item.status === "UNDER_REVIEW") {
+    return "هذا المستند قيد المراجعة حالياً ولا يحتاج إجراء منك الآن.";
+  }
+
+  return "هذا المستند معتمد حالياً.";
+}
+
 export function DocumentItemCard({ item, isDev }: { item: PortalDocumentItem; isDev?: boolean }) {
-  const canShowUploadForm = item.canUpload && item.actionLabel && item.status !== "APPROVED";
-  const isProblem = item.status === "REJECTED" || item.status === "REUPLOAD_REQUESTED";
-  const isMissing = item.status === "MISSING";
+  const canShowUploadForm =
+    item.canUpload &&
+    item.actionLabel &&
+    (item.status === "MISSING" || item.status === "REJECTED" || item.status === "REUPLOAD_REQUESTED");
+  const tone = documentToneByStatus[item.status];
   const router = useRouter();
   const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -42,113 +122,101 @@ export function DocumentItemCard({ item, isDev }: { item: PortalDocumentItem; is
   }
 
   return (
-    <article
-      className={`rounded-panel border p-4 shadow-soft ${
-        isProblem
-          ? "border-[#a03232]/20 bg-[#fff8f5]"
-          : isMissing
-            ? "border-[#7a5a03]/15 bg-[#fffdf4]"
-            : "border-black/5 bg-white"
-      }`}
-    >
-      <AutoDismissToast message={toast?.message ?? ""} tone={toast?.tone ?? "success"} />
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="text-base font-bold text-ink">{item.titleAr}</h3>
-          <p className="mt-1 text-sm leading-6 text-ink/60">
-            {item.descriptionAr ?? "لا يوجد وصف إضافي لهذا المستند."}
-          </p>
-          {canShowUploadForm ? (
-            <div className="mt-2 inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold text-pine">
-              الإجراء المطلوب: {item.actionLabel}
+    <BaseCard variant="outlined" className={cn("overflow-hidden", tone.cardClass)}>
+      <BaseCardBody className="space-y-4">
+        <AutoDismissToast message={toast?.message ?? ""} tone={toast?.tone ?? "success"} />
+        <div className="flex flex-col gap-3 tablet:flex-row tablet:items-start tablet:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-h3 font-extrabold text-text-primary">{item.titleAr}</h3>
+              <StatusBadge label={tone.label} variant={tone.badge} />
             </div>
-          ) : null}
-        </div>
-        <DocumentStatusBadge status={item.status} />
-      </div>
-
-      {item.adminNote ? (
-        <div className="mt-3 rounded-2xl bg-sand px-3 py-3">
-          <div className="mb-1 text-xs font-bold text-ink/55">
-            {item.status === "REJECTED"
-              ? "سبب الرفض"
-              : item.status === "REUPLOAD_REQUESTED"
-                ? "سبب طلب إعادة الرفع"
-                : "ملاحظة الإدارة"}
+            <p className="mt-2 text-body leading-7 text-text-secondary">
+              {item.descriptionAr ?? "لا يوجد وصف إضافي لهذا المستند."}
+            </p>
+            <HelperText tone={tone.helperTone} className="mt-2">
+              {statusExplanation(item)}
+            </HelperText>
           </div>
-          <p className="text-sm text-ink/80">{item.adminNote}</p>
+          <StatusBadge label={categoryLabel(item.category)} variant="info" />
         </div>
-      ) : null}
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-        <div className="space-y-2">
-          <div className="text-xs font-medium text-ink/45">
-            {item.category === "STUDENT"
-              ? "مستند الطالب"
-              : item.category === "PARENT"
-                ? "مستند ولي الأمر"
-                : "مستند الوصاية"}
+        {item.adminNote ? (
+          <div className="rounded-lg border border-border-subtle bg-bg-surface px-4 py-3">
+            <div className="text-caption font-bold text-text-muted">
+              {item.status === "REJECTED"
+                ? "سبب الرفض"
+                : item.status === "REUPLOAD_REQUESTED"
+                  ? "سبب طلب إعادة الرفع"
+                  : "ملاحظة الإدارة"}
+            </div>
+            <p className="mt-1 text-body leading-7 text-text-primary">{item.adminNote}</p>
           </div>
-          {item.fileAssetId ? (
-            <div className="flex items-center gap-3">
+        ) : null}
+
+        <div className="grid gap-4 tablet:grid-cols-[1fr_auto] tablet:items-end">
+          <div className="space-y-2">
+            {item.fileAssetId ? (
               <FileActionLinks
                 fileAssetId={item.fileAssetId}
                 mimeType={item.fileMimeType}
-                className="inline-flex rounded-full bg-mist px-3 py-2 text-xs font-semibold text-pine disabled:cursor-wait disabled:opacity-60"
+                className="inline-flex rounded-badge bg-bg-surface px-3 py-2 text-caption font-bold text-pine disabled:cursor-wait disabled:opacity-60"
               />
-            </div>
+            ) : (
+              <HelperText>لم يتم رفع ملف لهذا المستند بعد.</HelperText>
+            )}
+          </div>
+
+          {canShowUploadForm ? (
+            <form
+              className="flex flex-col gap-3 tablet:flex-row tablet:items-end"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const form = event.currentTarget;
+                startTransition(async () => {
+                  const response = await fetch("/api/portal/documents/upload", {
+                    method: "POST",
+                    body: new FormData(form),
+                  });
+                  const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+                  if (!response.ok) {
+                    setToast({ tone: "error", message: messageForError(payload?.error) });
+                    return;
+                  }
+
+                  form.reset();
+                  setToast({ tone: "success", message: "تم رفع المستند بنجاح وهو الآن بانتظار المراجعة." });
+                  router.refresh();
+                });
+              }}
+            >
+              <input type="hidden" name="applicationId" value={item.applicationId} />
+              <input type="hidden" name="requirementCode" value={item.requirementCode} />
+              <FileUploadInput
+                name="file"
+                label="اختر الملف"
+                className="max-w-[220px] text-xs text-text-secondary file:mx-2 file:rounded-badge file:border-0 file:bg-bg-surface file:px-3 file:py-2 file:text-xs file:font-bold file:text-pine"
+              />
+              <Button
+                type="submit"
+                isLoading={isPending}
+                disabled={isPending}
+                title={isDev ? `${item.actionLabel} - متاح في التطوير` : item.actionLabel ?? undefined}
+              >
+                {isPending ? "جارٍ الرفع..." : item.actionLabel}
+              </Button>
+            </form>
           ) : (
-            <div className="rounded-2xl bg-mist px-3 py-3 text-xs text-ink/55">
-              لم يتم رفع ملف لهذا المستند بعد.
-            </div>
+            <HelperText>
+              {item.status === "APPROVED"
+                ? "لا يوجد إجراء مطلوب."
+                : item.status === "UPLOADED" || item.status === "UNDER_REVIEW"
+                  ? "هذا المستند للعرض فقط أثناء المراجعة."
+                  : "لا يمكن الرفع من هذا الحساب."}
+            </HelperText>
           )}
         </div>
-
-        {canShowUploadForm ? (
-          <form
-            className="flex flex-col gap-2 sm:flex-row sm:items-center"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const form = event.currentTarget;
-              startTransition(async () => {
-                const response = await fetch("/api/portal/documents/upload", {
-                  method: "POST",
-                  body: new FormData(form),
-                });
-                const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-                if (!response.ok) {
-                  setToast({ tone: "error", message: messageForError(payload?.error) });
-                  return;
-                }
-
-                form.reset();
-                setToast({ tone: "success", message: "تم رفع المستند بنجاح وهو الآن بانتظار المراجعة." });
-                router.refresh();
-              });
-            }}
-          >
-            <input type="hidden" name="applicationId" value={item.applicationId} />
-            <input type="hidden" name="requirementCode" value={item.requirementCode} />
-            <FileUploadInput
-              name="file"
-              label="اختر الملف"
-              className="max-w-[220px] text-xs text-ink/70 file:ml-2 file:rounded-full file:border-0 file:bg-mist file:px-3 file:py-2 file:text-xs file:font-semibold file:text-pine"
-            />
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white"
-              title={isDev ? `${item.actionLabel} - متاح في التطوير` : item.actionLabel ?? undefined}
-            >
-              {isPending ? "جارٍ الرفع..." : item.actionLabel}
-            </button>
-          </form>
-        ) : (
-          <span className="text-sm font-semibold text-ink/40">
-            {item.status === "APPROVED" ? "لا يوجد إجراء" : "لا يمكن الرفع من هذا الحساب"}
-          </span>
-        )}
-      </div>
-    </article>
+      </BaseCardBody>
+    </BaseCard>
   );
 }
