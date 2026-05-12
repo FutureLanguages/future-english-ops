@@ -1,9 +1,12 @@
 import { ApplicationSwitcher } from "@/components/portal/application-switcher";
-import { DashboardStatusBadge, PortalOverallCompletionBadge } from "@/components/portal/dashboard-status";
+import { PortalOverallCompletionBadge } from "@/components/portal/dashboard-status";
 import { PaymentReceiptCard } from "@/components/portal/payment-receipt-card";
 import { PaymentSummaryCard } from "@/components/portal/payment-summary-card";
-import { PortalPageHeader } from "@/components/portal/portal-page-header";
 import { PortalShell } from "@/components/portal/portal-shell";
+import { BaseCard, BaseCardBody, BaseCardHeader } from "@/components/ui/base-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { HelperText } from "@/components/ui/helper-text";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { getPortalDevSessionState } from "@/features/auth/server/portal-session";
 import { getPortalPaymentsViewModel } from "@/features/portal/server/get-portal-payments";
 import { MAX_UPLOAD_SIZE_LABEL } from "@/lib/storage/upload-limits";
@@ -35,9 +38,10 @@ export default async function PortalPaymentsPage({
         activeUserLabel={session.role === "STUDENT" ? "طالب" : "ولي أمر"}
         activeMobileNumber={session.mobileNumber}
       >
-        <div className="rounded-panel bg-white p-6 shadow-soft">
-          <h2 className="text-lg font-bold text-ink">لا توجد بيانات سداد لعرضها</h2>
-        </div>
+        <EmptyState
+          title="لا توجد بيانات سداد لعرضها"
+          description="عند إضافة بيانات مالية لهذا الطلب ستظهر هنا بشكل واضح."
+        />
       </PortalShell>
     );
   }
@@ -61,21 +65,24 @@ export default async function PortalPaymentsPage({
         devUsers={devSession.availableUsers}
         currentUserId={session.id}
       >
-        <div className="rounded-panel bg-white p-6 shadow-soft">
-          <h2 className="text-lg font-bold text-ink">المدفوعات يتابعها ولي الأمر</h2>
-          <p className="mt-2 text-sm leading-6 text-ink/65">
-            هذه الصفحة تعمل بشكل طبيعي، لكن تفاصيل السداد مخفية عن حساب الطالب لهذا الطلب.
-            يمكن لولي الأمر متابعة المبالغ والإيصالات، وستظهر لك أي تعليمات عامة مطلوبة بدون
-            عرض بيانات مالية خاصة.
-          </p>
-          <div className="mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-6 text-ink/65">
-            إذا ظهر لك إجراء مالي في قائمة المهام، فهذا يعني أن المتابعة مطلوبة من ولي الأمر
-            عبر حسابه، وليس أن هناك خطأ في حساب الطالب.
-          </div>
+        <div className="space-y-5">
+          <ApplicationSwitcher
+            options={viewModel.applicationOptions}
+            selectedApplicationId={viewModel.selectedApplicationId}
+            basePath="/portal/payments"
+          />
+          <EmptyState
+            title="المدفوعات يتابعها ولي الأمر"
+            description="تفاصيل السداد مخفية عن هذا الحساب لهذا الطلب. يمكن متابعة المبالغ والإيصالات من الحساب المسؤول عن السداد دون عرض بيانات مالية خاصة هنا."
+            helperText="إذا ظهر إجراء مالي ضمن المهام، فهذا يعني أن المتابعة مطلوبة من الحساب المسؤول عن السداد."
+          />
         </div>
       </PortalShell>
     );
   }
+
+  const hasActionNeeded =
+    viewModel.summary.remainingAmountSar > 0 || viewModel.receiptSummary.rejectedOrReupload > 0;
 
   return (
     <PortalShell
@@ -95,44 +102,52 @@ export default async function PortalPaymentsPage({
       devUsers={devSession.availableUsers}
       currentUserId={session.id}
     >
-      <div className="space-y-5">
+      <div className="space-y-6">
         {resolvedSearchParams?.success || resolvedSearchParams?.error ? (
-          <section
-            className={`rounded-panel p-4 shadow-soft ${
-              resolvedSearchParams?.success
-                ? "bg-[#e9f7ee] text-[#1b7a43]"
-                : "bg-[#ffe8e8] text-[#a03232]"
-            }`}
+          <BaseCard
+            variant="outlined"
+            className={resolvedSearchParams?.success ? "border-success-100 bg-success-100/60" : "border-error-100 bg-error-100/60"}
           >
-            <div className="text-sm font-semibold">
-              {resolvedSearchParams?.success === "receipt_uploaded"
-                ? "تم رفع إيصال السداد بنجاح وهو الآن بانتظار المراجعة."
-                : resolvedSearchParams?.error === "missing_file"
-                  ? "يرجى اختيار ملف الإيصال قبل الإرسال."
-                  : resolvedSearchParams?.error === "file_too_large"
-                    ? `حجم الملف أكبر من الحد المسموح (${MAX_UPLOAD_SIZE_LABEL}).`
-                  : resolvedSearchParams?.error === "unsupported_file_type"
-                    ? "نوع الملف غير مدعوم. يرجى رفع PDF أو صورة."
-                  : resolvedSearchParams?.error === "agreement_required"
-                    ? "يجب الموافقة على الميثاق قبل استكمال البيانات."
-                  : "تعذر تنفيذ عملية السداد المطلوبة حالياً."}
-            </div>
-          </section>
+            <BaseCardBody>
+              <p className={resolvedSearchParams?.success ? "text-body font-bold text-success-700" : "text-body font-bold text-error-600"}>
+                {uploadFeedbackMessage(resolvedSearchParams)}
+              </p>
+            </BaseCardBody>
+          </BaseCard>
         ) : null}
-        <PortalPageHeader
-          title="المدفوعات"
-          description="صفحة مستقلة للرسوم والدفعات والإيصالات فقط، بدون خلط مع بقية الأقسام."
-          aside={<DashboardStatusBadge status={viewModel.status} />}
-        />
 
-        <ApplicationSwitcher
-          options={viewModel.applicationOptions}
-          selectedApplicationId={viewModel.selectedApplicationId}
-          basePath="/portal/payments"
-        />
+        <section className="space-y-4">
+          <div className="max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge
+                label={hasActionNeeded ? "توجد متابعة مالية مطلوبة" : "لا توجد متابعة مالية مطلوبة"}
+                variant={hasActionNeeded ? "warning" : "complete"}
+              />
+              <StatusBadge label={viewModel.role === "STUDENT" ? "حساب الطالب" : "حساب ولي الأمر"} variant="info" />
+            </div>
+            <h1 className="mt-4 text-h1 font-extrabold leading-9 text-text-primary">المدفوعات</h1>
+            <p className="mt-3 text-body leading-7 text-text-secondary">
+              {viewModel.role === "PARENT"
+                ? "تابع حالة السداد والإيصالات من مكان واحد، مع توضيح ما يحتاج إجراء الآن."
+                : "اعرض حالة السداد الظاهرة لهذا الحساب بدون كشف أي بيانات غير مفعّلة للطالب."}
+            </p>
+            {hasActionNeeded ? (
+              <HelperText className="mt-2">
+                ابدأ بالمبلغ المتبقي أو الإيصالات التي تحتاج تصحيحاً، أما الإيصالات قيد المراجعة فهي للمتابعة فقط.
+              </HelperText>
+            ) : null}
+          </div>
+
+          <ApplicationSwitcher
+            options={viewModel.applicationOptions}
+            selectedApplicationId={viewModel.selectedApplicationId}
+            basePath="/portal/payments"
+          />
+        </section>
 
         <PaymentSummaryCard
           role={viewModel.role}
+          originalTotalCostSar={viewModel.summary.originalTotalCostSar}
           totalCostSar={viewModel.summary.totalCostSar}
           paidAmountSar={viewModel.summary.paidAmountSar}
           remainingAmountSar={viewModel.summary.remainingAmountSar}
@@ -140,91 +155,110 @@ export default async function PortalPaymentsPage({
           stateLabel={viewModel.summary.stateLabel}
           stateDescription={viewModel.summary.stateDescription}
           receiptSummary={viewModel.receiptSummary}
+          {...(viewModel.summary.discount ? { discount: viewModel.summary.discount } : {})}
         />
-
-        <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-panel bg-white p-4 shadow-soft">
-            <div className="text-sm font-semibold text-pine">الرسوم</div>
-            <p className="mt-2 text-sm text-ink/65">
-              جميع الرسوم الرسمية التي أضافتها الإدارة لهذا الطلب.
-            </p>
-          </div>
-          <div className="rounded-panel bg-white p-4 shadow-soft">
-            <div className="text-sm font-semibold text-pine">الدفعات الرسمية</div>
-            <p className="mt-2 text-sm text-ink/65">
-              الدفعات التي تم اعتمادها رسميًا داخل النظام من قبل الإدارة.
-            </p>
-          </div>
-          <div className="rounded-panel bg-white p-4 shadow-soft">
-            <div className="text-sm font-semibold text-pine">الإيصالات المرفوعة</div>
-            <p className="mt-2 text-sm text-ink/65">
-              {viewModel.receiptSummary.rejectedOrReupload > 0
-                ? `يوجد ${viewModel.receiptSummary.rejectedOrReupload} إيصال يحتاج تصحيحاً.`
-                : viewModel.receiptSummary.pendingReview > 0
-                  ? `يوجد ${viewModel.receiptSummary.pendingReview} إيصال بانتظار المراجعة.`
-                  : "الإيصالات المرفوعة للمراجعة، ويمكن أن يكون لديك أكثر من إيصال في نفس الطلب."}
-            </p>
-          </div>
-        </section>
-
-        <section className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <h3 className="text-lg font-bold text-ink">سجل الرسوم الرسمية</h3>
-            <div className="mt-4 space-y-3">
-              {viewModel.ledger.fees.length > 0 ? (
-                viewModel.ledger.fees.map((fee) => (
-                  <div key={fee.id} className="rounded-2xl bg-sand px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-semibold text-ink">{fee.title}</div>
-                      <div className="text-sm font-bold text-ink">{fee.amountSar} ر.س</div>
-                    </div>
-                    {fee.note ? <div className="mt-1 text-xs text-ink/55">{fee.note}</div> : null}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl bg-sand px-4 py-3 text-sm text-ink/65">
-                  لا توجد رسوم مسجلة حتى الآن. عند تسجيل الرسوم من الإدارة ستظهر هنا بوضوح.
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-panel bg-white p-5 shadow-soft">
-            <h3 className="text-lg font-bold text-ink">سجل الدفعات المعتمدة</h3>
-            <div className="mt-4 space-y-3">
-              {viewModel.ledger.payments.length > 0 ? (
-                viewModel.ledger.payments.map((payment) => (
-                  <div key={payment.id} className="rounded-2xl bg-sand px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-semibold text-ink">
-                        {new Intl.DateTimeFormat("ar-SA", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        }).format(payment.paymentDate)}
-                      </div>
-                      <div className="text-sm font-bold text-ink">{payment.amountSar} ر.س</div>
-                    </div>
-                    {payment.note ? <div className="mt-1 text-xs text-ink/55">{payment.note}</div> : null}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl bg-sand px-4 py-3 text-sm text-ink/65">
-                  لا توجد دفعات رسمية معتمدة حتى الآن. ستظهر الدفعات هنا بعد اعتمادها من الإدارة.
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
 
         <PaymentReceiptCard
           applicationId={viewModel.applicationId}
           latestPaymentNote={viewModel.latestPaymentNote}
           canUploadReceipt={viewModel.canUploadReceipt}
           receipts={viewModel.receipts}
+          remainingAmountSar={viewModel.summary.remainingAmountSar}
+          role={viewModel.role}
           isDev={devSession.isDev}
         />
+
+        <ApprovedPaymentHistory payments={viewModel.ledger.payments} />
       </div>
     </PortalShell>
+  );
+}
+
+function uploadFeedbackMessage(searchParams: { success?: string; error?: string }) {
+  if (searchParams.success === "receipt_uploaded") return "تم رفع إيصال السداد بنجاح وهو الآن بانتظار المراجعة.";
+  if (searchParams.error === "missing_file") return "يرجى اختيار ملف الإيصال قبل الإرسال.";
+  if (searchParams.error === "file_too_large") return `حجم الملف أكبر من الحد المسموح (${MAX_UPLOAD_SIZE_LABEL}).`;
+  if (searchParams.error === "unsupported_file_type") return "نوع الملف غير مدعوم. يرجى رفع PDF أو صورة.";
+  if (searchParams.error === "agreement_required") return "يجب الموافقة على الميثاق قبل استكمال البيانات.";
+  return "تعذر تنفيذ عملية السداد المطلوبة حالياً.";
+}
+
+function formatSar(value: number) {
+  return `${value.toLocaleString("en-US")} ر.س`;
+}
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat("ar-SA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
+function ApprovedPaymentHistory({
+  payments,
+}: {
+  payments: Array<{
+    id: string;
+    amountSar: number;
+    note: string | null;
+    paymentDate: Date;
+    linkedReceiptId: string | null;
+  }>;
+}) {
+  if (payments.length === 0) {
+    return (
+      <BaseCard variant="outlined" className="border-secondary-100 bg-secondary-100/50">
+        <BaseCardBody>
+          <h2 className="text-h2 font-extrabold text-text-primary">لا توجد دفعات معتمدة بعد</h2>
+          <p className="mt-2 text-body leading-7 text-text-secondary">
+            ستظهر الدفعات هنا بعد اعتمادها وتسجيلها من الإدارة.
+          </p>
+        </BaseCardBody>
+      </BaseCard>
+    );
+  }
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-h2 font-extrabold text-text-primary">سجل الدفعات المعتمدة</h2>
+          <StatusBadge label="مسجّلة" variant="complete" />
+        </div>
+        <p className="mt-2 text-body leading-7 text-text-secondary">
+          الدفعات التي تم تسجيلها واعتمادها رسمياً داخل النظام.
+        </p>
+      </div>
+
+      <div className="grid gap-4">
+        {payments.map((payment) => (
+          <BaseCard key={payment.id} variant="outlined">
+            <BaseCardHeader>
+              <div className="flex flex-col gap-3 tablet:flex-row tablet:items-start tablet:justify-between">
+                <div>
+                  <h3 className="text-h3 font-extrabold text-text-primary">دفعة بتاريخ {formatDate(payment.paymentDate)}</h3>
+                  <HelperText>
+                    {payment.linkedReceiptId ? "هذه الدفعة مرتبطة بإيصال مرفوع." : "دفعة مسجلة من الإدارة."}
+                  </HelperText>
+                </div>
+                <StatusBadge label="معتمدة" variant="complete" />
+              </div>
+            </BaseCardHeader>
+            <BaseCardBody>
+              <div className="flex items-center justify-between gap-4 rounded-lg bg-bg-surface-alt px-4 py-3">
+                <div className="text-body font-bold text-text-secondary">المبلغ</div>
+                <div dir="ltr" className="text-h3 font-extrabold text-success-700">
+                  {formatSar(payment.amountSar)}
+                </div>
+              </div>
+              {payment.note ? (
+                <p className="mt-3 text-body leading-7 text-text-secondary">{payment.note}</p>
+              ) : null}
+            </BaseCardBody>
+          </BaseCard>
+        ))}
+      </div>
+    </section>
   );
 }

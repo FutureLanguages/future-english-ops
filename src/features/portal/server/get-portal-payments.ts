@@ -21,6 +21,12 @@ export type PortalPaymentsViewModel = {
   selectedApplicationId: string;
   canViewPayments: boolean;
   summary: {
+    originalTotalCostSar: number;
+    discount?: {
+      title: string;
+      discountType: "FIXED" | "PERCENTAGE";
+      amountSar: number;
+    };
     totalCostSar: number;
     paidAmountSar: number;
     remainingAmountSar: number;
@@ -92,15 +98,30 @@ export async function getPortalPaymentsViewModel(params: {
     return null;
   }
 
-  const latestPaymentNote =
-    data.applications
-      .find((application) => application.id === data.applicationRecord.id)
-      ?.paymentReceipts.find((receipt) => Boolean(receipt.adminNote))
-      ?.adminNote ?? data.latestAdminNote;
-
   const selectedApplication =
     data.applications.find((application) => application.id === data.applicationRecord.id) ?? null;
-  const receipts = selectedApplication?.paymentReceipts ?? [];
+  const receipts = (selectedApplication?.paymentReceipts ?? []).slice().sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  );
+  const latestPaymentNote = receipts.find((receipt) => Boolean(receipt.adminNote))?.adminNote ?? data.latestAdminNote;
+  const visibleFees = selectedApplication?.fees.filter((fee) => fee.title !== smallFinancialDifferenceFeeTitle) ?? [];
+  const positiveFeesTotal = visibleFees.reduce((sum, fee) => {
+    const amount = typeof fee.amount === "number" ? fee.amount : fee.amount.toNumber();
+    return amount > 0 ? sum + amount : sum;
+  }, 0);
+  const discountFees = visibleFees.filter((fee) => {
+    const amount = typeof fee.amount === "number" ? fee.amount : fee.amount.toNumber();
+    return amount < 0;
+  });
+  const discountAmountSar = Number(
+    Math.abs(
+      discountFees.reduce((sum, fee) => {
+        const amount = typeof fee.amount === "number" ? fee.amount : fee.amount.toNumber();
+        return sum + amount;
+      }, 0),
+    ).toFixed(2),
+  );
+  // Payment receipts use DocumentStatus, so UNDER_REVIEW is an intentional persisted receipt state here.
   const pendingReview = receipts.filter(
     (receipt) => receipt.status === "UPLOADED" || receipt.status === "UNDER_REVIEW",
   ).length;
@@ -108,18 +129,20 @@ export async function getPortalPaymentsViewModel(params: {
   const rejectedOrReupload = receipts.filter(
     (receipt) => receipt.status === "REJECTED" || receipt.status === "REUPLOAD_REQUESTED",
   ).length;
-  const stateLabel = data.paymentSummary.isPaymentComplete
-    ? "السداد مكتمل"
+  const stateLabel = rejectedOrReupload > 0
+    ? "يوجد إيصال يحتاج تصحيحاً"
     : data.paymentSummary.remainingAmountSar > 0
-      ? `المتبقي ${data.paymentSummary.remainingAmountSar} ر.س`
-      : "بانتظار مراجعة السداد";
-  const stateDescription = data.paymentSummary.isPaymentComplete
-    ? "لا يوجد مبلغ متبقٍ حسب البيانات المالية الحالية."
-    : rejectedOrReupload > 0
-      ? "يوجد إيصال يحتاج تصحيحاً قبل اعتماده."
+      ? "يوجد مبلغ متبقٍ"
       : pendingReview > 0
-        ? "يوجد إيصال مرفوع وينتظر مراجعة الإدارة."
-        : "يمكن رفع إيصال جديد أو متابعة المبلغ المتبقي حسب تعليمات الإدارة.";
+        ? "بانتظار مراجعة إيصال"
+        : "السداد مكتمل";
+  const stateDescription = rejectedOrReupload > 0
+    ? "يوجد إيصال يحتاج تصحيحاً قبل اعتماده."
+    : data.paymentSummary.remainingAmountSar > 0
+      ? "يوجد مبلغ متبقٍ يحتاج متابعة حسب البيانات المالية الحالية."
+      : pendingReview > 0
+        ? "لا يوجد مبلغ متبقٍ ظاهر حالياً، لكن يوجد إيصال مرفوع وينتظر مراجعة الإدارة."
+        : "لا يوجد مبلغ متبقٍ حسب البيانات المالية الحالية.";
 
   return {
     role: data.user.role as "STUDENT" | "PARENT",
@@ -145,6 +168,16 @@ export async function getPortalPaymentsViewModel(params: {
     selectedApplicationId: data.applicationRecord.id,
     canViewPayments: data.canSeePayments,
     summary: {
+      originalTotalCostSar: Number(positiveFeesTotal.toFixed(2)),
+      ...(discountAmountSar > 0
+        ? {
+            discount: {
+              title: discountFees.length === 1 ? discountFees[0].title : "إجمالي الخصومات",
+              discountType: discountFees.some((fee) => fee.title.includes("%")) ? "PERCENTAGE" as const : "FIXED" as const,
+              amountSar: discountAmountSar,
+            },
+          }
+        : {}),
       totalCostSar: data.paymentSummary.totalCostSar,
       paidAmountSar: data.paymentSummary.paidAmountSar,
       remainingAmountSar: data.paymentSummary.remainingAmountSar,
