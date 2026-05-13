@@ -88,7 +88,7 @@ export function FileActionLinks({
           className={actionClassName}
           title="عرض الملف داخل المتصفح"
         >
-          {pendingAction === "view" ? "جاري الفتح..." : previewLabel}
+          {pendingAction === "view" ? "جارٍ الفتح..." : previewLabel}
         </button>
       ) : null}
       <button
@@ -98,7 +98,7 @@ export function FileActionLinks({
         className={actionClassName}
         title="تحميل الملف"
       >
-        {pendingAction === "download" ? "جاري التحميل..." : downloadLabel}
+        {pendingAction === "download" ? "جارٍ التحميل..." : downloadLabel}
       </button>
     </>
   );

@@ -44,21 +44,21 @@ export function AdminEntitySwitcher({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="rounded-xl bg-white px-3 py-2 text-pine transition hover:bg-mist"
+        className="rounded-button border border-border-subtle bg-bg-surface px-3 py-2 text-caption font-bold text-pine outline-none transition-[color,background-color,border-color,box-shadow] duration-default ease-default hover:border-secondary-600 hover:bg-secondary-100 focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-bg-surface"
       >
         {buttonLabel}
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-full z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-soft">
-          <label className="flex items-center gap-2 border-b border-black/10 px-3 py-2">
-            <Search className="h-4 w-4 text-ink/40" aria-hidden="true" />
+        <div className="absolute start-0 top-full z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-card border border-border-subtle bg-bg-surface shadow-card">
+          <label className="flex items-center gap-2 border-b border-border-subtle px-3 py-2">
+            <Search className="h-4 w-4 text-text-muted" aria-hidden="true" />
             <input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={searchPlaceholder}
-              className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
+              className="min-w-0 flex-1 bg-transparent py-1 text-body text-text-primary outline-none placeholder:text-text-muted"
             />
           </label>
           <div className="max-h-72 overflow-y-auto p-2">
@@ -70,20 +70,20 @@ export function AdminEntitySwitcher({
                   <LoadingLink
                     key={item.id}
                     href={item.href}
-                    className={`block rounded-xl px-3 py-2 text-right transition ${
-                      active ? "bg-mist text-pine" : "hover:bg-sand"
+                    className={`block rounded-lg px-3 py-2 text-right transition-[background-color,color] duration-default ease-default ${
+                      active ? "bg-secondary-100 text-pine" : "hover:bg-bg-surface-alt"
                     }`}
-                    loadingLabel="جاري الفتح..."
+                    loadingLabel="جارٍ الفتح..."
                   >
                     <span className="block truncate text-sm font-extrabold">{item.label}</span>
                     {item.description ? (
-                      <span className="mt-0.5 block truncate text-xs text-ink/50">{item.description}</span>
+                      <span className="mt-0.5 block truncate text-caption text-text-muted">{item.description}</span>
                     ) : null}
                   </LoadingLink>
                 );
               })
             ) : (
-              <div className="px-3 py-6 text-center text-sm font-semibold text-ink/50">
+              <div className="px-3 py-6 text-center text-body font-bold text-text-muted">
                 لا توجد نتائج مطابقة
               </div>
             )}

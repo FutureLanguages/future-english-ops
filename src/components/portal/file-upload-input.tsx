@@ -29,7 +29,7 @@ export function FileUploadInput({
         aria-describedby={`${helperId} ${error ? errorId : ""}`.trim()}
         className={
           className ??
-          "max-w-[260px] text-xs text-ink/70 file:ml-2 file:rounded-full file:border-0 file:bg-white file:px-3 file:py-2 file:text-xs file:font-semibold file:text-pine"
+          "max-w-[260px] text-xs text-ink/70 file:mx-2 file:rounded-full file:border-0 file:bg-white file:px-3 file:py-2 file:text-xs file:font-semibold file:text-pine"
         }
         onChange={(event) => {
           const input = event.currentTarget;
@@ -51,7 +51,7 @@ export function FileUploadInput({
         {helperText}
       </span>
       {error ? (
-        <span id={errorId} className="mt-1 block text-xs font-medium text-[#a03232]">
+        <span id={errorId} className="mt-1 block text-xs font-medium text-error-600">
           {error}
         </span>
       ) : null}

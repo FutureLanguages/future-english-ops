@@ -113,7 +113,7 @@ export function AdminStudentsControls({
           disabled={isPending}
           className="rounded-xl bg-pine px-5 py-3 text-sm font-bold text-white transition hover:bg-pine/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending ? "جاري التحديث..." : "تطبيق"}
+          {isPending ? "جارٍ التحديث..." : "تطبيق"}
         </button>
       </form>
 

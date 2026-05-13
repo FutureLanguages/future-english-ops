@@ -354,7 +354,7 @@ export function AdminPaymentControls({
                   disabled={isPending("adjust:small-difference")}
                   className="rounded-xl bg-pine px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isPending("adjust:small-difference") ? "جاري التنفيذ..." : "تسوية"}
+                  {isPending("adjust:small-difference") ? "جارٍ التنفيذ..." : "تسوية"}
                 </button>
               </div>
             </div>

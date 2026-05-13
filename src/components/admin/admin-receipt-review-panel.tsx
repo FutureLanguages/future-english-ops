@@ -68,7 +68,7 @@ function ReceiptReviewButton({
       disabled={disabled || isActionGroupPending}
       className={className}
     >
-      {isCurrentAction ? "جاري التنفيذ..." : children}
+      {isCurrentAction ? "جارٍ التنفيذ..." : children}
     </button>
   );
 }

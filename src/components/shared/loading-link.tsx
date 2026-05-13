@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState, type MouseEvent, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 export function LoadingLink({
   href,
   children,
-  loadingLabel = "جاري الفتح...",
+  loadingLabel = "جارٍ الفتح...",
   className,
   target,
 }: {
@@ -33,7 +34,10 @@ export function LoadingLink({
       target={target}
       aria-disabled={pending}
       onClick={handleClick}
-      className={className}
+      className={cn(
+        "outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-bg-surface",
+        className,
+      )}
     >
       {pending ? loadingLabel : children}
     </Link>

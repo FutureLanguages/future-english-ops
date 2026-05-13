@@ -13,6 +13,10 @@ export function AutoDismissToast({
 
   useEffect(() => {
     setVisible(Boolean(message));
+    if (!message) {
+      return;
+    }
+
     const timeout = window.setTimeout(() => setVisible(false), 3600);
     return () => window.clearTimeout(timeout);
   }, [message]);
@@ -23,8 +27,11 @@ export function AutoDismissToast({
 
   return (
     <div
-      className={`fixed bottom-24 left-4 z-50 max-w-sm rounded-2xl px-4 py-3 text-sm font-semibold shadow-soft md:bottom-6 ${
-        tone === "success" ? "bg-[#e9f7ee] text-[#1b7a43]" : "bg-[#ffe8e8] text-[#a03232]"
+      role={tone === "error" ? "alert" : "status"}
+      className={`fixed bottom-24 start-4 z-50 max-w-sm rounded-card border px-4 py-3 text-body font-bold shadow-card tablet:bottom-6 ${
+        tone === "success"
+          ? "border-success-100 bg-success-100 text-success-700"
+          : "border-error-100 bg-error-100 text-error-600"
       }`}
     >
       {message}

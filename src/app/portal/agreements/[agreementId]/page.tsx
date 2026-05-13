@@ -30,7 +30,9 @@ export default async function PortalAgreementDetailPage({
     return null;
   }
 
-  const currentRoleNotRequired = viewModel.role === "PARENT" && !viewModel.agreement.requiresParentAcceptance;
+  const currentRoleNotRequired =
+    (viewModel.role === "STUDENT" && !viewModel.agreement.requiresStudentAcceptance) ||
+    (viewModel.role === "PARENT" && !viewModel.agreement.requiresParentAcceptance);
   const needsCurrentApproval = !viewModel.agreement.accepted && !currentRoleNotRequired;
   const fullyAccepted =
     (!viewModel.agreement.requiresStudentAcceptance || viewModel.agreement.studentAccepted) &&
