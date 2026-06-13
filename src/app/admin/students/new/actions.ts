@@ -1,65 +1,30 @@
 import { getAdminSession } from "@/features/auth/server/admin-session";
-import {
-  createStudentWithApplication,
-  prepareStudentCreation,
-} from "@/features/auth/server/account-lifecycle";
-import { prisma } from "@/lib/db/prisma";
+import { createStudentAccountForTrustedActor } from "@/features/auth/server/create-student-account";
 
 export async function createStudentAccount(params: {
   mobileNumber: string;
   initialName?: string;
 }) {
-  await getAdminSession();
+  const admin = await getAdminSession();
+  const result = await createStudentAccountForTrustedActor({
+    mobileNumber: params.mobileNumber,
+    initialName: params.initialName,
+    actor: {
+      type: "ADMIN",
+      id: admin.id,
+      label: admin.mobileNumber,
+    },
+  });
 
-  const mobileNumber = params.mobileNumber.trim();
-  const initialName = params.initialName?.trim() ?? "";
-
-  if (!mobileNumber) {
-    return {
-      ok: false as const,
-      error: "missing_mobile",
-    };
-  }
-
-  try {
-    const preparedStudent = await prepareStudentCreation({
-      mobileNumber,
-      initialName,
-    });
-
-    const created = await prisma.$transaction(async (tx) => {
-      const result = await createStudentWithApplication({
-        tx,
-        prepared: preparedStudent,
-      });
-
-      return result;
-    });
-
+  if (result.success) {
     return {
       ok: true as const,
-      applicationId: created.studentApplications?.id ?? "",
-    };
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.message === "duplicate_student_mobile") {
-        return {
-          ok: false as const,
-          error: "duplicate_mobile",
-        };
-      }
-
-      if (error.message === "default_agreement_template_missing") {
-        return {
-          ok: false as const,
-          error: "create_failed",
-        };
-      }
-    }
-
-    return {
-      ok: false as const,
-      error: "create_failed",
+      applicationId: result.applicationId,
     };
   }
+
+  return {
+    ok: false as const,
+    error: result.errorCode,
+  };
 }

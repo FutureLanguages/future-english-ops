@@ -28,6 +28,7 @@ model User {
   updatedParentNotes  ApplicationParentNote[] @relation("ApplicationParentNoteUpdater")
   financialDifferenceSettlements FinancialDifferenceSettlement[] @relation("FinancialDifferenceSettlementExecutor")
   portalConfigAuditLogs          PortalConfigAuditLog[]          @relation("PortalConfigAuditExecutor")
+  linkedBotOperators             BotOperator[]                   @relation("BotOperatorLinkedAdmin")
 }
 
 model Application {
@@ -107,6 +108,63 @@ model PortalConfigAuditLog {
 
   @@index([applicationId, createdAt])
   @@index([executorUserId, createdAt])
+}
+
+model BotOperator {
+  id                String    @id @default(cuid())
+  telegramUserId    String    @unique
+  telegramUsername  String?
+  displayName       String?
+  role              String    @default("OPERATOR")
+  permissions       String[]
+  status            String    @default("ACTIVE")
+  linkedAdminUserId String?
+  linkedAdminUser   User?     @relation("BotOperatorLinkedAdmin", fields: [linkedAdminUserId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastUsedAt        DateTime?
+}
+
+model BotSession {
+  id              String   @id @default(cuid())
+  telegramUserId  String
+  workflow        String
+  step            String
+  data            Json     @default("{}")
+  status          String   @default("ACTIVE")
+  idempotencyKey  String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  expiresAt       DateTime
+
+  @@index([telegramUserId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model AutomationAuditLog {
+  id                     String   @id @default(cuid())
+  action                 String
+  source                 String
+  operatorTelegramUserId String?
+  operatorAdminUserId    String?
+  operatorDisplayName    String?
+  targetType             String?
+  targetId               String?
+  targetPhone            String?
+  requestPayload         Json?
+  responsePayload        Json?
+  status                 String
+  errorCode              String?
+  ipAddress              String?
+  userAgent              String?
+  createdAt              DateTime @default(now())
+
+  @@index([action])
+  @@index([status])
+  @@index([operatorAdminUserId])
+  @@index([targetPhone])
+  @@index([createdAt])
 }
 
 model AgreementTemplate {
