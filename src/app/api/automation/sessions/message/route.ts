@@ -6,12 +6,35 @@ import { prisma } from "@/lib/db/prisma";
 const WORKFLOW = "CREATE_STUDENT_ACCOUNT";
 const STEP_WAITING_STUDENT_NAME = "WAITING_STUDENT_NAME";
 const STEP_WAITING_MOBILE = "WAITING_MOBILE";
+const STEP_WAITING_CONFIRMATION = "WAITING_CONFIRMATION";
 const STATUS_ACTIVE = "ACTIVE";
 const STATUS_EXPIRED = "EXPIRED";
 const REQUIRED_PERMISSION = "CREATE_STUDENT_ACCOUNT";
 const SESSION_TTL_MINUTES = 30;
 const NEXT_REPLY_TEXT =
   "تم حفظ الاسم ✅\n\nأرسل رقم جوال الطالب بصيغة:\n05XXXXXXXX\nأو\n9665XXXXXXXX";
+const CONFIRMATION_REPLY_MARKUP = {
+  inline_keyboard: [
+    [
+      {
+        text: "✅ تأكيد الإنشاء",
+        callback_data: "CREATE_STUDENT_CONFIRM",
+      },
+    ],
+    [
+      {
+        text: "✏️ تعديل",
+        callback_data: "CREATE_STUDENT_EDIT",
+      },
+      {
+        text: "❌ إلغاء",
+        callback_data: "CREATE_STUDENT_CANCEL",
+      },
+    ],
+  ],
+};
+
+type AutomationReplyMarkup = typeof CONFIRMATION_REPLY_MARKUP;
 
 type AutomationSessionMessageResponse = {
   success: boolean;
@@ -21,6 +44,7 @@ type AutomationSessionMessageResponse = {
     workflow: string;
     step: string;
     replyText: string;
+    replyMarkup?: AutomationReplyMarkup;
     expiresAt: string;
   };
   errorCode: string | null;
@@ -49,20 +73,23 @@ function failureResponse(params: { message: string; errorCode: string; status?: 
 }
 
 function successResponse(params: {
+  message: string;
   sessionId: string;
   workflow: string;
   step: string;
   replyText: string;
+  replyMarkup?: AutomationReplyMarkup;
   expiresAt: Date;
 }) {
   return jsonResponse({
     success: true,
-    message: "تم حفظ اسم الطالب.",
+    message: params.message,
     data: {
       sessionId: params.sessionId,
       workflow: params.workflow,
       step: params.step,
       replyText: params.replyText,
+      ...(params.replyMarkup ? { replyMarkup: params.replyMarkup } : {}),
       expiresAt: params.expiresAt.toISOString(),
     },
     errorCode: null,
@@ -94,6 +121,20 @@ function normalizeText(value: unknown) {
 
 function isInvalidStudentName(value: string) {
   return value.length < 2 || /^\d+$/.test(value);
+}
+
+function normalizeSaudiMobile(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (/^05\d{8}$/.test(digits)) {
+    return `966${digits.slice(1)}`;
+  }
+
+  if (/^9665\d{8}$/.test(digits)) {
+    return digits;
+  }
+
+  return null;
 }
 
 function getExpiresAt() {
@@ -159,14 +200,6 @@ export async function POST(request: Request) {
     });
   }
 
-  if (isInvalidStudentName(messageText)) {
-    return failureResponse({
-      message: "اسم الطالب غير صالح. أرسل اسمًا لا يقل عن حرفين وليس أرقامًا فقط.",
-      errorCode: "INVALID_NAME",
-      status: 400,
-    });
-  }
-
   const isOperatorAuthorized = await findAuthorizedOperator(telegramUserId);
 
   if (!isOperatorAuthorized) {
@@ -220,43 +253,109 @@ export async function POST(request: Request) {
     });
   }
 
-  if (session.step !== STEP_WAITING_STUDENT_NAME) {
-    return failureResponse({
-      message: "هذه الرسالة لا تناسب خطوة الجلسة الحالية.",
-      errorCode: "INVALID_STEP",
-      status: 409,
+  if (session.step === STEP_WAITING_STUDENT_NAME) {
+    if (isInvalidStudentName(messageText)) {
+      return failureResponse({
+        message: "اسم الطالب غير صالح. أرسل اسمًا لا يقل عن حرفين وليس أرقامًا فقط.",
+        errorCode: "INVALID_NAME",
+        status: 400,
+      });
+    }
+
+    const expiresAt = getExpiresAt();
+    const data = {
+      ...getSessionData(session.data),
+      chatId,
+      initialName: messageText,
+    } satisfies Prisma.InputJsonObject;
+
+    const updatedSession = await prisma.botSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        step: STEP_WAITING_MOBILE,
+        expiresAt,
+        data,
+      },
+      select: {
+        id: true,
+        workflow: true,
+        step: true,
+        expiresAt: true,
+      },
+    });
+
+    return successResponse({
+      message: "تم حفظ اسم الطالب.",
+      sessionId: updatedSession.id,
+      workflow: updatedSession.workflow,
+      step: updatedSession.step,
+      replyText: NEXT_REPLY_TEXT,
+      expiresAt: updatedSession.expiresAt,
     });
   }
 
-  const expiresAt = getExpiresAt();
-  const data = {
-    ...getSessionData(session.data),
-    chatId,
-    initialName: messageText,
-  } satisfies Prisma.InputJsonObject;
+  if (session.step === STEP_WAITING_MOBILE) {
+    const existingData = getSessionData(session.data);
+    const initialName = getString(existingData.initialName);
 
-  const updatedSession = await prisma.botSession.update({
-    where: {
-      id: session.id,
-    },
-    data: {
-      step: STEP_WAITING_MOBILE,
-      expiresAt,
-      data,
-    },
-    select: {
-      id: true,
-      workflow: true,
-      step: true,
-      expiresAt: true,
-    },
-  });
+    if (!initialName) {
+      return failureResponse({
+        message: "بيانات الجلسة غير مكتملة. ابدأ من القائمة من جديد.",
+        errorCode: "INVALID_SESSION_DATA",
+        status: 409,
+      });
+    }
 
-  return successResponse({
-    sessionId: updatedSession.id,
-    workflow: updatedSession.workflow,
-    step: updatedSession.step,
-    replyText: NEXT_REPLY_TEXT,
-    expiresAt: updatedSession.expiresAt,
+    const normalizedMobile = normalizeSaudiMobile(messageText);
+
+    if (!normalizedMobile) {
+      return failureResponse({
+        message: "رقم الجوال غير صحيح. أرسل رقمًا بصيغة 05XXXXXXXX أو 9665XXXXXXXX.",
+        errorCode: "INVALID_MOBILE",
+        status: 400,
+      });
+    }
+
+    const expiresAt = getExpiresAt();
+    const data = {
+      ...existingData,
+      chatId,
+      mobileNumber: normalizedMobile,
+    } satisfies Prisma.InputJsonObject;
+
+    const updatedSession = await prisma.botSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        step: STEP_WAITING_CONFIRMATION,
+        expiresAt,
+        data,
+      },
+      select: {
+        id: true,
+        workflow: true,
+        step: true,
+        expiresAt: true,
+      },
+    });
+
+    return successResponse({
+      message: "تم حفظ رقم الجوال.",
+      sessionId: updatedSession.id,
+      workflow: updatedSession.workflow,
+      step: updatedSession.step,
+      replyText: `راجع بيانات الطالب قبل الإنشاء:\n\nالاسم: ${initialName}\nالجوال: ${normalizedMobile}\n\nهل تريد إنشاء الحساب الآن؟`,
+      replyMarkup: CONFIRMATION_REPLY_MARKUP,
+      expiresAt: updatedSession.expiresAt,
+    });
+  }
+
+  return failureResponse({
+    message: "هذه الرسالة لا تناسب خطوة الجلسة الحالية.",
+    errorCode: "INVALID_STEP",
+    status: 409,
   });
 }
