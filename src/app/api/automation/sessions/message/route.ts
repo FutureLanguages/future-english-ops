@@ -39,15 +39,17 @@ type AutomationReplyMarkup = typeof CONFIRMATION_REPLY_MARKUP;
 type AutomationSessionMessageResponse = {
   success: boolean;
   message: string;
-  data: null | {
-    sessionId: string;
-    workflow: string;
-    step: string;
-    replyText: string;
-    replyMarkup?: AutomationReplyMarkup;
-    expiresAt: string;
-  };
+  data: null | AutomationSessionMessageData;
   errorCode: string | null;
+};
+
+type AutomationSessionMessageData = {
+  sessionId?: string;
+  workflow?: string;
+  step?: string;
+  replyText: string;
+  replyMarkup?: AutomationReplyMarkup;
+  expiresAt?: string;
 };
 
 type AutomationSessionMessageBody = {
@@ -70,6 +72,21 @@ function failureResponse(params: { message: string; errorCode: string; status?: 
     },
     { status: params.status ?? 400 },
   );
+}
+
+function conversationFailureResponse(params: {
+  message: string;
+  errorCode: string;
+  replyText: string;
+}) {
+  return jsonResponse({
+    success: false,
+    message: params.message,
+    data: {
+      replyText: params.replyText,
+    },
+    errorCode: params.errorCode,
+  });
 }
 
 function successResponse(params: {
@@ -229,10 +246,10 @@ export async function POST(request: Request) {
   });
 
   if (!session) {
-    return failureResponse({
+    return conversationFailureResponse({
       message: "لا توجد جلسة نشطة. ابدأ من القائمة من جديد.",
       errorCode: "SESSION_NOT_FOUND",
-      status: 404,
+      replyText: "لا توجد جلسة نشطة حاليًا. اختر إجراء من القائمة الرئيسية للبدء.",
     });
   }
 
@@ -246,19 +263,19 @@ export async function POST(request: Request) {
       },
     });
 
-    return failureResponse({
+    return conversationFailureResponse({
       message: "انتهت الجلسة. ابدأ من القائمة من جديد.",
       errorCode: "SESSION_EXPIRED",
-      status: 410,
+      replyText: "انتهت الجلسة. ابدأ من القائمة الرئيسية من جديد.",
     });
   }
 
   if (session.step === STEP_WAITING_STUDENT_NAME) {
     if (isInvalidStudentName(messageText)) {
-      return failureResponse({
+      return conversationFailureResponse({
         message: "اسم الطالب غير صالح. أرسل اسمًا لا يقل عن حرفين وليس أرقامًا فقط.",
         errorCode: "INVALID_NAME",
-        status: 400,
+        replyText: "اسم الطالب غير صالح. أرسل اسمًا لا يقل عن حرفين وليس أرقامًا فقط.",
       });
     }
 
@@ -301,20 +318,20 @@ export async function POST(request: Request) {
     const initialName = getString(existingData.initialName);
 
     if (!initialName) {
-      return failureResponse({
+      return conversationFailureResponse({
         message: "بيانات الجلسة غير مكتملة. ابدأ من القائمة من جديد.",
         errorCode: "INVALID_SESSION_DATA",
-        status: 409,
+        replyText: "بيانات الجلسة غير مكتملة. ابدأ من القائمة الرئيسية من جديد.",
       });
     }
 
     const normalizedMobile = normalizeSaudiMobile(messageText);
 
     if (!normalizedMobile) {
-      return failureResponse({
+      return conversationFailureResponse({
         message: "رقم الجوال غير صحيح. أرسل رقمًا بصيغة 05XXXXXXXX أو 9665XXXXXXXX.",
         errorCode: "INVALID_MOBILE",
-        status: 400,
+        replyText: "رقم الجوال غير صحيح. أرسل رقمًا بصيغة 05XXXXXXXX أو 9665XXXXXXXX.",
       });
     }
 
@@ -353,9 +370,9 @@ export async function POST(request: Request) {
     });
   }
 
-  return failureResponse({
+  return conversationFailureResponse({
     message: "هذه الرسالة لا تناسب خطوة الجلسة الحالية.",
     errorCode: "INVALID_STEP",
-    status: 409,
+    replyText: "هذه الرسالة لا تناسب الخطوة الحالية. استخدم الأزرار أو ابدأ من القائمة من جديد.",
   });
 }
