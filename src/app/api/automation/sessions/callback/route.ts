@@ -146,10 +146,9 @@ function toJsonObject(data: SessionData) {
 function buildSuccessReplyText(params: {
   initialName: string;
   mobileNumber: string;
-  applicationId: string;
   temporaryPassword: string;
 }) {
-  return `تم إنشاء حساب الطالب بنجاح ✅\n\nالاسم: ${params.initialName}\nالرقم التسلسلي: ${params.applicationId}\nالجوال: ${params.mobileNumber}\nكلمة المرور المؤقتة: ${params.temporaryPassword}\n\nيرجى توجيه الطالب لتغيير كلمة المرور عند أول دخول.`;
+  return `تم إنشاء حساب الطالب بنجاح ✅\n\nالاسم: ${params.initialName}\nالجوال: ${params.mobileNumber}\nكلمة المرور المؤقتة: ${params.temporaryPassword}\n\n━━━━━━━━━━━━\n\nرسالة جاهزة للطالب:\n\nمرحباً ${params.initialName}،\n\nتم إنشاء حسابك بنجاح.\n\nاسم المستخدم:\n${params.mobileNumber}\n\nكلمة المرور المؤقتة:\n${params.temporaryPassword}\n\nسيُطلب منك تغيير كلمة المرور عند أول تسجيل دخول.\n\nنتمنى لك التوفيق.`;
 }
 
 async function findAuthorizedOperator(telegramUserId: string) {
@@ -326,7 +325,6 @@ export async function POST(request: Request) {
         replyText: buildSuccessReplyText({
           initialName,
           mobileNumber,
-          applicationId,
           temporaryPassword: buildDefaultPasswordFromMobile(mobileNumber),
         }),
         applicationId,
@@ -586,7 +584,6 @@ export async function POST(request: Request) {
     replyText: buildSuccessReplyText({
       initialName,
       mobileNumber: creationResult.mobileNumber,
-      applicationId: creationResult.applicationId,
       temporaryPassword: creationResult.temporaryPassword,
     }),
     applicationId: creationResult.applicationId,
