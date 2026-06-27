@@ -173,7 +173,7 @@ export function MessageThreadsPanel({
       {(toast || error) ? (
         <div
           className={`rounded-2xl px-4 py-3 text-sm font-semibold ${
-            toast ? "bg-[#e9f7ee] text-[#1b7a43]" : "bg-[#ffe8e8] text-[#a03232]"
+            toast ? "bg-mist text-pine" : "bg-sand text-error-600"
           }`}
         >
           {toast ?? error}
@@ -224,7 +224,7 @@ export function MessageThreadsPanel({
                 </span>
               ) : null}
               {currentThread.needsAttention ? (
-                <span className="rounded-full bg-[#fff8e1] px-3 py-1 text-xs font-semibold text-[#7a5a03]">
+                <span className="rounded-full bg-warning-100 px-3 py-1 text-xs font-semibold text-warning-500">
                   يحتاج انتباه
                 </span>
               ) : null}

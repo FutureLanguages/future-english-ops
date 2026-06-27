@@ -636,6 +636,7 @@ export async function getStudentDashboardViewModel(params: {
   }
 
   const base = buildBaseDashboardViewModel(data);
+  const selectedApplication = getSelectedApplication(data);
 
   return {
     ...base,
@@ -646,6 +647,7 @@ export async function getStudentDashboardViewModel(params: {
       href: base.statusBehavior.suppressActionFraming ? undefined : base.nextStep.href,
     },
     financeSnapshot: data.canSeePayments ? getFinanceSnapshot(data) : null,
+    studyPlan: selectedApplication?.studyPlan ?? null,
   };
 }
 

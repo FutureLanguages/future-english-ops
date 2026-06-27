@@ -169,6 +169,7 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
     },
     include: {
       studentProfile: true,
+      studyPlan: true,
       parentProfiles: true,
       documents: {
         include: {
@@ -246,6 +247,7 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
   type AdminWorkspaceApplication = Prisma.ApplicationGetPayload<{
     include: {
       studentProfile: true;
+      studyPlan: true;
       parentProfiles: true;
       documents: {
         include: {
@@ -486,6 +488,24 @@ export async function getAdminApplicationWorkspaceViewModel(params: {
       documentsNeedingReviewCount: derived.documentsNeedingReviewCount,
       reuploadCount: derived.reuploadCount,
     },
+    studyPlan: hydratedApplication.studyPlan
+      ? {
+          instituteName: hydratedApplication.studyPlan.instituteName,
+          instituteBranch: hydratedApplication.studyPlan.instituteBranch,
+          country: hydratedApplication.studyPlan.country,
+          city: hydratedApplication.studyPlan.city,
+          programName: hydratedApplication.studyPlan.programName,
+          programStartDate: hydratedApplication.studyPlan.programStartDate,
+          programEndDate: hydratedApplication.studyPlan.programEndDate,
+          housingType: hydratedApplication.studyPlan.housingType,
+          roomType: hydratedApplication.studyPlan.roomType,
+          housingNotes: hydratedApplication.studyPlan.housingNotes,
+          departureDate: hydratedApplication.studyPlan.departureDate,
+          arrivalDate: hydratedApplication.studyPlan.arrivalDate,
+          airlineName: hydratedApplication.studyPlan.airlineName,
+          flightNumber: hydratedApplication.studyPlan.flightNumber,
+        }
+      : null,
     payments: {
       totalFeesSar: adminFinanceSummary.totalFeesSar,
       discountSar: adminFinanceSummary.totalDiscountsSar,

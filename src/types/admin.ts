@@ -55,6 +55,23 @@ export type AdminWorkspaceDocumentGroup = {
   items: AdminWorkspaceDocumentItem[];
 };
 
+export type AdminStudyPlanView = {
+  instituteName: string | null;
+  instituteBranch: string | null;
+  country: string | null;
+  city: string | null;
+  programName: string | null;
+  programStartDate: Date | null;
+  programEndDate: Date | null;
+  housingType: string | null;
+  roomType: string | null;
+  housingNotes: string | null;
+  departureDate: Date | null;
+  arrivalDate: Date | null;
+  airlineName: string | null;
+  flightNumber: string | null;
+};
+
 export type AdminDashboardViewModel = {
   adminMobileNumber: string;
   navItems: AdminNavItem[];
@@ -226,6 +243,7 @@ export type AdminApplicationWorkspaceViewModel = {
     documentsNeedingReviewCount: number;
     reuploadCount: number;
   };
+  studyPlan: AdminStudyPlanView | null;
   payments: {
     totalFeesSar: number;
     discountSar: number;

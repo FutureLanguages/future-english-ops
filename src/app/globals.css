@@ -89,22 +89,22 @@
 
 :root {
   color-scheme: light;
-  --color-primary-500: #E07A3F;
-  --color-primary-500-rgb: 224 122 63;
-  --color-primary-600: #B95C2E;
-  --color-primary-600-rgb: 185 92 46;
-  --color-primary-200: #F3B992;
-  --color-primary-200-rgb: 243 185 146;
+  --color-primary-500: #E8621A;
+  --color-primary-500-rgb: 232 98 26;
+  --color-primary-600: #C4511A;
+  --color-primary-600-rgb: 196 81 26;
+  --color-primary-200: #F7C4A8;
+  --color-primary-200-rgb: 247 196 168;
   --color-secondary-500: #CFEAF1;
   --color-secondary-500-rgb: 207 234 241;
   --color-secondary-600: #6FAFBE;
   --color-secondary-600-rgb: 111 175 190;
   --color-secondary-100: #EAF6F9;
   --color-secondary-100-rgb: 234 246 249;
-  --color-success-700: #234E52;
-  --color-success-700-rgb: 35 78 82;
-  --color-success-100: #E6F3EE;
-  --color-success-100-rgb: 230 243 238;
+  --color-success-700: #1D7A79;
+  --color-success-700-rgb: 29 122 121;
+  --color-success-100: #E0F4F4;
+  --color-success-100-rgb: 224 244 244;
   --color-warning-500: #D4860A;
   --color-warning-500-rgb: 212 134 10;
   --color-warning-100: #FFF6E8;
@@ -117,8 +117,8 @@
   --color-info-500-rgb: 111 175 190;
   --color-info-100: #EAF6F9;
   --color-info-100-rgb: 234 246 249;
-  --color-bg-app: #F9FBFC;
-  --color-bg-app-rgb: 249 251 252;
+  --color-bg-app: #F2F2F2;
+  --color-bg-app-rgb: 242 242 242;
   --color-bg-surface: #FFFFFF;
   --color-bg-surface-rgb: 255 255 255;
   --color-bg-surface-alt: #FCFDFD;
@@ -137,8 +137,8 @@
   --color-border-subtle-rgb: 221 229 234;
   --color-border-strong: #C9D6DD;
   --color-border-strong-rgb: 201 214 221;
-  --color-border-focus: #E07A3F;
-  --color-border-focus-rgb: 224 122 63;
+  --color-border-focus: #E8621A;
+  --color-border-focus-rgb: 232 98 26;
   --font-heading: "Tajawal", sans-serif;
   --font-body: "Tajawal", sans-serif;
   --text-h1: 1.5rem;

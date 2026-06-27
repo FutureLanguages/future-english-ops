@@ -4,9 +4,9 @@ import type { PortalSectionCard } from "@/types/portal";
 export function DashboardSectionCard({ card }: { card: PortalSectionCard }) {
   const toneClasses =
     card.statusTone === "success"
-      ? "bg-[#e9f7ee] text-[#1b7a43]"
+      ? "bg-mist text-pine"
       : card.statusTone === "warning"
-        ? "bg-[#fff1ea] text-[#9f4a1f]"
+        ? "bg-primary-200/45 text-brand"
         : "bg-mist text-pine";
 
   const content = (

@@ -349,6 +349,11 @@ export default async function AdminApplicationWorkspacePage({
   ).length;
   const documentMissingCount = documentItems.filter((item) => item.status === "MISSING").length;
   const documentApprovedCount = documentItems.filter((item) => item.status === "APPROVED").length;
+  const hasStudyPlanDetails = viewModel.studyPlan
+    ? Object.values(viewModel.studyPlan).some(
+        (value) => value instanceof Date || (typeof value === "string" && value.trim().length > 0),
+      )
+    : false;
   const tabQuery = `?tab=${activeTab}`;
 
   return (
@@ -519,16 +524,35 @@ export default async function AdminApplicationWorkspacePage({
 
         {activeTab === "data" ? (
           <section className="grid gap-4 xl:grid-cols-[1fr,0.8fr]">
-            <Link
-              href={`/admin/students/${applicationId}/profile`}
-              className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft transition hover:bg-sand"
-            >
-              <div className="text-sm font-bold text-ink/55">البيانات الكاملة</div>
-              <div className="mt-2 text-lg font-extrabold text-ink">عرض وتحرير بيانات الطالب وولي الأمر</div>
-              <div className="mt-2 text-sm leading-6 text-ink/60">
-                الاسم، الجوال، البريد، الجنسية، الهوية، الجواز، بيانات الأسرة، الحالة الصحية والسلوكية، وملاحظات ولي الأمر للمشرفين.
-              </div>
-            </Link>
+            <div className="space-y-4">
+              <Link
+                href={`/admin/students/${applicationId}/profile`}
+                className="block rounded-2xl border border-black/10 bg-white p-5 shadow-soft transition hover:bg-sand"
+              >
+                <div className="text-sm font-bold text-ink/55">البيانات الكاملة</div>
+                <div className="mt-2 text-lg font-extrabold text-ink">عرض وتحرير بيانات الطالب وولي الأمر</div>
+                <div className="mt-2 text-sm leading-6 text-ink/60">
+                  الاسم، الجوال، البريد، الجنسية، الهوية، الجواز، بيانات الأسرة، الحالة الصحية والسلوكية، وملاحظات ولي الأمر للمشرفين.
+                </div>
+              </Link>
+              <Link
+                href={`/admin/students/${applicationId}/study-plan`}
+                className="block rounded-2xl border border-black/10 bg-white p-5 shadow-soft transition hover:bg-sand"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm font-bold text-ink/55">خطة الدراسة</div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                    hasStudyPlanDetails ? "bg-mist text-pine" : "bg-sand text-ink/60"
+                  }`}>
+                    {hasStudyPlanDetails ? "بيانات مسجلة" : "لم تُسجل بعد"}
+                  </span>
+                </div>
+                <div className="mt-2 text-lg font-extrabold text-ink">إدخال بيانات الدراسة والسكن والسفر</div>
+                <div className="mt-2 text-sm leading-6 text-ink/60">
+                  المعهد، البرنامج، مواعيد الدراسة، السكن، وتفاصيل الرحلة التي تظهر في بطاقة الطالب.
+                </div>
+              </Link>
+            </div>
             <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
               <h2 className="text-lg font-extrabold text-ink">مرجع سريع</h2>
               <div className="mt-4 space-y-3 text-sm text-ink/70">

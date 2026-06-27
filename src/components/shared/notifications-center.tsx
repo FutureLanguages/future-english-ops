@@ -151,7 +151,7 @@ export function NotificationsCenter({
   return (
     <div className="space-y-5">
       {toast ? (
-        <div className="rounded-2xl bg-[#e9f7ee] px-4 py-3 text-sm font-semibold text-[#1b7a43] shadow-soft">
+        <div className="rounded-2xl bg-mist px-4 py-3 text-sm font-semibold text-pine shadow-soft">
           {toast}
         </div>
       ) : null}
@@ -237,9 +237,9 @@ export function NotificationsCenter({
                           className={clsx(
                             "rounded-full px-3 py-1 text-xs font-bold",
                             notification.importance === "critical"
-                              ? "bg-[#ffe8e8] text-[#a03232]"
+                              ? "bg-error-100 text-error-600"
                               : notification.importance === "actionable"
-                                ? "bg-[#fff8e1] text-[#7a5a03]"
+                                ? "bg-warning-100 text-warning-500"
                                 : "bg-white text-ink/55",
                           )}
                         >
@@ -313,9 +313,9 @@ function NotificationSummary({
 }) {
   const className =
     tone === "critical"
-      ? "bg-[#ffe8e8] text-[#a03232]"
+      ? "bg-error-100 text-error-600"
       : tone === "actionable"
-        ? "bg-[#fff8e1] text-[#7a5a03]"
+        ? "bg-warning-100 text-warning-500"
         : "bg-sand text-ink";
 
   return (

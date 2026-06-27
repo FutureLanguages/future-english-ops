@@ -118,6 +118,7 @@ export async function loadPortalApplicationData(params: {
     include: {
       studentProfile: true,
       portalConfig: true,
+      studyPlan: true,
       studentHealthProfile: true,
       parentSupervisorNote: true,
       parentProfiles: true,
@@ -199,6 +200,7 @@ export async function loadPortalApplicationData(params: {
     include: {
       studentProfile: true;
       portalConfig: true;
+      studyPlan: true;
       studentHealthProfile: true;
       parentSupervisorNote: true;
       parentProfiles: true;

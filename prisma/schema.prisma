@@ -73,6 +73,7 @@ model Application {
   studentHealthProfile StudentHealthProfile?
   studentProfile       StudentProfile?
   portalConfig         ApplicationPortalConfig?
+  studyPlan            ApplicationStudyPlan?
   financialDifferenceSettlements FinancialDifferenceSettlement[]
   portalConfigAuditLogs            PortalConfigAuditLog[]
 }
@@ -91,6 +92,28 @@ model ApplicationPortalConfig {
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
   application         Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model ApplicationStudyPlan {
+  id               String      @id @default(cuid())
+  applicationId    String      @unique
+  instituteName    String?
+  instituteBranch  String?
+  country          String?
+  city             String?
+  programName      String?
+  programStartDate DateTime?
+  programEndDate   DateTime?
+  housingType      String?
+  roomType         String?
+  housingNotes     String?     @db.Text
+  departureDate    DateTime?
+  arrivalDate      DateTime?
+  airlineName      String?
+  flightNumber     String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  application      Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 }
 
 

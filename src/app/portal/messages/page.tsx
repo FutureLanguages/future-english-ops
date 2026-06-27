@@ -44,11 +44,11 @@ export default async function PortalMessagesPage({
     >
       <div className="space-y-5">
         {resolvedSearchParams?.success === "message_sent" ? (
-          <section className="rounded-panel bg-[#e9f7ee] p-4 text-sm font-semibold text-[#1b7a43] shadow-soft">
+          <section className="rounded-panel bg-mist p-4 text-sm font-semibold text-pine shadow-soft">
             تم إرسال الرسالة بنجاح.
           </section>
         ) : resolvedSearchParams?.error ? (
-          <section className="rounded-panel bg-[#ffe8e8] p-4 text-sm font-semibold text-[#a03232] shadow-soft">
+          <section className="rounded-panel bg-sand p-4 text-sm font-semibold text-error-600 shadow-soft">
             {resolvedSearchParams.error === "agreement_required"
               ? "يجب الموافقة على الميثاق قبل استكمال البيانات."
               : "تعذر إرسال الرسالة حالياً."}

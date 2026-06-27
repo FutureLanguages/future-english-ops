@@ -3,9 +3,9 @@ import clsx from "clsx";
 import type { PortalActionView } from "@/types/portal";
 
 const tones = {
-  critical: "border-[#d98662] bg-[#fff1ea] text-[#8d3a14]",
-  warning: "border-[#e6c16d] bg-[#fff8e1] text-[#7a5a03]",
-  neutral: "border-[#d7dfdb] bg-[#f7fbf9] text-[#21443c]",
+  critical: "border-brand/30 bg-primary-200/45 text-brand",
+  warning: "border-warning-100 bg-warning-100 text-warning-500",
+  neutral: "border-pine/15 bg-mist text-pine",
 } as const;
 
 export function RequiredActionsList({ actions }: { actions: PortalActionView[] }) {

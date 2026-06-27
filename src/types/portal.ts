@@ -137,6 +137,23 @@ export type PortalProgramConfigView = {
   items: PortalProgramSurfaceItem[];
 };
 
+export type PortalStudyPlanView = {
+  instituteName: string | null;
+  instituteBranch: string | null;
+  country: string | null;
+  city: string | null;
+  programName: string | null;
+  programStartDate: Date | null;
+  programEndDate: Date | null;
+  housingType: string | null;
+  roomType: string | null;
+  housingNotes: string | null;
+  departureDate: Date | null;
+  arrivalDate: Date | null;
+  airlineName: string | null;
+  flightNumber: string | null;
+};
+
 export type PortalDashboardBaseViewModel = {
   role: "STUDENT" | "PARENT";
   mobileNumber: string;
@@ -202,6 +219,7 @@ export type StudentDashboardViewModel = PortalDashboardBaseViewModel & {
     href?: string;
   };
   financeSnapshot?: PortalFinanceSnapshot | null;
+  studyPlan: PortalStudyPlanView | null;
 };
 
 export type ParentReassuranceState =
